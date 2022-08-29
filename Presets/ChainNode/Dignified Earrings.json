@@ -1,0 +1,23 @@
+{
+    "presetVersion": 3,
+    "presetType": "RE_CHAIN_NODE",
+    "angleLimitRad": 1.5707963705062866,
+    "angleLimitDistance": 0.0,
+    "angleLimitRestitution": 0.0,
+    "angleLimitRestituteStopSpeed": 0.10000000149011612,
+    "collisionRadius": 0.0,
+    "collisionFilterFlags": 0,
+    "capsuleStretchRate0": 1.0,
+    "capsuleStretchRate1": 1.0,
+    "attrFlags": 0,
+    "windCoef": 1.0,
+    "angleMode": 1,
+    "collisionShape": 0,
+    "attachType": 0,
+    "rotationType": 0,
+    "unknChainNodeValue0": 0.0,
+    "unknChainNodeValue1": 0.0,
+    "unknChainNodeValue2": 1.0,
+    "unknChainNodeValue3": 0.0,
+    "chainVersion": 48
+}

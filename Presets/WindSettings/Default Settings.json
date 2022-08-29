@@ -1,0 +1,62 @@
+{
+	"chainVersion": 48,
+    "presetVersion": 2,
+    "presetType": "RE_CHAIN_WINDSETTINGS",
+    "id": 0,
+    "windDirection": 1,
+    "windCount": 1,
+    "windType": 3,
+    "randomDamping": 0.5,
+    "randomDampingCycle": 3.0,
+    "randomCycleScaling": 1.0,
+    "dir0": [
+        0.9284768104553223,
+        0.0,
+        0.371390700340271
+    ],
+    "min0": 0.20000000298023224,
+    "max0": 1.0,
+    "phaseShift0": 0.0,
+    "cycle0": 240.0,
+    "interval0": 30.0,
+    "dir1": [
+        0.0,
+        0.0,
+        1.0
+    ],
+    "min1": 0.0,
+    "max1": 1.0,
+    "phaseShift1": 0.0,
+    "cycle1": 60.0,
+    "interval1": 0.0,
+    "dir2": [
+        0.0,
+        0.0,
+        1.0
+    ],
+    "min2": 0.0,
+    "max2": 1.0,
+    "phaseShift2": 0.0,
+    "cycle2": 60.0,
+    "interval2": 0.0,
+    "dir3": [
+        0.0,
+        0.0,
+        1.0
+    ],
+    "min3": 0.0,
+    "max3": 1.0,
+    "phaseShift3": 0.0,
+    "cycle3": 60.0,
+    "interval3": 0.0,
+    "dir4": [
+        0.0,
+        0.0,
+        1.0
+    ],
+    "min4": 0.0,
+    "max4": 1.0,
+    "phaseShift4": 0.0,
+    "cycle4": 60.0,
+    "interval4": 0.0
+}
