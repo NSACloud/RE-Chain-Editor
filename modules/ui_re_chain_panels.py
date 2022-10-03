@@ -6,6 +6,7 @@ from bpy.types import (Panel,
 					   PropertyGroup,
 					   )
 
+from .file_re_chain import version
 
 def tag_redraw(context, space_type="PROPERTIES", region_type="WINDOW"):
 	for window in context.window_manager.windows:
@@ -173,6 +174,7 @@ class OBJECT_PT_ChainHeaderPanel(Panel):
 		layout = self.layout
 		object = context.active_object
 		re_chain_header = object.re_chain_header
+		global version; version = int(re_chain_header.version)
 
 		split = layout.split(factor=0.01)
 		col1 = split.column()
@@ -300,18 +302,22 @@ class OBJECT_PT_ChainSettingsPanel(Panel):
 		col2.prop(re_chain_chainsettings, "gravity")
 		col2.prop(re_chain_chainsettings, "muzzleVelocity")
 		col2.prop(re_chain_chainsettings, "damping",slider=True)
-		col2.prop(re_chain_chainsettings, "minDamping",slider=True)
-		col2.prop(re_chain_chainsettings, "dampingPow")
+		if version >= 24:
+			col2.prop(re_chain_chainsettings, "minDamping",slider=True)
+			col2.prop(re_chain_chainsettings, "dampingPow")
 		col2.prop(re_chain_chainsettings, "secondDamping",slider=True)
-		col2.prop(re_chain_chainsettings, "secondMinDamping",slider=True)
-		col2.prop(re_chain_chainsettings, "secondDampingSpeed")		
-		col2.prop(re_chain_chainsettings, "secondDampingPow")
-		col2.prop(re_chain_chainsettings, "collideMaxVelocity")
+		if version >= 24:
+			col2.prop(re_chain_chainsettings, "secondMinDamping",slider=True)
+		col2.prop(re_chain_chainsettings, "secondDampingSpeed")	
+		if version >= 24:	
+			col2.prop(re_chain_chainsettings, "secondDampingPow")
+			col2.prop(re_chain_chainsettings, "collideMaxVelocity")
 		col2.prop(re_chain_chainsettings, "springForce")
-		col2.prop(re_chain_chainsettings, "springLimitRate")
-		col2.prop(re_chain_chainsettings, "springMaxVelocity")
-		col2.prop(re_chain_chainsettings, "springCalcType")
-		col2.prop(re_chain_chainsettings, "unknFlag")
+		if version >= 24:
+			col2.prop(re_chain_chainsettings, "springLimitRate")
+			col2.prop(re_chain_chainsettings, "springMaxVelocity")
+			col2.prop(re_chain_chainsettings, "springCalcType")
+			col2.prop(re_chain_chainsettings, "unknFlag")
 		col2.prop(re_chain_chainsettings, "reduceSelfDistanceRate",slider=True)
 		col2.prop(re_chain_chainsettings, "secondReduceDistanceRate",slider=True)
 		col2.prop(re_chain_chainsettings, "secondReduceDistanceSpeed")
@@ -356,23 +362,26 @@ class OBJECT_PT_ChainGroupPanel(Panel):
 		col2.prop(re_chain_chaingroup, "rotationOrder")
 		col2.prop(re_chain_chaingroup, "attrFlags")
 		col2.prop(re_chain_chaingroup, "collisionFilterFlags")
-		col2.prop(re_chain_chaingroup, "dampingNoise0")
-		col2.prop(re_chain_chaingroup, "dampingNoise1")
-		col2.prop(re_chain_chaingroup, "endRotConstMax")
-		col2.prop(re_chain_chaingroup, "angleLimitDirectionMode")
-		col2.prop(re_chain_chaingroup, "unknGroupValue0")
-		col2.prop(re_chain_chaingroup, "unknGroupValue0B")
-		col2.prop(re_chain_chaingroup, "unknGroupValue1")
-		col2.prop(re_chain_chaingroup, "unknGroupValue2")
+		if version >= 35:
+			col2.prop(re_chain_chaingroup, "dampingNoise0")
+			col2.prop(re_chain_chaingroup, "dampingNoise1")
+			col2.prop(re_chain_chaingroup, "endRotConstMax")
+			col2.prop(re_chain_chaingroup, "angleLimitDirectionMode")
+			col2.prop(re_chain_chaingroup, "unknGroupValue0")
+			col2.prop(re_chain_chaingroup, "unknGroupValue0B")
+			col2.prop(re_chain_chaingroup, "unknGroupValue1")
+			col2.prop(re_chain_chaingroup, "unknGroupValue2")
 		col2.prop(re_chain_chaingroup, "extraNodeLocalPos")
-		col2.prop(re_chain_chaingroup, "unknBoneHash")
+		if version >= 35:
+			col2.prop(re_chain_chaingroup, "unknBoneHash")
 		col2.prop(re_chain_chaingroup, "autoBlendCheckNodeNo") 
-		col2.prop(re_chain_chaingroup, "tagCount")
-		col2.prop(re_chain_chaingroup, "tag0")
-		col2.prop(re_chain_chaingroup, "tag1")
-		col2.prop(re_chain_chaingroup, "tag2")
-		col2.prop(re_chain_chaingroup, "tag3")
-		
+		if version >= 35:
+			col2.prop(re_chain_chaingroup, "tagCount")
+			col2.prop(re_chain_chaingroup, "tag0")
+			col2.prop(re_chain_chaingroup, "tag1")
+			col2.prop(re_chain_chaingroup, "tag2")
+			col2.prop(re_chain_chaingroup, "tag3")
+
 class OBJECT_PT_ChainNodePanel(Panel):
 	bl_label = "RE Chain Node Settings"
 	bl_idname = "OBJECT_PT_chain_node_panel"
@@ -411,10 +420,11 @@ class OBJECT_PT_ChainNodePanel(Panel):
 		col2.prop(re_chain_chainnode, "attachType")
 		col2.prop(re_chain_chainnode, "rotationType")
 		#col2.prop(re_chain_chainnode, "jiggleData")
-		col2.prop(re_chain_chainnode, "unknChainNodeValue0")
-		col2.prop(re_chain_chainnode, "unknChainNodeValue1")
-		col2.prop(re_chain_chainnode, "unknChainNodeValue2")
-		col2.prop(re_chain_chainnode, "unknChainNodeValue3")
+		if version >= 35:
+			col2.prop(re_chain_chainnode, "unknChainNodeValue0")
+			col2.prop(re_chain_chainnode, "unknChainNodeValue1")
+			col2.prop(re_chain_chainnode, "unknChainNodeValue2")
+			col2.prop(re_chain_chainnode, "unknChainNodeValue3")
 		
 class OBJECT_PT_ChainCollisionPanel(Panel):
 	bl_label = "RE Chain Collision Settings"
@@ -440,12 +450,14 @@ class OBJECT_PT_ChainCollisionPanel(Panel):
 		col2 = split.column()
 		col2.alignment='RIGHT'
 		col2.use_property_split = True
-		col2.prop(re_chain_chaincollision, "rotationOrder")
+		if version >= 48:
+			col2.prop(re_chain_chaincollision, "rotationOrder")
 		col2.prop(re_chain_chaincollision, "radius")
 		col2.prop(re_chain_chaincollision, "collisionOffset")
 		col2.prop(re_chain_chaincollision, "endCollisionOffset")	
 		col2.prop(re_chain_chaincollision, "lerp")
-		col2.prop(re_chain_chaincollision, "unknCollisionValue") 
+		if version >= 48:
+			col2.prop(re_chain_chaincollision, "unknCollisionValue") 
 		col2.prop(re_chain_chaincollision, "chainCollisionShape")
 		col2.prop(re_chain_chaincollision, "subDataCount")
 		col2.prop(re_chain_chaincollision, "collisionFilterFlags")

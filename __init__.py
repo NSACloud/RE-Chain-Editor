@@ -26,7 +26,7 @@ from .modules.re_chain_operators import WM_OT_ChainFromBone,WM_OT_CollisionFromB
 class ImportREChain(bpy.types.Operator, ImportHelper):
 	'''Import RE Engine Chain File'''
 	bl_idname = "re_chain.importfile"
-	bl_label = "Import RE Chain (.chain.48)"
+	bl_label = "Import RE Chain (.chain.*)"
 	bl_options = {'PRESET', "REGISTER", "UNDO"}
 	files : CollectionProperty(
 			name="File Path",
@@ -52,7 +52,7 @@ class ImportREChain(bpy.types.Operator, ImportHelper):
 					return {"CANCELLED"}
 		
 class ExportREChain(bpy.types.Operator, ExportHelper):
-	'''Export RE Engine Chain File'''
+	'''Export RE Engine Chain File (MHRise Sunbreak)'''
 	bl_idname = "re_chain.exportfile"
 	bl_label = "Export RE Chain (.chain.48)"
 	bl_options = {'PRESET'}
@@ -60,7 +60,63 @@ class ExportREChain(bpy.types.Operator, ExportHelper):
 	filter_glob: StringProperty(default="*.chain*", options={'HIDDEN'})
 
 	def execute(self, context):
-		success = exportChainFile(self.filepath)
+		success = exportChainFile(self.filepath, 48)
+		if success:
+			self.report({"INFO"},"Exported RE Chain successfully.")
+		return {"FINISHED"}
+
+class ExportREChain21(bpy.types.Operator, ExportHelper):
+	'''Export RE Engine Chain File (DMC5, RE2R)'''
+	bl_idname = "re_chain.exportfile21"
+	bl_label = "Export RE Chain (.chain.21)"
+	bl_options = {'PRESET'}
+	filename_ext = ".21"
+	filter_glob: StringProperty(default="*.chain*", options={'HIDDEN'})
+
+	def execute(self, context):
+		success = exportChainFile(self.filepath, 21)
+		if success:
+			self.report({"INFO"},"Exported RE Chain successfully.")
+		return {"FINISHED"}
+
+class ExportREChain24(bpy.types.Operator, ExportHelper):
+	'''Export RE Engine Chain File (RE3R, Resistance)'''
+	bl_idname = "re_chain.exportfile24"
+	bl_label = "Export RE Chain (.chain.24)"
+	bl_options = {'PRESET'}
+	filename_ext = ".24"
+	filter_glob: StringProperty(default="*.chain*", options={'HIDDEN'})
+
+	def execute(self, context):
+		success = exportChainFile(self.filepath, 24)
+		if success:
+			self.report({"INFO"},"Exported RE Chain successfully.")
+		return {"FINISHED"}
+
+class ExportREChain39(bpy.types.Operator, ExportHelper):
+	'''Export RE Engine Chain File (RE8)'''
+	bl_idname = "re_chain.exportfile39"
+	bl_label = "Export RE Chain (.chain.39)"
+	bl_options = {'PRESET'}
+	filename_ext = ".39"
+	filter_glob: StringProperty(default="*.chain*", options={'HIDDEN'})
+
+	def execute(self, context):
+		success = exportChainFile(self.filepath, 39)
+		if success:
+			self.report({"INFO"},"Exported RE Chain successfully.")
+		return {"FINISHED"}
+
+class ExportREChain46(bpy.types.Operator, ExportHelper):
+	'''Export RE Engine Chain File (Ray Tracing RE2,3,7)'''
+	bl_idname = "re_chain.exportfile46"
+	bl_label = "Export RE Chain (.chain.46)"
+	bl_options = {'PRESET'}
+	filename_ext = ".46"
+	filter_glob: StringProperty(default="*.chain*", options={'HIDDEN'})
+
+	def execute(self, context):
+		success = exportChainFile(self.filepath, 46)
 		if success:
 			self.report({"INFO"},"Exported RE Chain successfully.")
 		return {"FINISHED"}
@@ -71,6 +127,10 @@ class ExportREChain(bpy.types.Operator, ExportHelper):
 classes = [
 	ImportREChain,
 	ExportREChain,
+	ExportREChain21,
+	ExportREChain24,
+	ExportREChain39,
+	ExportREChain46,
 	chainToolPanelPropertyGroup,
 	chainHeaderPropertyGroup,
 	chainWindSettingsPropertyGroup,
@@ -116,9 +176,13 @@ classes = [
 
 
 def re_chain_import(self, context):
-	self.layout.operator(ImportREChain.bl_idname, text="RE Chain (.chain.48)")
+	self.layout.operator(ImportREChain.bl_idname, text="RE Chain (.chain.*)")
 	
 def re_chain_export(self, context):
+	self.layout.operator(ExportREChain21.bl_idname, text="RE Chain (.chain.21)")
+	self.layout.operator(ExportREChain24.bl_idname, text="RE Chain (.chain.24)")
+	self.layout.operator(ExportREChain39.bl_idname, text="RE Chain (.chain.39)")
+	self.layout.operator(ExportREChain46.bl_idname, text="RE Chain (.chain.46)")
 	self.layout.operator(ExportREChain.bl_idname, text="RE Chain (.chain.48)")
 
 def register():

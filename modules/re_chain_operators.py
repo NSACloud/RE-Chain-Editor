@@ -384,9 +384,9 @@ class WM_OT_PasteChainProperties(Operator):
 						activeObj.re_chain_chaincollision[key] = value
 						
 						#I know this looks pointless but the purpose of this is force the update function to trigger, otherwise the position doesn't update
-						activeObj.re_chain_chaincollision.collisionOffset = activeObj.re_chain_chaincollision.collisionOffset
-						activeObj.re_chain_chaincollision.endCollisionOffset = activeObj.re_chain_chaincollision.endCollisionOffset
-						activeObj.re_chain_chaincollision.radius = activeObj.re_chain_chaincollision.radius
+						#activeObj.re_chain_chaincollision.collisionOffset = activeObj.re_chain_chaincollision.collisionOffset
+						#activeObj.re_chain_chaincollision.endCollisionOffset = activeObj.re_chain_chaincollision.endCollisionOffset
+						#activeObj.re_chain_chaincollision.radius = activeObj.re_chain_chaincollision.radius
 				tag_redraw(bpy.context)#Redraw property panel
 				self.report({"INFO"},"Pasted properties of " + str(clipboard.re_chain_type_name)+" object from clipboard.")
 			else:

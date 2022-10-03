@@ -169,10 +169,21 @@ class chainToolPanelPropertyGroup(bpy.types.PropertyGroup):
 		)
 class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
 
-	version: IntProperty(
+	'''version: IntProperty(
 		name = "Chain Version",
 		description="Chain Version",#TODO Add description
-		default = 35,
+		#default = 35,
+		)'''
+	version: EnumProperty(
+		name = "Chain Version",
+		description="Chain Version",#TODO Add description
+		items=[ ("21", ".21 (RE2R, DMC5)", ""),
+				("24", ".24 (RE3R, Resistance)", ""),
+				("35", ".35 (MHRise)", ""),
+				("39", ".39 (RE8)", ""),
+				("46", ".46 (Ray Tracing RE2,3,7)", ""),
+				("48", ".48 (MHRise Sunbreak)", ""),
+			   ]
 		)
 	errFlags: EnumProperty(
 		name="Error Flags",
@@ -351,7 +362,7 @@ class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
   
 def getChainHeader(ChainHeaderData,targetObject):
 	#Done manually to be able to account for chain version differences eventually
-	targetObject.re_chain_header.version = ChainHeaderData.version
+	targetObject.re_chain_header.version = str(ChainHeaderData.version)
 	targetObject.re_chain_header.errFlags = str(ChainHeaderData.errFlags)
 	targetObject.re_chain_header.masterSize = ChainHeaderData.masterSize
 	targetObject.re_chain_header.rotationOrder = str(ChainHeaderData.rotationOrder)
@@ -373,7 +384,7 @@ def getChainHeader(ChainHeaderData,targetObject):
 
 
 def setChainHeaderData(ChainHeaderData,targetObject):
-	ChainHeaderData.version = targetObject.re_chain_header.version 
+	ChainHeaderData.version = int(targetObject.re_chain_header.version) 
 	ChainHeaderData.errFlags = int(targetObject.re_chain_header.errFlags)
 	ChainHeaderData.masterSize = targetObject.re_chain_header.masterSize 
 	ChainHeaderData.rotationOrder = int(targetObject.re_chain_header.rotationOrder)
@@ -749,6 +760,7 @@ class chainSettingsPropertyGroup(bpy.types.PropertyGroup):
 				("2", "SettingAttrFlags_VirtualGroundRoot", ""),
 				("3", "SettingAttrFlags_UNKNOWNFLAG_3", ""),
 				("4", "SettingAttrFlags_VirtualGroundTarget", ""),
+				("5", "SettingAttrFlags_UNKNOWNFLAG_4", ""),
 				("8", "SettingAttrFlags_IgnoreSameGroupCollision", ""),
 				("9", "SettingAttrFlags_UNKNOWNFLAG_9", ""),
 				("6", "SettingAttrFlags_VirtualGroundMask", ""),
@@ -943,6 +955,7 @@ class chainSettingsPropertyGroup(bpy.types.PropertyGroup):
 				("4096", "AttrFlags_AngleLimitRestitution", ""),
 				("8192", "AttrFlags_StretchBoth", ""),
 				("16384", "AttrFlags_EndRotConstraint", ""),
+				("48", "AttrFlags_UNKNOWNFLAG_48", ""),
 				("96", "AttrFlags_UNKNOWNFLAG_96", ""),
 				("160", "AttrFlags_UNKNOWNFLAG_160", ""),
 				("176", "AttrFlags_UNKNOWNFLAG_176", ""),
@@ -1015,7 +1028,10 @@ def getChainSettings(ChainSettingsData,targetObject):
 	targetObject.re_chain_chainsettings.stretchInteractionRatio = ChainSettingsData.stretchInteractionRatio
 	targetObject.re_chain_chainsettings.angleLimitInteractionRatio = ChainSettingsData.angleLimitInteractionRatio
 	targetObject.re_chain_chainsettings.shootingElasticLimitRate = ChainSettingsData.shootingElasticLimitRate
-	targetObject.re_chain_chainsettings.groupDefaultAttr = str(ChainSettingsData.groupDefaultAttr)
+	try:
+		targetObject.re_chain_chainsettings.groupDefaultAttr = str(ChainSettingsData.groupDefaultAttr)
+	except:
+		pass
 	targetObject.re_chain_chainsettings.windEffectCoef = ChainSettingsData.windEffectCoef
 	targetObject.re_chain_chainsettings.velocityLimit = ChainSettingsData.velocityLimit
 	targetObject.re_chain_chainsettings.hardness = ChainSettingsData.hardness
@@ -1545,7 +1561,7 @@ class chainCollisionPropertyGroup(bpy.types.PropertyGroup):
 	collisionOffset: FloatVectorProperty(
 		name = "Collision Offset",
 		description="Set the positional offset of the collision from the bone",
-		default = (0.0,0.0,0.0),
+		#default = (0.0,0.0,0.0),
 		step = .1,
 		subtype = "XYZ",
 		update = update_CollisionOffset
@@ -1553,7 +1569,7 @@ class chainCollisionPropertyGroup(bpy.types.PropertyGroup):
 	endCollisionOffset: FloatVectorProperty(
 		name = "End Collision Offset",
 		description="Set the collision offset from the end bone for collision capsules",
-		default = (0.0,0.0,0.0),
+		#default = (0.0,0.0,0.0),
 		step = .1,
 		subtype = "XYZ",
 		update = update_EndCollisionOffset

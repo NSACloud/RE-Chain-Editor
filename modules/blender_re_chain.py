@@ -184,21 +184,38 @@ def importChainFile(filepath):
 	#convert header to empty
 	chainFile = readREChain(filepath)
 	
+	removedItems = []
 	#Pre check to see if the chain bones are present before trying to import the chain
-	for chainGroup in chainFile.ChainGroupList:
+	for chainIndex,chainGroup in enumerate(chainFile.ChainGroupList):
 		endBone = findBone(chainGroup.terminateNodeName,armature)
 		if endBone == None:
-			showErrorMessageBox("Could not find " + chainGroup.terminateNodeName + " bone on an armature. Make sure the mesh file is imported and only a single armature is in the scene.")
-			return False
+			raiseWarning("Could not find " + chainGroup.terminateNodeName + " bone on an armature. Make sure the mesh file is imported and only a single armature is in the scene.")
+			removedItems.append(chainGroup)
+			#return False
+
+	for item in removedItems:
+		chainFile.ChainGroupList.remove(item)
+
+	removedItems = []
 	boneHashDict = getArmatureHashList(armature)
+
 	#Pre check to see that all collision bone hashes match to bones
 	for collisionIndex,chainCollision in enumerate(chainFile.ChainCollisionList):
 		if chainCollision.jointNameHash not in boneHashDict.keys():
-			showErrorMessageBox("Collision Entry " + str(collisionIndex) + ": Joint hash ("+str(chainCollision.jointNameHash)+") does not match to any bones on the armature. The armature may be missing bones.")
-			return False
-		if chainCollision.chainCollisionShape == 2 and chainCollision.pairJointNameHash not in boneHashDict.keys():#Capsule
-			showErrorMessageBox("Collision Entry " + str(collisionIndex) + ": Pair joint hash ("+str(chainCollision.pairJointNameHash)+") does not match to any bones on the armature. The armature may be missing bones.")
-			return False
+			raiseWarning("Collision Entry " + str(collisionIndex) + ": Joint hash ("+str(chainCollision.jointNameHash)+") does not match to any bones on the armature. The armature may be missing bones.")
+			removedItems.append(chainCollision)
+			#return False
+		elif chainCollision.chainCollisionShape == 2 and chainCollision.pairJointNameHash not in boneHashDict.keys():#Capsule
+			raiseWarning("Collision Entry " + str(collisionIndex) + ": Pair joint hash ("+str(chainCollision.pairJointNameHash)+") does not match to any bones on the armature. The armature may be missing bones.")
+			removedItems.append(chainCollision)
+			#return False
+
+	for item in removedItems:
+		chainFile.ChainCollisionList.remove(item)
+
+	chainFile.Header.chainModelCollisionCount = len(chainFile.ChainCollisionList)
+	chainFile.Header.chainGroupCount = len(chainFile.ChainGroupList)
+
 	#HEADER IMPORT
 	terminalNameHashDict = {}#Used for chain links
 	"""
@@ -278,14 +295,14 @@ def importChainFile(filepath):
 					if currentBone != None:
 						constraint = nodeObj.constraints.new(type = "CHILD_OF")
 						constraint.target = armature
-						constraint.subtarget = currentBone.name
+						constraint.subtarget = currentBone.name #.split(":")[len(bone.name.split(":"))-1]
 						#terminalNameHashDict[hash_wide(currentBone.name)] = nodeObj
 						constraint.name = "BoneName"
 		alignChains()
 	#CHAIN COLLISION IMPORT
 	
 	singleObjectColList = ["SPHERE","OBB","PLANE","LINESPHERE","LERPSPHERE"]
-	enumItemDict ={1:"SPHERE",2:"CAPSULE",3:"OBB",4:"PLANE",5:"LINESPHERE",6:"LERPSPHERE"}
+	enumItemDict ={0:"NONE",1:"SPHERE",2:"CAPSULE",3:"OBB",4:"PLANE",5:"LINESPHERE",6:"LERPSPHERE",-1:"UNKNOWN"}
 	for collisionIndex,chainCollision in enumerate(chainFile.ChainCollisionList):
 		#print(chainCollision)
 		currentCollisionIndex = collisionIndex
@@ -352,12 +369,14 @@ def importChainFile(filepath):
 		alignCollisions()
 	#CHAIN LINK IMPORT
 	#print(terminalNameHashDict)#debug
+	
 	for index, chainLink in enumerate(chainFile.ChainLinkList):
 		name = "CHAIN_LINK_"+str(index).zfill(2)
 		chainLinkObj = createEmpty(name, [("TYPE","RE_CHAIN_LINK")],headerObj,"chainData")
 		getChainLink(chainLink,chainLinkObj)
-		chainLinkObj.re_chain_chainlink.chainGroupAObject = terminalNameHashDict[chainLink.terminateNodeNameHashA]
-		chainLinkObj.re_chain_chainlink.chainGroupBObject = terminalNameHashDict[chainLink.terminateNodeNameHashB]
+		chainLinkObj.re_chain_chainlink.chainGroupAObject = terminalNameHashDict[chainLink.terminateNodeNameHashA] if chainLink.terminateNodeNameHashA in terminalNameHashDict else str(chainLink.terminateNodeNameHashA)
+		chainLinkObj.re_chain_chainlink.chainGroupBObject = terminalNameHashDict[chainLink.terminateNodeNameHashB] if chainLink.terminateNodeNameHashB in terminalNameHashDict else str(chainLink.terminateNodeNameHashB)
+
 	return True
 def chainErrorCheck():
 	print("\nChecking for problems with chain structure...")
@@ -527,14 +546,14 @@ def chainErrorCheck():
 			if bpy.context.scene.objects.get(obj.re_chain_chainlink.chainGroupAObject,None) != None:
 				if bpy.context.scene.objects[obj.re_chain_chainlink.chainGroupAObject].get("TYPE",None) != "RE_CHAIN_CHAINGROUP":
 					errorList.append(obj.name + ": Chain Group A must be set to a Chain Group object")
-			else:
-				errorList.append(obj.name + ": Chain Group A is not set or set to an object that doesn't exist")
+			#else:
+			#	errorList.append(obj.name + ": Chain Group A is not set or set to an object that doesn't exist")
 				
 			if bpy.context.scene.objects.get(obj.re_chain_chainlink.chainGroupBObject,None) != None:
 				if bpy.context.scene.objects[obj.re_chain_chainlink.chainGroupBObject].get("TYPE",None) != "RE_CHAIN_CHAINGROUP":
 					errorList.append(obj.name + ": Chain Group B must be set to a Chain Group object")
-			else:
-				errorList.append(obj.name + ": Chain Group B is not set or set to an object that doesn't exist")
+			#else:
+			#	errorList.append(obj.name + ": Chain Group B is not set or set to an object that doesn't exist")
 	if headerCount == 0:
 		errorList.append("No chain header object in scene.")
 		
@@ -554,7 +573,7 @@ def chainErrorCheck():
 		print(textColors.FAIL + "__________________________________\nChain export failed."+textColors.ENDC)
 		return False
 
-def exportChainFile(filepath):
+def exportChainFile(filepath, version):
 	valid = chainErrorCheck()
 	if valid:
 		print(textColors.OKCYAN + "__________________________________\nChain export started."+textColors.ENDC)
@@ -598,13 +617,17 @@ def exportChainFile(filepath):
 		newChainFile.Header.chainGroupCount = len(chainGroupObjList)
 		newChainFile.Header.chainModelCollisionCount = len(chainCollisionObjList)
 		newChainFile.Header.chainLinkCount = len(chainLinkObjList)
+		newChainFile.Header.version = version
+		
 		
 		#print(windSettingsObjList)
 		#print(chainSettingsObjList)
 		#print(chainGroupObjList)
 		#print(chainCollisionObjList)
-		
+		headerObj.re_chain_header.version = str(version)
 		setChainHeaderData(newChainFile.Header, headerObj)
+		newChainFile.sizeData.setSizeData(newChainFile.Header.version)
+		
 		chainGroupTerminateNodeHashDict = {}#Used for chain links
 		for windSettingsObj in windSettingsObjList:
 			windSettings = WindSettingsData()
@@ -638,9 +661,9 @@ def exportChainFile(filepath):
 				node = ChainNodeData()
 				setChainNodeData(node, nodeObj)
 				chainGroup.nodeList.append(node)
-			chainGroup.terminateNodeNameHash = hash_wide(nodeObjList[len(nodeObjList)-1].name)
+			chainGroup.terminateNodeNameHash = hash_wide(nodeObjList[len(nodeObjList)-1].name.split(".")[0])
 			chainGroupTerminateNodeHashDict[chainGroupObj.name] = chainGroup.terminateNodeNameHash
-			chainGroup.terminateNodeName = nodeObjList[len(nodeObjList)-1].name
+			chainGroup.terminateNodeName = nodeObjList[len(nodeObjList)-1].name.split(".")[0]
 			chainGroup.nodeCount = len(chainGroup.nodeList)
 			newChainFile.ChainGroupList.append(chainGroup)
 		
@@ -654,8 +677,8 @@ def exportChainFile(filepath):
 			setChainLinkData(chainLink, chainLinkObj)
 			newChainFile.ChainLinkList.append(chainLink)
 			
-			chainLink.terminateNodeNameHashA = chainGroupTerminateNodeHashDict[chainLinkObj.re_chain_chainlink.chainGroupAObject]
-			chainLink.terminateNodeNameHashB = chainGroupTerminateNodeHashDict[chainLinkObj.re_chain_chainlink.chainGroupBObject]
+			chainLink.terminateNodeNameHashA = chainGroupTerminateNodeHashDict[chainLinkObj.re_chain_chainlink.chainGroupAObject] if chainLinkObj.re_chain_chainlink.chainGroupAObject in chainGroupTerminateNodeHashDict else int(chainLinkObj.re_chain_chainlink.chainGroupAObject)
+			chainLink.terminateNodeNameHashB = chainGroupTerminateNodeHashDict[chainLinkObj.re_chain_chainlink.chainGroupBObject] if chainLinkObj.re_chain_chainlink.chainGroupBObject in chainGroupTerminateNodeHashDict else int(chainLinkObj.re_chain_chainlink.chainGroupBObject)
 			#print(nodeObjList)
 		#Sort chain settings by ID, otherwise the chain groups will be assigned to the wrong chain settings in game
 		newChainFile.ChainSettingsList.sort(key = lambda x: x.id)
