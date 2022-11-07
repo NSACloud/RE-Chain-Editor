@@ -332,8 +332,12 @@ class OBJECT_PT_ChainSettingsPanel(Panel):
 		col2.prop(re_chain_chainsettings, "windEffectCoef",slider=True)
 		col2.prop(re_chain_chainsettings, "velocityLimit")
 		col2.prop(re_chain_chainsettings, "hardness",slider=True)
-		col2.prop(re_chain_chainsettings, "unknChainSettingValue0")
-		col2.prop(re_chain_chainsettings, "unknChainSettingValue1")
+		if version >= 48:
+			col2.prop(re_chain_chainsettings, "unknChainSettingValue0")
+			col2.prop(re_chain_chainsettings, "unknChainSettingValue1")
+		if version >= 52:
+			col2.prop(re_chain_chainsettings, "unknChainSettingValue2")
+			col2.prop(re_chain_chainsettings, "unknChainSettingValue3")
 
 class OBJECT_PT_ChainGroupPanel(Panel):
 	bl_label = "RE Chain Group Settings"
@@ -367,12 +371,15 @@ class OBJECT_PT_ChainGroupPanel(Panel):
 			col2.prop(re_chain_chaingroup, "dampingNoise1")
 			col2.prop(re_chain_chaingroup, "endRotConstMax")
 			col2.prop(re_chain_chaingroup, "angleLimitDirectionMode")
+		if version >= 48:
 			col2.prop(re_chain_chaingroup, "unknGroupValue0")
 			col2.prop(re_chain_chaingroup, "unknGroupValue0B")
 			col2.prop(re_chain_chaingroup, "unknGroupValue1")
 			col2.prop(re_chain_chaingroup, "unknGroupValue2")
+		if version >= 52:
+			col2.prop(re_chain_chaingroup, "unknGroupValue3")
 		col2.prop(re_chain_chaingroup, "extraNodeLocalPos")
-		if version >= 35:
+		if version >= 48:
 			col2.prop(re_chain_chaingroup, "unknBoneHash")
 		col2.prop(re_chain_chaingroup, "autoBlendCheckNodeNo") 
 		if version >= 35:

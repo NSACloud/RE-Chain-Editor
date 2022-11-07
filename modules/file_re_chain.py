@@ -1,6 +1,6 @@
 #Author: NSA Cloud
 
-from .gen_functions import textColors,raiseWarning,raiseError,getPaddingAmount,read_uint,read_int,read_uint64,read_float,read_ushort,read_ubyte,read_unicode_string,read_byte,write_uint,write_int,write_uint64,write_float,write_ushort,write_ubyte,write_unicode_string,write_byte
+from .gen_functions import textColors,raiseWarning,raiseError,getPaddingAmount,read_uint,read_int,read_uint64,read_int64,read_float,read_ushort,read_ubyte,read_unicode_string,read_byte,write_uint,write_int,write_uint64,write_int64,write_float,write_ushort,write_ubyte,write_unicode_string,write_byte
 
 version = 48
 
@@ -34,6 +34,9 @@ class SIZE_DATA():
 			self.CHAIN_GROUP_SIZE = 80
 		if ver == 46:
 			self.CHAIN_GROUP_SIZE = 88
+		if ver == 52:
+			self.CHAIN_SETTING_SIZE = 176
+			self.CHAIN_GROUP_SIZE = 120
 
 
 class ChainHeaderData():
@@ -81,6 +84,7 @@ class ChainHeaderData():
 		self.magic = read_uint(file)
 		if self.magic != 1851877475:
 			raiseError("File is not a chain file.")
+		print("Version", version)
 		self.errFlags = read_uint(file)#ENUM
 		self.masterSize = read_uint(file)
 		self.collisionAttrAssetOffset = read_uint64(file)
@@ -214,6 +218,8 @@ class ChainSettingsData():
 		self.hardness = 0.0
 		self.unknChainSettingValue0 = 0.0
 		self.unknChainSettingValue1 = 0.1#VERSION 48
+		self.unknChainSettingValue2 = 0.0#VERSION 52
+		self.unknChainSettingValue3 = 0.0#VERSION 52
 	def read(self,file):
 		self.jointList = []
 		self.colliderFilterInfoPathOffset = read_uint64(file)
@@ -265,6 +271,9 @@ class ChainSettingsData():
 		if version >= 46:
 			self.unknChainSettingValue0 = read_float(file)#VERSION 48
 			self.unknChainSettingValue1 = read_float(file)#VERSION 48
+		if version >= 52:
+			self.unknChainSettingValue2 = read_float(file)#VERSION 52
+			self.unknChainSettingValue3 = read_float(file)#VERSION 52
 		
 	def write(self,file):#TODO finish write
 		write_uint64(file, self.colliderFilterInfoPathOffset)
@@ -316,6 +325,10 @@ class ChainSettingsData():
 		if version >= 46:
 			write_float(file, self.unknChainSettingValue0)#VERSION 48
 			write_float(file, self.unknChainSettingValue1)#VERSION 48
+		if version >= 52:
+			write_float(file, self.unknChainSettingValue2)#VERSION 52
+			write_float(file, self.unknChainSettingValue3)#VERSION 52
+
 
 	def __str__(self):
 		return str(self.__class__) + ": " + str(self.__dict__)
@@ -343,6 +356,7 @@ class ChainCollisionData():
 		self.div = 0
 		self.subDataCount = 0
 		self.collisionFilterFlags = -1
+		self.padding = 0
 		
 	def read(self,file):
 		self.subDataOffset = read_uint64(file)
@@ -352,14 +366,15 @@ class ChainCollisionData():
 		self.pairPosX = read_float(file)
 		self.pairPosY = read_float(file)
 		self.pairPosZ = read_float(file)
-		#print(self.pairPosX, self.pairPosY, self.pairPosZ)
+		
 		if version >= 35:
 			self.rotOffsetX = read_float(file)
 			self.rotOffsetY = read_float(file)
 			self.rotOffsetZ = read_float(file)
 			self.rotOffsetW = read_float(file)
-			if version >= 48:
-				self.rotationOrder = read_uint(file)#VERSION 48
+		if version >= 39:
+			self.rotationOrder = read_uint(file)#VERSION 39
+		
 		self.jointNameHash = read_uint(file)#MURMUR HASH
 		self.pairJointNameHash = read_uint(file)#MURMUR HASH
 		self.radius = read_float(file)
@@ -371,6 +386,8 @@ class ChainCollisionData():
 		self.div = read_ubyte(file)
 		self.subDataCount = read_ushort(file)
 		self.collisionFilterFlags = read_int(file)
+		if version >= 35:
+			self.padding = read_int(file)
 		
 	def write(self,file):#TODO finish write
 		write_uint64(file, self.subDataOffset)
@@ -380,24 +397,28 @@ class ChainCollisionData():
 		write_float(file, self.pairPosX)
 		write_float(file, self.pairPosY)
 		write_float(file, self.pairPosZ)
-		#print(self.pairPosX, self.pairPosY, self.pairPosZ)
+		
 		if version >= 35:
 			write_float(file, self.rotOffsetX)
 			write_float(file, self.rotOffsetY)
 			write_float(file, self.rotOffsetZ)
 			write_float(file, self.rotOffsetW)
-			if version >= 48:
-				write_uint(file, self.rotationOrder)#VERSION 48
+		if version >= 39:
+			write_uint(file, self.rotationOrder)#VERSION 39
+
 		write_uint(file, self.jointNameHash)#MURMUR HASH
 		write_uint(file, self.pairJointNameHash)#MURMUR HASH
 		write_float(file, self.radius)
 		write_float(file, self.lerp)
 		if version >= 48:
 			write_float(file,self.unknCollisionValue)#VERSION 48
+
 		write_ubyte(file, self.chainCollisionShape)#ENUM, sphere by default
 		write_ubyte(file, self.div)
 		write_ushort(file, self.subDataCount)
 		write_int(file, self.collisionFilterFlags)
+		if version >= 35:
+			write_int(file, self.padding)
 
 	def __str__(self):
 		return str(self.__class__) + ": " + str(self.__dict__)
@@ -520,6 +541,7 @@ class ChainGroupData():
 		self.unknBoneHash = 1095307227#VERSION 48 MURMUR HASH
 		self.unknGroupValue1 = 0#VERSION 48
 		self.unknGroupValue2 = 0#VERSION 48
+		self.unknGroupValue3 = 0#VERSION 52
 		self.nextChainNameOffset = 0#VERSION 48
 		self.nodeList = []
 	def read(self,file):
@@ -551,12 +573,16 @@ class ChainGroupData():
 			self.tagCount = read_ubyte(file)
 			self.angleLimitDirectionMode = read_ubyte(file)#ENUM
 			self.padding = read_ushort(file)
+		if version >= 48:
 			self.unknGroupValue0 = read_float(file)#VERSION 48
 			self.unknGroupValue0B = read_float(file)#VERSION 48
 			self.unknBoneHash = read_uint(file)#VERSION 48
 			self.unknGroupValue1 = read_uint(file)#VERSION 48
 			self.unknGroupValue2 = read_uint64(file)#VERSION 48
-			self.nextChainName = read_uint64(file)#VERSION 48
+		if version >= 52:
+			self.unknGroupValue3 = read_int64(file)#VERSION 52
+		if version >= 46:
+			self.nextChainName = read_uint64(file)#VERSION 46
 		self.nodeList = []
 		currentPos = file.tell()
 		file.seek(self.nodeOffset)
@@ -564,7 +590,10 @@ class ChainGroupData():
 			newChainNode = ChainNodeData()
 			newChainNode.read(file)
 			self.nodeList.append(newChainNode)
-		file.seek(currentPos+getPaddingAmount(currentPos,16))#Go back to the end of chain group and skip padding
+		#paddingAmt = getPaddingAmount(currentPos,16) if version != 52 and version !=46 else 0
+
+		#file.seek(currentPos+paddingAmt)#Go back to the end of chain group and skip padding
+		file.seek(currentPos)
 		
 	def write(self,file):#TODO finish write
 		startPos = file.tell()    
@@ -592,12 +621,16 @@ class ChainGroupData():
 			write_ubyte(file, self.tagCount)
 			write_ubyte(file, self.angleLimitDirectionMode)#ENUM
 			write_ushort(file, self.padding)
+		if version >= 48:
 			write_float(file, self.unknGroupValue0)#VERSION 48
 			write_float(file, self.unknGroupValue0B)#VERSION 48
 			write_uint(file, self.unknBoneHash)#VERSION 48
 			write_uint(file, self.unknGroupValue1)#VERSION 48
 			write_uint64(file, self.unknGroupValue2)#VERSION 48
-			write_uint64(file, self.nextChainNameOffset)#VERSION 48
+		if version >= 52:
+			write_int64(file, self.unknGroupValue3)#VERSION 52
+		if version >= 46:
+			write_uint64(file, self.nextChainNameOffset)#VERSION 46
 		
 
 	def __str__(self):
@@ -844,6 +877,7 @@ class ChainFile():
 			newChainCollision = ChainCollisionData()
 			newChainCollision.read(file)
 			self.ChainCollisionList.append(newChainCollision)
+			#print (newChainCollision.jointNameHash)
 		if self.Header.chainGroupCount > 0:
 			print("Reading Chain Groups...")
 		file.seek(self.Header.chainGroupOffset)

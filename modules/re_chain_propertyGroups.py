@@ -14,6 +14,89 @@ from .pymmh3 import hash_wide
 
 from .re_chain_presets import reloadPresets
 
+attrFlagsItems = [ ("0", "AttrFlags_None", ""),
+	("1", "AttrFlags_RootRotation", ""),
+	("2", "AttrFlags_AngleLimit", ""),
+	("4", "AttrFlags_ExtraNode", ""),
+	("8", "AttrFlags_CollisionDefault", ""),
+	("16", "AttrFlags_CollisionSelf", ""),
+	("32", "AttrFlags_CollisionModel", ""),
+	("64", "AttrFlags_CollisionVGround", ""),
+	("128", "AttrFlags_CollisionCollider", ""),
+	("256", "AttrFlags_CollisionGroup", ""),
+	("512", "AttrFlags_EnablePartBlend", ""),
+	("1024", "AttrFlags_WindDefault", ""),
+	("2048", "AttrFlags_TransAnimation", ""),
+	("4096", "AttrFlags_AngleLimitRestitution", ""),
+	("8192", "AttrFlags_StretchBoth", ""),
+	("16384", "AttrFlags_EndRotConstraint", ""),
+	("3", "AttrFlags_UNKNOWNFLAG_3", ""),
+	("11", "AttrFlags_UNKNOWNFLAG_11", ""),
+	("35", "AttrFlags_UNKNOWNFLAG_35", ""),
+	("507", "AttrFlags_UNKNOWNFLAG_507", ""),
+	("1025", "AttrFlags_UNKNOWNFLAG_1025", ""),
+	("1027", "AttrFlags_UNKNOWNFLAG_1027", ""),
+	("1034", "AttrFlags_UNKNOWNFLAG_1034", ""),
+	("1035", "AttrFlags_UNKNOWNFLAG_1035", ""),
+	("1039", "AttrFlags_UNKNOWNFLAG_1039", ""),
+	("1051", "AttrFlags_UNKNOWNFLAG_1051", ""),
+	("1057", "AttrFlags_UNKNOWNFLAG_1057", ""),
+	("1059", "AttrFlags_UNKNOWNFLAG_1059", ""),
+	("1067", "AttrFlags_UNKNOWNFLAG_1067", ""),
+	("1203", "AttrFlags_UNKNOWNFLAG_1203", ""),
+	("1075", "AttrFlags_UNKNOWNFLAG_1075", ""),
+	("1083", "AttrFlags_UNKNOWNFLAG_1083", ""),
+	("1203", "AttrFlags_UNKNOWNFLAG_1203", ""),
+	("1211", "AttrFlags_UNKNOWNFLAG_1211", ""),
+	("1323", "AttrFlags_UNKNOWNFLAG_1323", ""),
+	("1331", "AttrFlags_UNKNOWNFLAG_1331", ""),
+	("1459", "AttrFlags_UNKNOWNFLAG_1459", ""),
+	("1523", "AttrFlags_UNKNOWNFLAG_1523", ""),
+	("1531", "AttrFlags_UNKNOWNFLAG_1531", ""),
+	("1547", "AttrFlags_UNKNOWNFLAG_1547", ""),
+	("32779","AttrFlags_UNKNOWNFLAG_32779",""),
+	("32803","AttrFlags_UNKNOWNFLAG_32803",""),
+	("32811","AttrFlags_UNKNOWNFLAG_32811",""),
+	("32819","AttrFlags_UNKNOWNFLAG_32819",""),
+	("32947","AttrFlags_UNKNOWNFLAG_32947",""),
+	("33275","AttrFlags_UNKNOWNFLAG_33275",""),
+	("33793","AttrFlags_UNKNOWNFLAG_33793",""),
+	("33795","AttrFlags_UNKNOWNFLAG_33795",""),
+	("33802","AttrFlags_UNKNOWNFLAG_33802",""),
+	("33803","AttrFlags_UNKNOWNFLAG_33803",""),
+	("33807","AttrFlags_UNKNOWNFLAG_33807",""),
+	("33811","AttrFlags_UNKNOWNFLAG_33811",""),
+	("33819","AttrFlags_UNKNOWNFLAG_33819",""),
+	("33825","AttrFlags_UNKNOWNFLAG_33825",""),
+	("33827","AttrFlags_UNKNOWNFLAG_33827",""),
+	("33835","AttrFlags_UNKNOWNFLAG_33835",""),
+	("33843","AttrFlags_UNKNOWNFLAG_33843",""),
+	("33851","AttrFlags_UNKNOWNFLAG_33851",""),
+	("33939","AttrFlags_UNKNOWNFLAG_33939",""),
+	("33955","AttrFlags_UNKNOWNFLAG_33955",""),
+	("33963","AttrFlags_UNKNOWNFLAG_33963",""),
+	("33971","AttrFlags_COLLLISION_ENABLED_FLAG_33971",""),
+	("33979","AttrFlags_UNKNOWNFLAG_33979",""),
+	("34043","AttrFlags_UNKNOWNFLAG_34043",""),
+	("34083","AttrFlags_UNKNOWNFLAG_34083",""),
+	("34091","AttrFlags_UNKNOWNFLAG_34091",""),
+	("34099","AttrFlags_UNKNOWNFLAG_34099",""),
+	("34211","AttrFlags_UNKNOWNFLAG_34211",""),
+	("34227","AttrFlags_UNKNOWNFLAG_34227",""),
+	("34291","AttrFlags_UNKNOWNFLAG_34291",""),
+	("34299","AttrFlags_UNKNOWNFLAG_34299",""),
+	("34315","AttrFlags_UNKNOWNFLAG_34315",""),
+	("37923","AttrFlags_UNKNOWNFLAG_37923","")
+	]
+
+def getAttrFlagsItems(ChainSettingsData,targetObject):
+	return attrFlagsItems
+
+def addAttrFlag(attrFlag):
+	if str(attrFlag) not in attrFlagsItems:
+		attrFlagsItems.append((str(attrFlag), "AttrFlags_UNKNOWNFLAG_" + str(attrFlag), ""))
+	return str(attrFlag)
+
 def update_angleLimitSize(self, context):
 	for obj in bpy.data.objects:
 		if obj.get("TYPE",None) == "RE_CHAIN_NODE_FRAME":
@@ -79,7 +162,10 @@ def update_CollisionOffset(self, context):
 
 def update_EndCollisionOffset(self, context):
 	obj = self.id_data
-	if obj.get("TYPE",None) == "RE_CHAIN_COLLISION_CAPSULE_ROOT":
+	#if obj.get("TYPE",None) == "RE_CHAIN_COLLISION_CAPSULE_ROOT":
+	if obj.get("TYPE",None) != "RE_CHAIN_COLLISION_CAPSULE_ROOT":
+		obj.location = obj.re_chain_chaincollision.endCollisionOffset * 100
+	else:
 		for child in obj.children:
 			if child.get("TYPE",None) == "RE_CHAIN_COLLISION_CAPSULE_END":
 				child.location = obj.re_chain_chaincollision.endCollisionOffset * 100
@@ -183,6 +269,7 @@ class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
 				("39", ".39 (RE8)", ""),
 				("46", ".46 (Ray Tracing RE2,3,7)", ""),
 				("48", ".48 (MHRise Sunbreak)", ""),
+				("52", ".52 (Street Fighter 6 Beta)", ""),
 			   ]
 		)
 	errFlags: EnumProperty(
@@ -368,7 +455,7 @@ def getChainHeader(ChainHeaderData,targetObject):
 	targetObject.re_chain_header.rotationOrder = str(ChainHeaderData.rotationOrder)
 	targetObject.re_chain_header.defaultSettingIdx = ChainHeaderData.defaultSettingIdx
 	targetObject.re_chain_header.calculateMode = str(ChainHeaderData.calculateMode)
-	targetObject.re_chain_header.chainAttrFlags = str(ChainHeaderData.chainAttrFlags)
+	targetObject.re_chain_header.chainAttrFlags = addAttrFlag(ChainHeaderData.chainAttrFlags)
 	targetObject.re_chain_header.parameterFlag = str(ChainHeaderData.parameterFlag)
 	targetObject.re_chain_header.calculateStepTime = ChainHeaderData.calculateStepTime
 	targetObject.re_chain_header.modelCollisionSearch = ChainHeaderData.modelCollisionSearch
@@ -939,29 +1026,7 @@ class chainSettingsPropertyGroup(bpy.types.PropertyGroup):
 	groupDefaultAttr: EnumProperty(
 		name="Group Default Attribute",
 		description="Apply Data to attribute.",
-		items=[ ("0", "AttrFlags_None", ""),
-				("1", "AttrFlags_RootRotation", ""),
-				("2", "AttrFlags_AngleLimit", ""),
-				("4", "AttrFlags_ExtraNode", ""),
-				("8", "AttrFlags_CollisionDefault", ""),
-				("16", "AttrFlags_CollisionSelf", ""),
-				("32", "AttrFlags_CollisionModel", ""),
-				("64", "AttrFlags_CollisionVGround", ""),
-				("128", "AttrFlags_CollisionCollider", ""),
-				("256", "AttrFlags_CollisionGroup", ""),
-				("512", "AttrFlags_EnablePartBlend", ""),
-				("1024", "AttrFlags_WindDefault", ""),
-				("2048", "AttrFlags_TransAnimation", ""),
-				("4096", "AttrFlags_AngleLimitRestitution", ""),
-				("8192", "AttrFlags_StretchBoth", ""),
-				("16384", "AttrFlags_EndRotConstraint", ""),
-				("48", "AttrFlags_UNKNOWNFLAG_48", ""),
-				("96", "AttrFlags_UNKNOWNFLAG_96", ""),
-				("160", "AttrFlags_UNKNOWNFLAG_160", ""),
-				("176", "AttrFlags_UNKNOWNFLAG_176", ""),
-				("432", "AttrFlags_UNKNOWNFLAG_432", ""),
-				("496", "AttrFlags_UNKNOWNFLAG_496", ""),
-			   ]
+		items=getAttrFlagsItems
 		)
 	windEffectCoef: FloatProperty(
 		name = "Wind Effect Coefficient",
@@ -991,6 +1056,16 @@ class chainSettingsPropertyGroup(bpy.types.PropertyGroup):
 	unknChainSettingValue1: FloatProperty(
 		name = "Unknown 1",
 		description = "Unknown 1",#TODO Add description
+		default = 0.10,
+		)
+	unknChainSettingValue2: FloatProperty(
+		name = "Unknown 2",
+		description = "Unknown 2",#TODO Add description
+		default = 0.00,
+		)
+	unknChainSettingValue3: FloatProperty(
+		name = "Unknown 3",
+		description = "Unknown 3",#TODO Add description
 		default = 0.10,
 		)
 def getChainSettings(ChainSettingsData,targetObject):
@@ -1037,6 +1112,8 @@ def getChainSettings(ChainSettingsData,targetObject):
 	targetObject.re_chain_chainsettings.hardness = ChainSettingsData.hardness
 	targetObject.re_chain_chainsettings.unknChainSettingValue0 = ChainSettingsData.unknChainSettingValue0
 	targetObject.re_chain_chainsettings.unknChainSettingValue1 = ChainSettingsData.unknChainSettingValue1
+	targetObject.re_chain_chainsettings.unknChainSettingValue2 = ChainSettingsData.unknChainSettingValue2
+	targetObject.re_chain_chainsettings.unknChainSettingValue3 = ChainSettingsData.unknChainSettingValue3
 def setChainSettingsData(ChainSettingsData,targetObject):
 	ChainSettingsData.id = targetObject.re_chain_chainsettings.id 
 	ChainSettingsData.sprayParameterArc = targetObject.re_chain_chainsettings.sprayParameterArc 
@@ -1084,11 +1161,13 @@ def setChainSettingsData(ChainSettingsData,targetObject):
 	ChainSettingsData.hardness = targetObject.re_chain_chainsettings.hardness
 	ChainSettingsData.unknChainSettingValue0 = targetObject.re_chain_chainsettings.unknChainSettingValue0 
 	ChainSettingsData.unknChainSettingValue1 = targetObject.re_chain_chainsettings.unknChainSettingValue1 
+	ChainSettingsData.unknChainSettingValue2 = targetObject.re_chain_chainsettings.unknChainSettingValue2 
+	ChainSettingsData.unknChainSettingValue3 = targetObject.re_chain_chainsettings.unknChainSettingValue3 
 	if targetObject.parent.get("TYPE",None) == "RE_CHAIN_WINDSETTINGS":
 		ChainSettingsData.windID = targetObject.parent.re_chain_windsettings.id
 	else:
 		ChainSettingsData.windID = -1
-
+	
 class chainGroupPropertyGroup(bpy.types.PropertyGroup):
 
 	rotationOrder: EnumProperty(
@@ -1110,80 +1189,7 @@ class chainGroupPropertyGroup(bpy.types.PropertyGroup):
 	attrFlags: EnumProperty(
 		name="Attribute Flags",
 		description="Apply Data to attribute.",
-		items=[ ("0", "AttrFlags_None", ""),
-				("1", "AttrFlags_RootRotation", ""),
-				("2", "AttrFlags_AngleLimit", ""),
-				("4", "AttrFlags_ExtraNode", ""),
-				("8", "AttrFlags_CollisionDefault", ""),
-				("16", "AttrFlags_CollisionSelf", ""),
-				("32", "AttrFlags_CollisionModel", ""),
-				("64", "AttrFlags_CollisionVGround", ""),
-				("128", "AttrFlags_CollisionCollider", ""),
-				("256", "AttrFlags_CollisionGroup", ""),
-				("512", "AttrFlags_EnablePartBlend", ""),
-				("1024", "AttrFlags_WindDefault", ""),
-				("2048", "AttrFlags_TransAnimation", ""),
-				("4096", "AttrFlags_AngleLimitRestitution", ""),
-				("8192", "AttrFlags_StretchBoth", ""),
-				("16384", "AttrFlags_EndRotConstraint", ""),
-				("3", "AttrFlags_UNKNOWNFLAG_3", ""),
-				("11", "AttrFlags_UNKNOWNFLAG_11", ""),
-				("35", "AttrFlags_UNKNOWNFLAG_35", ""),
-				("507", "AttrFlags_UNKNOWNFLAG_507", ""),
-				("1025", "AttrFlags_UNKNOWNFLAG_1025", ""),
-				("1027", "AttrFlags_UNKNOWNFLAG_1027", ""),
-				("1034", "AttrFlags_UNKNOWNFLAG_1034", ""),
-				("1035", "AttrFlags_UNKNOWNFLAG_1035", ""),
-				("1039", "AttrFlags_UNKNOWNFLAG_1039", ""),
-				("1051", "AttrFlags_UNKNOWNFLAG_1051", ""),
-				("1057", "AttrFlags_UNKNOWNFLAG_1057", ""),
-				("1059", "AttrFlags_UNKNOWNFLAG_1059", ""),
-				("1067", "AttrFlags_UNKNOWNFLAG_1067", ""),
-				("1203", "AttrFlags_UNKNOWNFLAG_1203", ""),
-				("1075", "AttrFlags_UNKNOWNFLAG_1075", ""),
-				("1083", "AttrFlags_UNKNOWNFLAG_1083", ""),
-				("1203", "AttrFlags_UNKNOWNFLAG_1203", ""),
-				("1211", "AttrFlags_UNKNOWNFLAG_1211", ""),
-				("1323", "AttrFlags_UNKNOWNFLAG_1323", ""),
-				("1331", "AttrFlags_UNKNOWNFLAG_1331", ""),
-				("1459", "AttrFlags_UNKNOWNFLAG_1459", ""),
-				("1523", "AttrFlags_UNKNOWNFLAG_1523", ""),
-				("1531", "AttrFlags_UNKNOWNFLAG_1531", ""),
-				("1547", "AttrFlags_UNKNOWNFLAG_1547", ""),
-				("32779","AttrFlags_UNKNOWNFLAG_32779",""),
-				("32803","AttrFlags_UNKNOWNFLAG_32803",""),
-				("32811","AttrFlags_UNKNOWNFLAG_32811",""),
-				("32819","AttrFlags_UNKNOWNFLAG_32819",""),
-				("32947","AttrFlags_UNKNOWNFLAG_32947",""),
-				("33275","AttrFlags_UNKNOWNFLAG_33275",""),
-				("33793","AttrFlags_UNKNOWNFLAG_33793",""),
-				("33795","AttrFlags_UNKNOWNFLAG_33795",""),
-				("33802","AttrFlags_UNKNOWNFLAG_33802",""),
-				("33803","AttrFlags_UNKNOWNFLAG_33803",""),
-				("33807","AttrFlags_UNKNOWNFLAG_33807",""),
-				("33811","AttrFlags_UNKNOWNFLAG_33811",""),
-				("33819","AttrFlags_UNKNOWNFLAG_33819",""),
-				("33825","AttrFlags_UNKNOWNFLAG_33825",""),
-				("33827","AttrFlags_UNKNOWNFLAG_33827",""),
-				("33835","AttrFlags_UNKNOWNFLAG_33835",""),
-				("33843","AttrFlags_UNKNOWNFLAG_33843",""),
-				("33851","AttrFlags_UNKNOWNFLAG_33851",""),
-				("33939","AttrFlags_UNKNOWNFLAG_33939",""),
-				("33955","AttrFlags_UNKNOWNFLAG_33955",""),
-				("33963","AttrFlags_UNKNOWNFLAG_33963",""),
-				("33971","AttrFlags_COLLLISION_ENABLED_FLAG_33971",""),
-				("33979","AttrFlags_UNKNOWNFLAG_33979",""),
-				("34043","AttrFlags_UNKNOWNFLAG_34043",""),
-				("34083","AttrFlags_UNKNOWNFLAG_34083",""),
-				("34091","AttrFlags_UNKNOWNFLAG_34091",""),
-				("34099","AttrFlags_UNKNOWNFLAG_34099",""),
-				("34211","AttrFlags_UNKNOWNFLAG_34211",""),
-				("34227","AttrFlags_UNKNOWNFLAG_34227",""),
-				("34291","AttrFlags_UNKNOWNFLAG_34291",""),
-				("34299","AttrFlags_UNKNOWNFLAG_34299",""),
-				("34315","AttrFlags_UNKNOWNFLAG_34315",""),
-				("37923","AttrFlags_UNKNOWNFLAG_37923","")
-			   ]
+		items=getAttrFlagsItems,
 		)
 	collisionFilterFlags: EnumProperty(
 		name="Collision Filter Flags",
@@ -1271,11 +1277,17 @@ class chainGroupPropertyGroup(bpy.types.PropertyGroup):
 		description="Unknown 2",#TODO Add description
 		default = 0,
 		)
+	unknGroupValue3: IntProperty(
+		name = "Unknown 3",
+		description="Unknown 3",#TODO Add description
+		default = 0,
+		)
+
 def getChainGroup(ChainGroupData,targetObject):
 	#Done manually to be able to account for chain version differences eventually
 	targetObject.re_chain_chaingroup.rotationOrder = str(ChainGroupData.rotationOrder)
 	targetObject.re_chain_chaingroup.autoBlendCheckNodeNo = ChainGroupData.autoBlendCheckNodeNo
-	targetObject.re_chain_chaingroup.attrFlags = str(ChainGroupData.attrFlags)
+	targetObject.re_chain_chaingroup.attrFlags = addAttrFlag(ChainGroupData.attrFlags)
 	targetObject.re_chain_chaingroup.collisionFilterFlags = str(ChainGroupData.collisionFilterFlags)
 	targetObject.re_chain_chaingroup.extraNodeLocalPos = (ChainGroupData.extraNodeLocalPosX,ChainGroupData.extraNodeLocalPosY,ChainGroupData.extraNodeLocalPosZ)
 	targetObject.re_chain_chaingroup.tag0 = ChainGroupData.tag0
@@ -1292,6 +1304,7 @@ def getChainGroup(ChainGroupData,targetObject):
 	targetObject.re_chain_chaingroup.unknBoneHash = ChainGroupData.unknBoneHash
 	targetObject.re_chain_chaingroup.unknGroupValue1 = ChainGroupData.unknGroupValue1
 	targetObject.re_chain_chaingroup.unknGroupValue2 = ChainGroupData.unknGroupValue2
+	targetObject.re_chain_chaingroup.unknGroupValue3 = ChainGroupData.unknGroupValue3
 def setChainGroupData(ChainGroupData,targetObject):
 	ChainGroupData.rotationOrder = int(targetObject.re_chain_chaingroup.rotationOrder)
 	ChainGroupData.autoBlendCheckNodeNo = targetObject.re_chain_chaingroup.autoBlendCheckNodeNo 
@@ -1317,7 +1330,8 @@ def setChainGroupData(ChainGroupData,targetObject):
 	ChainGroupData.unknBoneHash = targetObject.re_chain_chaingroup.unknBoneHash 
 	ChainGroupData.unknGroupValue1 = targetObject.re_chain_chaingroup.unknGroupValue1 
 	ChainGroupData.unknGroupValue2 = targetObject.re_chain_chaingroup.unknGroupValue2 
-	
+	ChainGroupData.unknGroupValue3 = targetObject.re_chain_chaingroup.unknGroupValue3 
+
 	if targetObject.parent.get("TYPE",None) == "RE_CHAIN_WINDSETTINGS":
 		ChainGroupData.windID = targetObject.parent.re_chain_windsettings.id
 		
@@ -1390,47 +1404,7 @@ class chainNodePropertyGroup(bpy.types.PropertyGroup):
 	attrFlags: EnumProperty(
 		name="Attribute Flags",
 		description="Apply Data to attribute.",
-		items=[ ("0", "AttrFlags_None", ""),
-				("1", "AttrFlags_RootRotation", ""),
-				("2", "AttrFlags_AngleLimit", ""),
-				("4", "AttrFlags_ExtraNode", ""),
-				("8", "AttrFlags_CollisionDefault", ""),
-				("16", "AttrFlags_CollisionSelf", ""),
-				("32", "AttrFlags_CollisionModel", ""),
-				("64", "AttrFlags_CollisionVGround", ""),
-				("128", "AttrFlags_CollisionCollider", ""),
-				("256", "AttrFlags_CollisionGroup", ""),
-				("512", "AttrFlags_EnablePartBlend", ""),
-				("1024", "AttrFlags_WindDefault", ""),
-				("2048", "AttrFlags_TransAnimation", ""),
-				("4096", "AttrFlags_AngleLimitRestitution", ""),
-				("8192", "AttrFlags_StretchBoth", ""),
-				("16384", "AttrFlags_EndRotConstraint", ""),
-				("11", "AttrFlags_UNKNOWNFLAG_11", ""),
-				("35", "AttrFlags_UNKNOWNFLAG_35", ""),
-				("507", "AttrFlags_UNKNOWNFLAG_507", ""),
-				("1025", "AttrFlags_UNKNOWNFLAG_1025", ""),
-				("1027", "AttrFlags_UNKNOWNFLAG_1027", ""),
-				("1034", "AttrFlags_UNKNOWNFLAG_1034", ""),
-				("1035", "AttrFlags_UNKNOWNFLAG_1035", ""),
-				("1039", "AttrFlags_UNKNOWNFLAG_1039", ""),
-				("1051", "AttrFlags_UNKNOWNFLAG_1051", ""),
-				("1057", "AttrFlags_UNKNOWNFLAG_1057", ""),
-				("1059", "AttrFlags_UNKNOWNFLAG_1059", ""),
-				("1067", "AttrFlags_UNKNOWNFLAG_1067", ""),
-				("1203", "AttrFlags_UNKNOWNFLAG_1203", ""),
-				("1075", "AttrFlags_UNKNOWNFLAG_1075", ""),
-				("1083", "AttrFlags_UNKNOWNFLAG_1083", ""),
-				("1203", "AttrFlags_UNKNOWNFLAG_1203", ""),
-				("1211", "AttrFlags_UNKNOWNFLAG_1211", ""),
-				("1323", "AttrFlags_UNKNOWNFLAG_1323", ""),
-				("1331", "AttrFlags_UNKNOWNFLAG_1331", ""),
-				("1459", "AttrFlags_UNKNOWNFLAG_1459", ""),
-				("1533", "AttrFlags_UNKNOWNFLAG_1523", ""),
-				("1531", "AttrFlags_UNKNOWNFLAG_1531", ""),
-				("1547", "AttrFlags_UNKNOWNFLAG_1547", ""),
-				
-			   ]
+		items=getAttrFlagsItems
 		)
 	windCoef: FloatProperty(
 		name = "Wind Coefficient",
@@ -1504,7 +1478,7 @@ def getChainNode(ChainNodeData,targetObject):
 	targetObject.re_chain_chainnode.collisionFilterFlags = str(ChainNodeData.collisionFilterFlags)
 	targetObject.re_chain_chainnode.capsuleStretchRate0 = ChainNodeData.capsuleStretchRate0
 	targetObject.re_chain_chainnode.capsuleStretchRate1 = ChainNodeData.capsuleStretchRate1
-	targetObject.re_chain_chainnode.attrFlags = str(ChainNodeData.attrFlags)
+	targetObject.re_chain_chainnode.attrFlags = addAttrFlag(ChainNodeData.attrFlags)
 	targetObject.re_chain_chainnode.windCoef = ChainNodeData.windCoef
 	targetObject.re_chain_chainnode.angleMode = str(ChainNodeData.angleMode)
 	targetObject.re_chain_chainnode.collisionShape = str(ChainNodeData.collisionShape)

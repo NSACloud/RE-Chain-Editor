@@ -1,7 +1,7 @@
 bl_info = {
 	"name": "RE Chain Editor",
 	"author": "NSA Cloud",
-	"version": (1, 0),
+	"version": (1, 1),
 	"blender": (2, 93, 0),
 	"location": "File > Import-Export",
 	"description": "Import and export RE Engine chain files.",
@@ -9,6 +9,8 @@ bl_info = {
 	"wiki_url": "https://github.com/NSACloud/RE-Chain-Editor",
 	"tracker_url": "",
 	"category": "Import-Export"}
+
+#Modified by alphaZomega to support RE2R, RE3R, RE8, RE2-3-7 RT, DMC5 and SF6 
 
 #TODO Fix Header only export
 
@@ -121,6 +123,20 @@ class ExportREChain46(bpy.types.Operator, ExportHelper):
 			self.report({"INFO"},"Exported RE Chain successfully.")
 		return {"FINISHED"}
 
+class ExportREChain52(bpy.types.Operator, ExportHelper):
+	'''Export RE Engine Chain File (Street Fighter 6 Beta)'''
+	bl_idname = "re_chain.exportfile52"
+	bl_label = "Export RE Chain (.chain.52)"
+	bl_options = {'PRESET'}
+	filename_ext = ".52"
+	filter_glob: StringProperty(default="*.chain*", options={'HIDDEN'})
+
+	def execute(self, context):
+		success = exportChainFile(self.filepath, 52)
+		if success:
+			self.report({"INFO"},"Exported RE Chain successfully.")
+		return {"FINISHED"}
+
 
 
 # Registration
@@ -131,6 +147,7 @@ classes = [
 	ExportREChain24,
 	ExportREChain39,
 	ExportREChain46,
+	ExportREChain52,
 	chainToolPanelPropertyGroup,
 	chainHeaderPropertyGroup,
 	chainWindSettingsPropertyGroup,
@@ -184,6 +201,7 @@ def re_chain_export(self, context):
 	self.layout.operator(ExportREChain39.bl_idname, text="RE Chain (.chain.39)")
 	self.layout.operator(ExportREChain46.bl_idname, text="RE Chain (.chain.46)")
 	self.layout.operator(ExportREChain.bl_idname, text="RE Chain (.chain.48)")
+	self.layout.operator(ExportREChain52.bl_idname, text="RE Chain (.chain.52)")
 
 def register():
 	for classEntry in classes:
