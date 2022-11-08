@@ -12,6 +12,7 @@ class SIZE_DATA():
 		self.CHAIN_GROUP_SIZE = 112
 		self.COLLISION_SIZE = 80
 		self.NODE_SIZE = 80
+		self.JIGGLE_SIZE = 72
 		self.WIND_SIZE = 184
 	def setSizeData(self, ver):
 		global version; version = ver
@@ -386,7 +387,7 @@ class ChainCollisionData():
 		self.div = read_ubyte(file)
 		self.subDataCount = read_ushort(file)
 		self.collisionFilterFlags = read_int(file)
-		if version >= 35:
+		if version == 39 or version == 46:
 			self.padding = read_int(file)
 		
 	def write(self,file):#TODO finish write
@@ -417,15 +418,78 @@ class ChainCollisionData():
 		write_ubyte(file, self.div)
 		write_ushort(file, self.subDataCount)
 		write_int(file, self.collisionFilterFlags)
-		if version >= 35:
+		if version == 39 or version == 46:
 			write_int(file, self.padding)
+
+	def __str__(self):
+		return str(self.__class__) + ": " + str(self.__dict__)
+
+class ChainJiggleData():
+	def __init__(self):
+		self.rangeX = 0.0#Vec3
+		self.rangeY = 0.0
+		self.rangeZ = 0.0
+		self.padding0 = 0
+		self.rangeOffsetX = 0.0#Vec3
+		self.rangeOffsetY = 0.0
+		self.rangeOffsetZ = 0.0
+		self.padding1 = 0
+		self.rangeAxisX = 0.0#Quaternion
+		self.rangeAxisY = 0.0
+		self.rangeAxisZ = 0.0
+		self.rangeAxisW = 1.0
+		self.rangeShape = 2
+		self.springForce = 0
+		self.gravityCoef = 0
+		self.damping = 0
+		self.attrFlags = 0
+		self.padding2 = 0
+
+	def read(self,file):
+		self.rangeX = read_float(file)#Vec3
+		self.rangeY = read_float(file)
+		self.rangeZ = read_float(file)
+		self.padding0 = read_float(file)
+		self.rangeOffsetX = read_float(file)#Vec3
+		self.rangeOffsetY = read_float(file)
+		self.rangeOffsetZ = read_float(file)
+		self.padding1 = read_float(file)
+		self.rangeAxisX = read_float(file)#Quaternion
+		self.rangeAxisY = read_float(file)
+		self.rangeAxisZ = read_float(file)
+		self.rangeAxisW = read_float(file)
+		self.rangeShape = read_uint(file)
+		self.springForce = read_float(file)
+		self.gravityCoef = read_float(file)
+		self.damping = read_float(file)
+		self.attrFlags = read_uint(file)
+		self.padding2 = read_uint(file)
+
+	def write(self,file):
+		write_float(file, self.rangeX)#Vec3
+		write_float(file, self.rangeY)
+		write_float(file, self.rangeZ)
+		write_float(file, self.padding0)
+		write_float(file, self.rangeOffsetX)#Vec3
+		write_float(file, self.rangeOffsetY)
+		write_float(file, self.rangeOffsetZ)
+		write_float(file, self.padding1)
+		write_float(file, self.rangeAxisX)#Quaternion
+		write_float(file, self.rangeAxisY)
+		write_float(file, self.rangeAxisZ)
+		write_float(file, self.rangeAxisW)
+		write_uint(file, self.rangeShape)
+		write_float(file, self.springForce)
+		write_float(file, self.gravityCoef)
+		write_float(file, self.damping)
+		write_uint(file, self.attrFlags)
+		write_uint(file, self.padding2)
 
 	def __str__(self):
 		return str(self.__class__) + ": " + str(self.__dict__)
 
 class ChainNodeData():
 	def __init__(self):
-		#self.isUsingJiggleData = False#Not in file, used for blender
 		self.angleLimitDirectionX = 0.0#Quaternion
 		self.angleLimitDirectionY = 0.0
 		self.angleLimitDirectionZ = 0.0
@@ -445,11 +509,10 @@ class ChainNodeData():
 		self.collisionShape = 1 #ENUM sphere by default
 		self.attachType = 0
 		self.rotationType = 0
+		self.jiggleDataOffset = 0
 		self.unknChainNodeValue0 = 0.0#VERSION 48
 		self.unknChainNodeValue1 = 0.0#VERSION 48
-		self.unknChainNodeValue2 = 1.0#VERSION 48
-		self.unknChainNodeValue3 = 0.0#VERSION 48
-		#self.jiggleDataOffset = 0
+		self.jiggleData = None
 		
 	def read(self,file):
 		self.angleLimitDirectionX = read_float(file)#Quaternion
@@ -472,13 +535,16 @@ class ChainNodeData():
 		self.attachType = read_ubyte(file)
 		self.rotationType = read_ubyte(file)
 		if version >= 35:
-			#self.jiggleDataOffset = read_uint64(file)
-			#if self.jiggleDataOffset != 0:
-				#self.isUsingJiggleData = True
+			self.jiggleDataOffset = read_uint64(file)
 			self.unknChainNodeValue0 = read_float(file)#VERSION 48
 			self.unknChainNodeValue1 = read_float(file)#VERSION 48
-			self.unknChainNodeValue2 = read_float(file)#VERSION 48
-			self.unknChainNodeValue3 = read_float(file)#VERSION 48
+		if self.jiggleDataOffset != 0:
+			currentPos = file.tell()
+			self.jiggleData = ChainJiggleData()
+			file.seek(self.jiggleDataOffset)
+			self.jiggleData.read(file)
+			file.seek(currentPos)
+
 		file.seek(file.tell()+getPaddingAmount(file.tell(),16))#Skip padding
 	def write(self,file):#TODO finish write
 		write_float(file, self.angleLimitDirectionX)#Quaternion
@@ -500,13 +566,12 @@ class ChainNodeData():
 		write_ubyte(file, self.collisionShape) #ENUM sphere by default
 		write_ubyte(file, self.attachType)
 		write_ubyte(file, self.rotationType)
-		#write_uint64(file, self.jiggleDataOffset)
 		if version >= 35:
+			write_uint64(file, self.jiggleDataOffset)
 			write_float(file, self.unknChainNodeValue0)#VERSION 48
 			write_float(file, self.unknChainNodeValue1)#VERSION 48
-			write_float(file, self.unknChainNodeValue2)#VERSION 48
-			write_float(file, self.unknChainNodeValue3)#VERSION 48
 		file.write(b"\x00"*getPaddingAmount(file.tell(), 16))
+
 	def __str__(self):
 		return str(self.__class__) + ": " + str(self.__dict__)
 
@@ -544,6 +609,7 @@ class ChainGroupData():
 		self.unknGroupValue3 = 0#VERSION 52
 		self.nextChainNameOffset = 0#VERSION 48
 		self.nodeList = []
+
 	def read(self,file):
 		self.terminateNodeNameOffset = read_uint64(file)
 		currentPos = file.tell()
@@ -821,7 +887,6 @@ class ChainLinkData():
 		self.skipGroupB = read_ubyte(file)
 		self.linkOrder = read_ubyte(file)#ENUM
 		
-		
 	def write(self,file):#TODO finish write
 		write_uint64(file, self.nodeOffset)
 		write_uint(file, self.terminateNodeNameHashA)#MURMUR HASH
@@ -835,7 +900,6 @@ class ChainLinkData():
 		write_ubyte(file, self.skipGroupA)
 		write_ubyte(file, self.skipGroupB)
 		write_ubyte(file, self.linkOrder)#ENUM
-
 
 	def __str__(self):
 		return str(self.__class__) + ": " + str(self.__dict__)
@@ -923,8 +987,14 @@ class ChainFile():
 			chainGroup.terminateNodeNameOffset = currentNameOffset
 			currentNodeOffset = currentNameOffset + (len(chainGroup.terminateNodeName)*2+2)+getPaddingAmount(currentNameOffset + (len(chainGroup.terminateNodeName)*2+2), 16)
 			chainGroup.nodeOffset = currentNodeOffset
-			currentNameOffset = currentNodeOffset + chainGroup.nodeCount * self.sizeData.NODE_SIZE + getPaddingAmount(currentNodeOffset + chainGroup.nodeCount * self.sizeData.NODE_SIZE, 16)
-			chainGroup.nextChainNameOffset = chainGroup.nodeOffset + (self.sizeData.NODE_SIZE * chainGroup.nodeCount)#VERSION 48
+			nextOffset = currentNodeOffset + chainGroup.nodeCount * self.sizeData.NODE_SIZE
+			for chainNode in chainGroup.nodeList: 
+				#TODO Export chainJiggles
+				if chainNode.jiggleData != None:
+					chainNode.jiggleDataOffset = nextOffset
+					nextOffset += self.sizeData.JIGGLE_SIZE
+			currentNameOffset = nextOffset + getPaddingAmount(nextOffset, 16)
+			chainGroup.nextChainNameOffset = nextOffset #chainGroup.nodeOffset + (self.sizeData.NODE_SIZE * chainGroup.nodeCount)#VERSION 48
 		for chainLink in self.ChainLinkList:
 			#TODO Set nodeOffset for chain links
 			pass
@@ -954,6 +1024,10 @@ class ChainFile():
 			
 			for i, node in enumerate(chainGroup.nodeList):
 				node.write(file)
+			for i, node in enumerate(chainGroup.nodeList):
+				if node.jiggleData != None:
+					node.jiggleData.write(file)
+
 		file.seek(self.Header.chainWindSettingsOffset)
 		for windSettings in self.WindSettingsList:
 			windSettings.write(file)

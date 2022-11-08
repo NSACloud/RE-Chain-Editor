@@ -93,8 +93,10 @@ def getAttrFlagsItems(ChainSettingsData,targetObject):
 	return attrFlagsItems
 
 def addAttrFlag(attrFlag):
-	if str(attrFlag) not in attrFlagsItems:
-		attrFlagsItems.append((str(attrFlag), "AttrFlags_UNKNOWNFLAG_" + str(attrFlag), ""))
+	newAttr = (str(attrFlag), "AttrFlags_UNKNOWNFLAG_" + str(attrFlag), "")
+	if newAttr not in attrFlagsItems:
+		attrFlagsItems.append(newAttr)
+	sorted(attrFlagsItems, key=lambda attr: int(attr[0]))
 	return str(attrFlag)
 
 def update_angleLimitSize(self, context):
@@ -125,10 +127,12 @@ def update_CollisionRadius(self, context):
 						child.empty_display_size = obj.re_chain_chaincollision.radius * 100
 					else:
 						child.empty_display_size = 1
+						
 def update_NodeNameVis(self, context):
 	for obj in bpy.data.objects:
 		if obj.get("TYPE",None) == "RE_CHAIN_NODE":
 			obj.show_name = self.showNodeNames
+
 def update_CollisionNameVis(self, context):
 	collisionTypes = [
 		"RE_CHAIN_COLLISION_SINGLE",
@@ -142,6 +146,7 @@ def update_DrawNodesThroughObjects(self, context):
 	for obj in bpy.data.objects:
 		if obj.get("TYPE",None) == "RE_CHAIN_NODE" or obj.get("TYPE",None) == "RE_CHAIN_NODE_FRAME":
 			obj.show_in_front = self.drawNodesThroughObjects
+
 def update_DrawCollisionsThroughObjects(self, context):
 	collisionTypes = [
 		"RE_CHAIN_COLLISION_SINGLE",
@@ -162,7 +167,6 @@ def update_CollisionOffset(self, context):
 
 def update_EndCollisionOffset(self, context):
 	obj = self.id_data
-	#if obj.get("TYPE",None) == "RE_CHAIN_COLLISION_CAPSULE_ROOT":
 	if obj.get("TYPE",None) != "RE_CHAIN_COLLISION_CAPSULE_ROOT":
 		obj.location = obj.re_chain_chaincollision.endCollisionOffset * 100
 	else:
@@ -1443,11 +1447,6 @@ class chainNodePropertyGroup(bpy.types.PropertyGroup):
 		description="Rotation Type",#TODO Add description
 		default = 0,
 		)
-	jiggleData: IntProperty(
-		name = "Jiggle Data",
-		description = "Jiggle Data",#TODO Add description
-		default = 0,
-		)
 	unknChainNodeValue0: FloatProperty(
 		name = "Unknown 0",
 		description="Unknown 0",#TODO Add description
@@ -1456,16 +1455,6 @@ class chainNodePropertyGroup(bpy.types.PropertyGroup):
 	unknChainNodeValue1: FloatProperty(
 		name = "Unknown 1",
 		description="Unknown 1",#TODO Add description
-		default = 0.0,
-		)
-	unknChainNodeValue2: FloatProperty(
-		name = "Unknown 2",
-		description="Unknown 2",#TODO Add description
-		default = 1.0,
-		)
-	unknChainNodeValue3: FloatProperty(
-		name = "Unknown 3",
-		description="Unknown 3",#TODO Add description
 		default = 0.0,
 		)
 def getChainNode(ChainNodeData,targetObject):
@@ -1484,11 +1473,8 @@ def getChainNode(ChainNodeData,targetObject):
 	targetObject.re_chain_chainnode.collisionShape = str(ChainNodeData.collisionShape)
 	targetObject.re_chain_chainnode.attachType = ChainNodeData.attachType
 	targetObject.re_chain_chainnode.rotationType = ChainNodeData.rotationType
-	#targetObject.re_chain_chainnode.jiggleData = ChainNodeData.jiggleData
 	targetObject.re_chain_chainnode.unknChainNodeValue0 = ChainNodeData.unknChainNodeValue0
 	targetObject.re_chain_chainnode.unknChainNodeValue1 = ChainNodeData.unknChainNodeValue1
-	targetObject.re_chain_chainnode.unknChainNodeValue2 = ChainNodeData.unknChainNodeValue2
-	targetObject.re_chain_chainnode.unknChainNodeValue3 = ChainNodeData.unknChainNodeValue3
 	
 def setChainNodeData(ChainNodeData,targetObject):
 	ChainNodeData.angleLimitRad = targetObject.re_chain_chainnode.angleLimitRad 
@@ -1507,9 +1493,6 @@ def setChainNodeData(ChainNodeData,targetObject):
 	ChainNodeData.rotationType = targetObject.re_chain_chainnode.rotationType
 	ChainNodeData.unknChainNodeValue0 = targetObject.re_chain_chainnode.unknChainNodeValue0
 	ChainNodeData.unknChainNodeValue1 = targetObject.re_chain_chainnode.unknChainNodeValue1
-	ChainNodeData.unknChainNodeValue2 = targetObject.re_chain_chainnode.unknChainNodeValue2
-	ChainNodeData.unknChainNodeValue3 = targetObject.re_chain_chainnode.unknChainNodeValue3
-	#ChainNodeData.jiggleData = targetObject.re_chain_chainnode.jiggleData 
 
 	for child in targetObject.children:
 		if child.get("TYPE",None) == "RE_CHAIN_NODE_FRAME":
@@ -1519,7 +1502,93 @@ def setChainNodeData(ChainNodeData,targetObject):
 	ChainNodeData.angleLimitDirectionY = frame.rotation_quaternion[2]
 	ChainNodeData.angleLimitDirectionZ = frame.rotation_quaternion[3]
 	ChainNodeData.angleLimitDirectionW = frame.rotation_quaternion[0]
-	
+
+class chainJigglePropertyGroup(bpy.types.PropertyGroup):
+	'''range: FloatVectorProperty(
+		name = "Jiggle Range",
+		description="Jiggle Range",#TODO Add description
+		#default = (0.0,0.0,0.0),
+		step = .1,
+		subtype = "XYZ",
+		)
+	rangeOffset: FloatVectorProperty(
+		name = "Jiggle Range Offset",
+		description="Jiggle Range Offset",#TODO Add description
+		#default = (0.0,0.0,0.0),
+		step = .1,
+		subtype = "XYZ"
+		)
+	rangeAxis: FloatVectorProperty(
+		name = "Jiggle Range Axis",
+		description="Jiggle Range Axis",#TODO Add description
+		#default = (0.0,0.0,0.0,1.0),
+		step = .1,
+		subtype = "QUATERNION"
+		)'''
+	rangeShape: EnumProperty(
+		name="Collision Shape",
+		description="Apply Data to attribute.",
+		items=[ ("0", "ChainJiggleRangeShape_None", ""),
+				("1", "ChainJiggleRangeShape_OBB", ""),
+				("2", "ChainJiggleRangeShape_Sphere", ""),
+				("3", "ChainJiggleRangeShape_Cone", ""),
+			   ]
+		)
+	springForce: FloatProperty(
+		name = "Spring Force",
+		description = "Jiggle Spring Force",#TODO Add description
+		default = 0.00,
+		soft_min=0.000,
+		soft_max=1.000
+		)
+	gravityCoef: FloatProperty(
+		name = "Gravity Coefficient",
+		description = "Jiggle Gravity Coefficient",#TODO Add description
+		default = 0.00,
+		soft_min=0.000,
+		soft_max=1.000
+		)
+	damping: FloatProperty(
+		name = "Damping",
+		description = "Jiggle Damping",#TODO Add description
+		default = 0.00,
+		soft_min=0.000,
+		soft_max=1.000
+		)
+	attrFlags: EnumProperty(
+		name="Attribute Flags",
+		description="Apply Data to attribute.",
+		items=getAttrFlagsItems
+		)
+
+def getChainJiggle(ChainJiggleData,targetObject):
+	#Done manually to be able to account for chain version differences eventually
+	targetObject.re_chain_chainjiggle.rangeShape = str(ChainJiggleData.rangeShape)
+	targetObject.re_chain_chainjiggle.springForce = ChainJiggleData.springForce
+	targetObject.re_chain_chainjiggle.gravityCoef = ChainJiggleData.gravityCoef
+	targetObject.re_chain_chainjiggle.damping = ChainJiggleData.damping
+	targetObject.re_chain_chainjiggle.attrFlags = addAttrFlag(ChainJiggleData.attrFlags)
+
+def setChainJiggleData(ChainJiggleData,targetObject):
+	ChainJiggleData.rangeX = targetObject.scale[0]
+	ChainJiggleData.rangeY = targetObject.scale[1]
+	ChainJiggleData.rangeZ = targetObject.scale[2]
+
+	ChainJiggleData.rangeOffsetX = targetObject.location[0]
+	ChainJiggleData.rangeOffsetY = targetObject.location[1]
+	ChainJiggleData.rangeOffsetZ = targetObject.location[2]
+
+	ChainJiggleData.rangeAxisX = targetObject.rotation_quaternion[0]
+	ChainJiggleData.rangeAxisY = targetObject.rotation_quaternion[1]
+	ChainJiggleData.rangeAxisZ = targetObject.rotation_quaternion[2]
+	ChainJiggleData.rangeAxisW = targetObject.rotation_quaternion[3]
+
+	ChainJiggleData.rangeShape = int(targetObject.re_chain_chainjiggle.rangeShape)
+	ChainJiggleData.springForce = targetObject.re_chain_chainjiggle.springForce
+	ChainJiggleData.gravityCoef = targetObject.re_chain_chainjiggle.gravityCoef
+	ChainJiggleData.damping = targetObject.re_chain_chainjiggle.damping
+	ChainJiggleData.attrFlags = int(targetObject.re_chain_chainjiggle.attrFlags)
+
 class chainCollisionPropertyGroup(bpy.types.PropertyGroup):
 	rotationOrder: EnumProperty(
 		name="Rotation Order",
@@ -1578,7 +1647,6 @@ class chainCollisionPropertyGroup(bpy.types.PropertyGroup):
 				("6", "ChainCollisionShape_LerpSphere", ""),
 			   ]
 		)
-		
 	subDataCount: IntProperty(
 		name = "SubData Count",
 		description = "SubData Count",#TODO Add description
@@ -1748,5 +1816,6 @@ class chainClipboardPropertyGroup(bpy.types.PropertyGroup):
 	re_chain_chainsettings : PointerProperty(type=chainSettingsPropertyGroup)
 	re_chain_chaingroup : PointerProperty(type=chainGroupPropertyGroup)
 	re_chain_chainnode : PointerProperty(type=chainNodePropertyGroup)
+	re_chain_chainjiggle : PointerProperty(type=chainJigglePropertyGroup)
 	re_chain_chaincollision : PointerProperty(type=chainCollisionPropertyGroup)
 	re_chain_chainlink : PointerProperty(type=chainLinkPropertyGroup)

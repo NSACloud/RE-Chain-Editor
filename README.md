@@ -52,4 +52,4 @@ https://github.com/mhvuze/MonsterHunterRiseModding/wiki/Editing-Chains-with-RE-C
 [Monster Hunter Modding Discord](https://discord.gg/gJwMdhK)
  - [AsteriskAmpersand](https://github.com/AsteriskAmpersand) - Advice and inspiration from CTC Editor
 - [Statyk](https://www.youtube.com/channel/UC2nEkiSL_X7xh6QHJcS0Wjw) - Beta testing and feedback
-- [AlphaZomega](https://github.com/alphazolam) - RE Chain 010 Template, Modified this addon to work in all games
+- [AlphaZomega](https://github.com/alphazolam/RE-Chain-Editor) - RE Chain 010 Template, Modified this addon to work in all games and other bugfixes/additions

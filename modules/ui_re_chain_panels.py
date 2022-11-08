@@ -34,12 +34,14 @@ class OBJECT_PT_ChainObjectModePanel(Panel):
 		layout.operator("re_chain.create_chain_header")
 		layout.operator("re_chain.create_chain_settings")
 		layout.operator("re_chain.create_wind_settings")
+		layout.operator("re_chain.create_chain_jiggle")
 		layout.operator("re_chain.create_chain_link")
 		layout.operator("re_chain.align_chains_to_bone")
 		layout.label(text="Create new chains in Pose Mode.")
 		layout.operator("re_chain.switch_to_pose")
 		#layout.operator("re_chain.align_frames")#Not implemented yet
 		#layout.operator("re_chain.point_frame")#Not implemented yet
+
 class OBJECT_PT_ChainClipboardPanel(Panel):
 	bl_label = "RE Chain: Clipboard"
 	bl_idname = "OBJECT_PT_chain_clipboard_panel"
@@ -86,6 +88,7 @@ class OBJECT_PT_ChainPoseModePanel(Panel):
 		layout.operator("re_chain.create_chain_bone_group")
 		layout.label(text="Configure chains in Object Mode.")
 		layout.operator("re_chain.switch_to_object")
+
 class OBJECT_PT_ChainPresetPanel(Panel):
 	bl_label = "RE Chain: Presets"
 	bl_idname = "OBJECT_PT_chain_presets_panel"
@@ -430,8 +433,39 @@ class OBJECT_PT_ChainNodePanel(Panel):
 		if version >= 35:
 			col2.prop(re_chain_chainnode, "unknChainNodeValue0")
 			col2.prop(re_chain_chainnode, "unknChainNodeValue1")
-			col2.prop(re_chain_chainnode, "unknChainNodeValue2")
-			col2.prop(re_chain_chainnode, "unknChainNodeValue3")
+
+
+class OBJECT_PT_ChainJigglePanel(Panel):
+	bl_label = "RE Chain Jiggle Settings"
+	bl_idname = "OBJECT_PT_chain_jiggle_panel"
+	bl_space_type = "PROPERTIES"   
+	bl_region_type = "WINDOW"
+	bl_category = "RE Chain Jiggle Settings"
+	bl_context = "object"
+
+
+	@classmethod
+	def poll(self,context):
+		
+		return context and context.object.mode == "OBJECT" and context.active_object.get("TYPE",None) == "RE_CHAIN_JIGGLE"
+
+	def draw(self, context):
+		layout = self.layout
+		object = context.active_object
+		re_chain_chainjiggle = object.re_chain_chainjiggle
+		split = layout.split(factor=0.01)
+		col1 = split.column()
+		col2 = split.column()
+		col2.alignment='RIGHT'
+		col2.use_property_split = True
+		#col2.prop(re_chain_chainjiggle, "range")
+		#col2.prop(re_chain_chainjiggle, "rangeOffset") 
+		#col2.prop(re_chain_chainjiggle, "rangeAxis")
+		col2.prop(re_chain_chainjiggle, "rangeShape")
+		col2.prop(re_chain_chainjiggle, "springForce",slider = True)
+		col2.prop(re_chain_chainjiggle, "gravityCoef",slider = True)
+		col2.prop(re_chain_chainjiggle, "damping",slider = True)
+		col2.prop(re_chain_chainjiggle, "attrFlags")
 		
 class OBJECT_PT_ChainCollisionPanel(Panel):
 	bl_label = "RE Chain Collision Settings"

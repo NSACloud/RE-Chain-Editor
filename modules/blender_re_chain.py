@@ -5,9 +5,9 @@ from .gen_functions import textColors,raiseWarning,raiseError
 from .file_re_chain import readREChain,writeREChain
 from .pymmh3 import hash_wide
 from .blender_utils import showMessageBox,showErrorMessageBox
-from .re_chain_propertyGroups import getChainHeader,getWindSettings,getChainSettings,getChainGroup,getChainNode,getChainCollision,getChainLink,setChainHeaderData,setWindSettingsData,setChainSettingsData,setChainGroupData,setChainNodeData,setChainCollisionData,setChainLinkData
+from .re_chain_propertyGroups import getChainHeader,getWindSettings,getChainSettings,getChainGroup,getChainNode,getChainJiggle,getChainCollision,getChainLink,setChainHeaderData,setWindSettingsData,setChainSettingsData,setChainGroupData,setChainNodeData,setChainJiggleData,setChainCollisionData,setChainLinkData
 
-from .file_re_chain import ChainFile, SIZE_DATA, ChainHeaderData, ChainSettingsData, ChainCollisionData, ChainNodeData, ChainGroupData, WindSettingsData,ChainLinkData
+from .file_re_chain import ChainFile, SIZE_DATA, ChainHeaderData, ChainSettingsData, ChainCollisionData, ChainNodeData, ChainGroupData, ChainJiggleData, WindSettingsData,ChainLinkData
 
 
 #TODO Add checking for chain groups with -1 chain settings ID
@@ -298,6 +298,18 @@ def importChainFile(filepath):
 						constraint.subtarget = currentBone.name #.split(":")[len(bone.name.split(":"))-1]
 						#terminalNameHashDict[hash_wide(currentBone.name)] = nodeObj
 						constraint.name = "BoneName"
+					if node.jiggleData:
+						jiggle = node.jiggleData
+						jiggleObj = createEmpty(name+"_JIGGLE",[("TYPE","RE_CHAIN_JIGGLE")],nodeObj,"chainData")
+						getChainJiggle(jiggle, jiggleObj)
+						jiggleObj.empty_display_size = 40
+						jiggleObj.empty_display_type = "SPHERE"
+						jiggleObj.show_name = bpy.context.scene.re_chain_toolpanel.showNodeNames
+						jiggleObj.show_in_front = bpy.context.scene.re_chain_toolpanel.drawNodesThroughObjects
+						jiggleObj.rotation_mode = 'QUATERNION'
+						jiggleObj.rotation_quaternion = (jiggle.rangeAxisX,jiggle.rangeAxisY,jiggle.rangeAxisZ,jiggle.rangeAxisW)
+						jiggleObj.scale = (jiggle.rangeX, jiggle.rangeY, jiggle.rangeZ)
+						jiggleObj.location = (jiggle.rangeOffsetX, jiggle.rangeOffsetY, jiggle.rangeOffsetZ)
 		alignChains()
 	#CHAIN COLLISION IMPORT
 	
@@ -661,6 +673,14 @@ def exportChainFile(filepath, version):
 				node = ChainNodeData()
 				setChainNodeData(node, nodeObj)
 				chainGroup.nodeList.append(node)
+				if version >= 35:
+					for child in nodeObj.children:
+						if child.get("TYPE",None) == "RE_CHAIN_JIGGLE":
+							jiggle = ChainJiggleData()
+							setChainJiggleData(jiggle, child)
+							node.jiggleData = jiggle
+							break
+
 			chainGroup.terminateNodeNameHash = hash_wide(nodeObjList[len(nodeObjList)-1].name.split(".")[0])
 			chainGroupTerminateNodeHashDict[chainGroupObj.name] = chainGroup.terminateNodeNameHash
 			chainGroup.terminateNodeName = nodeObjList[len(nodeObjList)-1].name.split(".")[0]

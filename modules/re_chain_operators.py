@@ -6,8 +6,8 @@ from math import radians
 from bpy.types import Operator
 
 from .blender_re_chain import createEmpty,alignChains,alignCollisions,checkNameUsage,checkChainSettingsIDUsage,checkWindSettingsIDUsage,findHeaderObj,syncCollisionOffsets
-from .file_re_chain import ChainHeaderData, ChainSettingsData,WindSettingsData,ChainGroupData,ChainNodeData,ChainCollisionData,ChainLinkData
-from .re_chain_propertyGroups import getChainHeader,getWindSettings,getChainSettings,getChainGroup,getChainNode,getChainLink,getChainCollision
+from .file_re_chain import ChainHeaderData,ChainSettingsData,WindSettingsData,ChainGroupData,ChainNodeData,ChainJiggleData,ChainCollisionData,ChainLinkData
+from .re_chain_propertyGroups import getChainHeader,getWindSettings,getChainSettings,getChainGroup,getChainNode,getChainJiggle,getChainLink,getChainCollision
 from .ui_re_chain_panels import tag_redraw
 from .blender_utils import showErrorMessageBox
 from .re_chain_presets import saveAsPreset,readPresetJSON
@@ -184,6 +184,7 @@ class WM_OT_NewChainHeader(Operator):
 		chainHeader = ChainHeaderData()
 		getChainHeader(chainHeader,chainHeaderObj)
 		return {'FINISHED'}
+
 class WM_OT_NewChainSettings(Operator):
 	bl_label = "Create Chain Settings"
 	bl_idname = "re_chain.create_chain_settings"
@@ -200,14 +201,13 @@ class WM_OT_NewChainSettings(Operator):
 		currentSettingID = 0
 		while checkChainSettingsIDUsage(currentSettingID):
 			currentSettingID += 1
-			
 		
 		chainSettings = ChainSettingsData()
 		chainSettingsObj = createEmpty(name, [("TYPE","RE_CHAIN_CHAINSETTINGS")],headerObj,"chainData")
 		getChainSettings(chainSettings,chainSettingsObj)
 		chainSettingsObj.re_chain_chainsettings.id = currentSettingID
-
 		return {'FINISHED'}
+
 class WM_OT_NewWindSettings(Operator):
 	bl_label = "Create Wind Settings"
 	bl_idname = "re_chain.create_wind_settings"
@@ -230,6 +230,18 @@ class WM_OT_NewWindSettings(Operator):
 		getWindSettings(windSettings,windSettingsObj)
 		windSettingsObj.re_chain_windsettings.id = currentSettingID
 		return {'FINISHED'}
+
+class WM_OT_NewChainJiggle(Operator):
+	bl_label = "Create Chain Jiggle"
+	bl_idname = "re_chain.create_chain_jiggle"
+	bl_options = {'UNDO'}
+	bl_description = "Create a chain jiggle object. Adds special jiggle simulation to its chain node parent. Can be used on chain versions 35+"
+	def execute(self, context):
+		chainJiggleObj = createEmpty("CHAIN_JIGGLE", [("TYPE","RE_CHAIN_JIGGLE")],None,"chainData")
+		chainJiggle = ChainJiggleData()
+		getChainJiggle(chainJiggle,chainJiggleObj)
+		return {'FINISHED'}
+
 class WM_OT_NewChainLink(Operator):
 	bl_label = "Create Chain Link"
 	bl_idname = "re_chain.create_chain_link"
@@ -250,8 +262,8 @@ class WM_OT_NewChainLink(Operator):
 			if bpy.context.selected_objects[0].get("TYPE",None) == "RE_CHAIN_CHAINGROUP" and bpy.context.selected_objects[1].get("TYPE",None) == "RE_CHAIN_CHAINGROUP":
 				chainLinkObj.re_chain_chainlink.chainGroupAObject = bpy.context.selected_objects[0].name
 				chainLinkObj.re_chain_chainlink.chainGroupBObject = bpy.context.selected_objects[1].name
-
 		return {'FINISHED'}
+
 class WM_OT_CopyChainProperties(Operator):
 	bl_label = "Copy"
 	bl_idname = "re_chain.copy_chain_properties"
@@ -313,6 +325,16 @@ class WM_OT_CopyChainProperties(Operator):
 			getChainNode(chainNode, clipboard)
 			for key, value in activeObj.re_chain_chainnode.items():
 				clipboard.re_chain_chainnode[key] = value
+
+		elif chainObjType == "RE_CHAIN_JIGGLE":
+			clipboard.re_chain_type = chainObjType
+			clipboard.re_chain_type_name = "Chain Jiggle"
+			#initialize clipboard entry
+			chainJiggle = ChainJiggleData()
+			getChainJiggle(chainJiggle, clipboard)
+			for key, value in activeObj.re_chain_chainjiggle.items():
+				clipboard.re_chain_chainjiggle[key] = value
+
 		elif chainObjType == "RE_CHAIN_LINK":
 			clipboard.re_chain_type = chainObjType
 			clipboard.re_chain_type_name = "Chain Link"
@@ -374,6 +396,10 @@ class WM_OT_PasteChainProperties(Operator):
 				elif chainObjType == "RE_CHAIN_NODE":
 					for key, value in clipboard.re_chain_chainnode.items():
 						activeObj.re_chain_chainnode[key] = value
+
+				elif chainObjType == "RE_CHAIN_JIGGLE":
+					for key, value in clipboard.re_chain_chainjiggle.items():
+						activeObj.re_chain_chainjiggle[key] = value
 						
 				elif chainObjType == "RE_CHAIN_LINK":
 					for key, value in clipboard.re_chain_chainlink.items():
@@ -384,9 +410,9 @@ class WM_OT_PasteChainProperties(Operator):
 						activeObj.re_chain_chaincollision[key] = value
 						
 						#I know this looks pointless but the purpose of this is force the update function to trigger, otherwise the position doesn't update
-						#activeObj.re_chain_chaincollision.collisionOffset = activeObj.re_chain_chaincollision.collisionOffset
-						#activeObj.re_chain_chaincollision.endCollisionOffset = activeObj.re_chain_chaincollision.endCollisionOffset
-						#activeObj.re_chain_chaincollision.radius = activeObj.re_chain_chaincollision.radius
+						activeObj.re_chain_chaincollision.collisionOffset = activeObj.re_chain_chaincollision.collisionOffset
+						activeObj.re_chain_chaincollision.endCollisionOffset = activeObj.re_chain_chaincollision.endCollisionOffset
+						activeObj.re_chain_chaincollision.radius = activeObj.re_chain_chaincollision.radius
 				tag_redraw(bpy.context)#Redraw property panel
 				self.report({"INFO"},"Pasted properties of " + str(clipboard.re_chain_type_name)+" object from clipboard.")
 			else:
