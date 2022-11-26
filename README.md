@@ -1,5 +1,6 @@
 
 # RE-Chain-Editor
+## Multi-Game Version
 This addon allows for importing and exporting of RE Engine chain (physics bone) files from Blender.
 
 ![Blender Preview](https://github.com/mhvuze/MonsterHunterRiseModding/blob/main/img/guides/models/REChainEditor/RE_Chain_Editor_Preview.png)
@@ -10,6 +11,11 @@ This addon allows for importing and exporting of RE Engine chain (physics bone) 
  ### Supported Games
 
  - **Monster Hunter Rise: Sunbreak**
+ - **Resident Evil 2 Remake**
+ - **Resident Evil 3 Remake**
+ - **Resident Evil 8**
+ - **Devil May Cry 5**
+ - **Street Fighter 6 Beta**
  
 Support for more games may be added in the future.
 
@@ -46,4 +52,4 @@ https://github.com/mhvuze/MonsterHunterRiseModding/wiki/Editing-Chains-with-RE-C
 [Monster Hunter Modding Discord](https://discord.gg/gJwMdhK)
  - [AsteriskAmpersand](https://github.com/AsteriskAmpersand) - Advice and inspiration from CTC Editor
 - [Statyk](https://www.youtube.com/channel/UC2nEkiSL_X7xh6QHJcS0Wjw) - Beta testing and feedback
-- [AlphaZomega](https://github.com/alphazolam) - RE Chain 010 Template
+- [AlphaZomega](https://github.com/alphazolam/RE-Chain-Editor) - RE Chain 010 Template, Modified this addon to work in all games and other bugfixes/additions

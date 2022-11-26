@@ -14,6 +14,91 @@ from .pymmh3 import hash_wide
 
 from .re_chain_presets import reloadPresets
 
+attrFlagsItems = [ ("0", "AttrFlags_None", ""),
+	("1", "AttrFlags_RootRotation", ""),
+	("2", "AttrFlags_AngleLimit", ""),
+	("4", "AttrFlags_ExtraNode", ""),
+	("8", "AttrFlags_CollisionDefault", ""),
+	("16", "AttrFlags_CollisionSelf", ""),
+	("32", "AttrFlags_CollisionModel", ""),
+	("64", "AttrFlags_CollisionVGround", ""),
+	("128", "AttrFlags_CollisionCollider", ""),
+	("256", "AttrFlags_CollisionGroup", ""),
+	("512", "AttrFlags_EnablePartBlend", ""),
+	("1024", "AttrFlags_WindDefault", ""),
+	("2048", "AttrFlags_TransAnimation", ""),
+	("4096", "AttrFlags_AngleLimitRestitution", ""),
+	("8192", "AttrFlags_StretchBoth", ""),
+	("16384", "AttrFlags_EndRotConstraint", ""),
+	("3", "AttrFlags_UNKNOWNFLAG_3", ""),
+	("11", "AttrFlags_UNKNOWNFLAG_11", ""),
+	("35", "AttrFlags_UNKNOWNFLAG_35", ""),
+	("507", "AttrFlags_UNKNOWNFLAG_507", ""),
+	("1025", "AttrFlags_UNKNOWNFLAG_1025", ""),
+	("1027", "AttrFlags_UNKNOWNFLAG_1027", ""),
+	("1034", "AttrFlags_UNKNOWNFLAG_1034", ""),
+	("1035", "AttrFlags_UNKNOWNFLAG_1035", ""),
+	("1039", "AttrFlags_UNKNOWNFLAG_1039", ""),
+	("1051", "AttrFlags_UNKNOWNFLAG_1051", ""),
+	("1057", "AttrFlags_UNKNOWNFLAG_1057", ""),
+	("1059", "AttrFlags_UNKNOWNFLAG_1059", ""),
+	("1067", "AttrFlags_UNKNOWNFLAG_1067", ""),
+	("1203", "AttrFlags_UNKNOWNFLAG_1203", ""),
+	("1075", "AttrFlags_UNKNOWNFLAG_1075", ""),
+	("1083", "AttrFlags_UNKNOWNFLAG_1083", ""),
+	("1203", "AttrFlags_UNKNOWNFLAG_1203", ""),
+	("1211", "AttrFlags_UNKNOWNFLAG_1211", ""),
+	("1323", "AttrFlags_UNKNOWNFLAG_1323", ""),
+	("1331", "AttrFlags_UNKNOWNFLAG_1331", ""),
+	("1459", "AttrFlags_UNKNOWNFLAG_1459", ""),
+	("1523", "AttrFlags_UNKNOWNFLAG_1523", ""),
+	("1531", "AttrFlags_UNKNOWNFLAG_1531", ""),
+	("1547", "AttrFlags_UNKNOWNFLAG_1547", ""),
+	("32779","AttrFlags_UNKNOWNFLAG_32779",""),
+	("32803","AttrFlags_UNKNOWNFLAG_32803",""),
+	("32811","AttrFlags_UNKNOWNFLAG_32811",""),
+	("32819","AttrFlags_UNKNOWNFLAG_32819",""),
+	("32947","AttrFlags_UNKNOWNFLAG_32947",""),
+	("33275","AttrFlags_UNKNOWNFLAG_33275",""),
+	("33793","AttrFlags_UNKNOWNFLAG_33793",""),
+	("33795","AttrFlags_UNKNOWNFLAG_33795",""),
+	("33802","AttrFlags_UNKNOWNFLAG_33802",""),
+	("33803","AttrFlags_UNKNOWNFLAG_33803",""),
+	("33807","AttrFlags_UNKNOWNFLAG_33807",""),
+	("33811","AttrFlags_UNKNOWNFLAG_33811",""),
+	("33819","AttrFlags_UNKNOWNFLAG_33819",""),
+	("33825","AttrFlags_UNKNOWNFLAG_33825",""),
+	("33827","AttrFlags_UNKNOWNFLAG_33827",""),
+	("33835","AttrFlags_UNKNOWNFLAG_33835",""),
+	("33843","AttrFlags_UNKNOWNFLAG_33843",""),
+	("33851","AttrFlags_UNKNOWNFLAG_33851",""),
+	("33939","AttrFlags_UNKNOWNFLAG_33939",""),
+	("33955","AttrFlags_UNKNOWNFLAG_33955",""),
+	("33963","AttrFlags_UNKNOWNFLAG_33963",""),
+	("33971","AttrFlags_COLLLISION_ENABLED_FLAG_33971",""),
+	("33979","AttrFlags_UNKNOWNFLAG_33979",""),
+	("34043","AttrFlags_UNKNOWNFLAG_34043",""),
+	("34083","AttrFlags_UNKNOWNFLAG_34083",""),
+	("34091","AttrFlags_UNKNOWNFLAG_34091",""),
+	("34099","AttrFlags_UNKNOWNFLAG_34099",""),
+	("34211","AttrFlags_UNKNOWNFLAG_34211",""),
+	("34227","AttrFlags_UNKNOWNFLAG_34227",""),
+	("34291","AttrFlags_UNKNOWNFLAG_34291",""),
+	("34299","AttrFlags_UNKNOWNFLAG_34299",""),
+	("34315","AttrFlags_UNKNOWNFLAG_34315",""),
+	("37923","AttrFlags_UNKNOWNFLAG_37923","")
+	]
+
+def getAttrFlagsItems(ChainSettingsData,targetObject):
+	return attrFlagsItems
+
+def addAttrFlag(attrFlag):
+	newAttr = (str(attrFlag), "AttrFlags_UNKNOWNFLAG_" + str(attrFlag), "")
+	if newAttr not in attrFlagsItems:
+		attrFlagsItems.append(newAttr)
+	sorted(attrFlagsItems, key=lambda attr: int(attr[0]))
+	return str(attrFlag)
+
 def update_angleLimitSize(self, context):
 	for obj in bpy.data.objects:
 		if obj.get("TYPE",None) == "RE_CHAIN_NODE_FRAME":
@@ -42,10 +127,12 @@ def update_CollisionRadius(self, context):
 						child.empty_display_size = obj.re_chain_chaincollision.radius * 100
 					else:
 						child.empty_display_size = 1
+						
 def update_NodeNameVis(self, context):
 	for obj in bpy.data.objects:
 		if obj.get("TYPE",None) == "RE_CHAIN_NODE":
 			obj.show_name = self.showNodeNames
+
 def update_CollisionNameVis(self, context):
 	collisionTypes = [
 		"RE_CHAIN_COLLISION_SINGLE",
@@ -59,6 +146,7 @@ def update_DrawNodesThroughObjects(self, context):
 	for obj in bpy.data.objects:
 		if obj.get("TYPE",None) == "RE_CHAIN_NODE" or obj.get("TYPE",None) == "RE_CHAIN_NODE_FRAME":
 			obj.show_in_front = self.drawNodesThroughObjects
+
 def update_DrawCollisionsThroughObjects(self, context):
 	collisionTypes = [
 		"RE_CHAIN_COLLISION_SINGLE",
@@ -79,7 +167,9 @@ def update_CollisionOffset(self, context):
 
 def update_EndCollisionOffset(self, context):
 	obj = self.id_data
-	if obj.get("TYPE",None) == "RE_CHAIN_COLLISION_CAPSULE_ROOT":
+	if obj.get("TYPE",None) != "RE_CHAIN_COLLISION_CAPSULE_ROOT":
+		obj.location = obj.re_chain_chaincollision.endCollisionOffset * 100
+	else:
 		for child in obj.children:
 			if child.get("TYPE",None) == "RE_CHAIN_COLLISION_CAPSULE_END":
 				child.location = obj.re_chain_chaincollision.endCollisionOffset * 100
@@ -169,10 +259,22 @@ class chainToolPanelPropertyGroup(bpy.types.PropertyGroup):
 		)
 class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
 
-	version: IntProperty(
+	'''version: IntProperty(
 		name = "Chain Version",
 		description="Chain Version",#TODO Add description
-		default = 35,
+		#default = 35,
+		)'''
+	version: EnumProperty(
+		name = "Chain Version",
+		description="Chain Version",#TODO Add description
+		items=[ ("21", ".21 (RE2R, DMC5)", ""),
+				("24", ".24 (RE3R, Resistance)", ""),
+				("35", ".35 (MHRise)", ""),
+				("39", ".39 (RE8)", ""),
+				("46", ".46 (Ray Tracing RE2,3,7)", ""),
+				("48", ".48 (MHRise Sunbreak)", ""),
+				("52", ".52 (Street Fighter 6 Beta)", ""),
+			   ]
 		)
 	errFlags: EnumProperty(
 		name="Error Flags",
@@ -351,13 +453,13 @@ class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
   
 def getChainHeader(ChainHeaderData,targetObject):
 	#Done manually to be able to account for chain version differences eventually
-	targetObject.re_chain_header.version = ChainHeaderData.version
+	targetObject.re_chain_header.version = str(ChainHeaderData.version)
 	targetObject.re_chain_header.errFlags = str(ChainHeaderData.errFlags)
 	targetObject.re_chain_header.masterSize = ChainHeaderData.masterSize
 	targetObject.re_chain_header.rotationOrder = str(ChainHeaderData.rotationOrder)
 	targetObject.re_chain_header.defaultSettingIdx = ChainHeaderData.defaultSettingIdx
 	targetObject.re_chain_header.calculateMode = str(ChainHeaderData.calculateMode)
-	targetObject.re_chain_header.chainAttrFlags = str(ChainHeaderData.chainAttrFlags)
+	targetObject.re_chain_header.chainAttrFlags = addAttrFlag(ChainHeaderData.chainAttrFlags)
 	targetObject.re_chain_header.parameterFlag = str(ChainHeaderData.parameterFlag)
 	targetObject.re_chain_header.calculateStepTime = ChainHeaderData.calculateStepTime
 	targetObject.re_chain_header.modelCollisionSearch = ChainHeaderData.modelCollisionSearch
@@ -373,7 +475,7 @@ def getChainHeader(ChainHeaderData,targetObject):
 
 
 def setChainHeaderData(ChainHeaderData,targetObject):
-	ChainHeaderData.version = targetObject.re_chain_header.version 
+	ChainHeaderData.version = int(targetObject.re_chain_header.version) 
 	ChainHeaderData.errFlags = int(targetObject.re_chain_header.errFlags)
 	ChainHeaderData.masterSize = targetObject.re_chain_header.masterSize 
 	ChainHeaderData.rotationOrder = int(targetObject.re_chain_header.rotationOrder)
@@ -749,6 +851,7 @@ class chainSettingsPropertyGroup(bpy.types.PropertyGroup):
 				("2", "SettingAttrFlags_VirtualGroundRoot", ""),
 				("3", "SettingAttrFlags_UNKNOWNFLAG_3", ""),
 				("4", "SettingAttrFlags_VirtualGroundTarget", ""),
+				("5", "SettingAttrFlags_UNKNOWNFLAG_4", ""),
 				("8", "SettingAttrFlags_IgnoreSameGroupCollision", ""),
 				("9", "SettingAttrFlags_UNKNOWNFLAG_9", ""),
 				("6", "SettingAttrFlags_VirtualGroundMask", ""),
@@ -927,28 +1030,7 @@ class chainSettingsPropertyGroup(bpy.types.PropertyGroup):
 	groupDefaultAttr: EnumProperty(
 		name="Group Default Attribute",
 		description="Apply Data to attribute.",
-		items=[ ("0", "AttrFlags_None", ""),
-				("1", "AttrFlags_RootRotation", ""),
-				("2", "AttrFlags_AngleLimit", ""),
-				("4", "AttrFlags_ExtraNode", ""),
-				("8", "AttrFlags_CollisionDefault", ""),
-				("16", "AttrFlags_CollisionSelf", ""),
-				("32", "AttrFlags_CollisionModel", ""),
-				("64", "AttrFlags_CollisionVGround", ""),
-				("128", "AttrFlags_CollisionCollider", ""),
-				("256", "AttrFlags_CollisionGroup", ""),
-				("512", "AttrFlags_EnablePartBlend", ""),
-				("1024", "AttrFlags_WindDefault", ""),
-				("2048", "AttrFlags_TransAnimation", ""),
-				("4096", "AttrFlags_AngleLimitRestitution", ""),
-				("8192", "AttrFlags_StretchBoth", ""),
-				("16384", "AttrFlags_EndRotConstraint", ""),
-				("96", "AttrFlags_UNKNOWNFLAG_96", ""),
-				("160", "AttrFlags_UNKNOWNFLAG_160", ""),
-				("176", "AttrFlags_UNKNOWNFLAG_176", ""),
-				("432", "AttrFlags_UNKNOWNFLAG_432", ""),
-				("496", "AttrFlags_UNKNOWNFLAG_496", ""),
-			   ]
+		items=getAttrFlagsItems
 		)
 	windEffectCoef: FloatProperty(
 		name = "Wind Effect Coefficient",
@@ -978,6 +1060,16 @@ class chainSettingsPropertyGroup(bpy.types.PropertyGroup):
 	unknChainSettingValue1: FloatProperty(
 		name = "Unknown 1",
 		description = "Unknown 1",#TODO Add description
+		default = 0.10,
+		)
+	unknChainSettingValue2: FloatProperty(
+		name = "Unknown 2",
+		description = "Unknown 2",#TODO Add description
+		default = 0.00,
+		)
+	unknChainSettingValue3: FloatProperty(
+		name = "Unknown 3",
+		description = "Unknown 3",#TODO Add description
 		default = 0.10,
 		)
 def getChainSettings(ChainSettingsData,targetObject):
@@ -1015,12 +1107,17 @@ def getChainSettings(ChainSettingsData,targetObject):
 	targetObject.re_chain_chainsettings.stretchInteractionRatio = ChainSettingsData.stretchInteractionRatio
 	targetObject.re_chain_chainsettings.angleLimitInteractionRatio = ChainSettingsData.angleLimitInteractionRatio
 	targetObject.re_chain_chainsettings.shootingElasticLimitRate = ChainSettingsData.shootingElasticLimitRate
-	targetObject.re_chain_chainsettings.groupDefaultAttr = str(ChainSettingsData.groupDefaultAttr)
+	try:
+		targetObject.re_chain_chainsettings.groupDefaultAttr = str(ChainSettingsData.groupDefaultAttr)
+	except:
+		pass
 	targetObject.re_chain_chainsettings.windEffectCoef = ChainSettingsData.windEffectCoef
 	targetObject.re_chain_chainsettings.velocityLimit = ChainSettingsData.velocityLimit
 	targetObject.re_chain_chainsettings.hardness = ChainSettingsData.hardness
 	targetObject.re_chain_chainsettings.unknChainSettingValue0 = ChainSettingsData.unknChainSettingValue0
 	targetObject.re_chain_chainsettings.unknChainSettingValue1 = ChainSettingsData.unknChainSettingValue1
+	targetObject.re_chain_chainsettings.unknChainSettingValue2 = ChainSettingsData.unknChainSettingValue2
+	targetObject.re_chain_chainsettings.unknChainSettingValue3 = ChainSettingsData.unknChainSettingValue3
 def setChainSettingsData(ChainSettingsData,targetObject):
 	ChainSettingsData.id = targetObject.re_chain_chainsettings.id 
 	ChainSettingsData.sprayParameterArc = targetObject.re_chain_chainsettings.sprayParameterArc 
@@ -1068,11 +1165,13 @@ def setChainSettingsData(ChainSettingsData,targetObject):
 	ChainSettingsData.hardness = targetObject.re_chain_chainsettings.hardness
 	ChainSettingsData.unknChainSettingValue0 = targetObject.re_chain_chainsettings.unknChainSettingValue0 
 	ChainSettingsData.unknChainSettingValue1 = targetObject.re_chain_chainsettings.unknChainSettingValue1 
+	ChainSettingsData.unknChainSettingValue2 = targetObject.re_chain_chainsettings.unknChainSettingValue2 
+	ChainSettingsData.unknChainSettingValue3 = targetObject.re_chain_chainsettings.unknChainSettingValue3 
 	if targetObject.parent.get("TYPE",None) == "RE_CHAIN_WINDSETTINGS":
 		ChainSettingsData.windID = targetObject.parent.re_chain_windsettings.id
 	else:
 		ChainSettingsData.windID = -1
-
+	
 class chainGroupPropertyGroup(bpy.types.PropertyGroup):
 
 	rotationOrder: EnumProperty(
@@ -1094,80 +1193,7 @@ class chainGroupPropertyGroup(bpy.types.PropertyGroup):
 	attrFlags: EnumProperty(
 		name="Attribute Flags",
 		description="Apply Data to attribute.",
-		items=[ ("0", "AttrFlags_None", ""),
-				("1", "AttrFlags_RootRotation", ""),
-				("2", "AttrFlags_AngleLimit", ""),
-				("4", "AttrFlags_ExtraNode", ""),
-				("8", "AttrFlags_CollisionDefault", ""),
-				("16", "AttrFlags_CollisionSelf", ""),
-				("32", "AttrFlags_CollisionModel", ""),
-				("64", "AttrFlags_CollisionVGround", ""),
-				("128", "AttrFlags_CollisionCollider", ""),
-				("256", "AttrFlags_CollisionGroup", ""),
-				("512", "AttrFlags_EnablePartBlend", ""),
-				("1024", "AttrFlags_WindDefault", ""),
-				("2048", "AttrFlags_TransAnimation", ""),
-				("4096", "AttrFlags_AngleLimitRestitution", ""),
-				("8192", "AttrFlags_StretchBoth", ""),
-				("16384", "AttrFlags_EndRotConstraint", ""),
-				("3", "AttrFlags_UNKNOWNFLAG_3", ""),
-				("11", "AttrFlags_UNKNOWNFLAG_11", ""),
-				("35", "AttrFlags_UNKNOWNFLAG_35", ""),
-				("507", "AttrFlags_UNKNOWNFLAG_507", ""),
-				("1025", "AttrFlags_UNKNOWNFLAG_1025", ""),
-				("1027", "AttrFlags_UNKNOWNFLAG_1027", ""),
-				("1034", "AttrFlags_UNKNOWNFLAG_1034", ""),
-				("1035", "AttrFlags_UNKNOWNFLAG_1035", ""),
-				("1039", "AttrFlags_UNKNOWNFLAG_1039", ""),
-				("1051", "AttrFlags_UNKNOWNFLAG_1051", ""),
-				("1057", "AttrFlags_UNKNOWNFLAG_1057", ""),
-				("1059", "AttrFlags_UNKNOWNFLAG_1059", ""),
-				("1067", "AttrFlags_UNKNOWNFLAG_1067", ""),
-				("1203", "AttrFlags_UNKNOWNFLAG_1203", ""),
-				("1075", "AttrFlags_UNKNOWNFLAG_1075", ""),
-				("1083", "AttrFlags_UNKNOWNFLAG_1083", ""),
-				("1203", "AttrFlags_UNKNOWNFLAG_1203", ""),
-				("1211", "AttrFlags_UNKNOWNFLAG_1211", ""),
-				("1323", "AttrFlags_UNKNOWNFLAG_1323", ""),
-				("1331", "AttrFlags_UNKNOWNFLAG_1331", ""),
-				("1459", "AttrFlags_UNKNOWNFLAG_1459", ""),
-				("1523", "AttrFlags_UNKNOWNFLAG_1523", ""),
-				("1531", "AttrFlags_UNKNOWNFLAG_1531", ""),
-				("1547", "AttrFlags_UNKNOWNFLAG_1547", ""),
-				("32779","AttrFlags_UNKNOWNFLAG_32779",""),
-				("32803","AttrFlags_UNKNOWNFLAG_32803",""),
-				("32811","AttrFlags_UNKNOWNFLAG_32811",""),
-				("32819","AttrFlags_UNKNOWNFLAG_32819",""),
-				("32947","AttrFlags_UNKNOWNFLAG_32947",""),
-				("33275","AttrFlags_UNKNOWNFLAG_33275",""),
-				("33793","AttrFlags_UNKNOWNFLAG_33793",""),
-				("33795","AttrFlags_UNKNOWNFLAG_33795",""),
-				("33802","AttrFlags_UNKNOWNFLAG_33802",""),
-				("33803","AttrFlags_UNKNOWNFLAG_33803",""),
-				("33807","AttrFlags_UNKNOWNFLAG_33807",""),
-				("33811","AttrFlags_UNKNOWNFLAG_33811",""),
-				("33819","AttrFlags_UNKNOWNFLAG_33819",""),
-				("33825","AttrFlags_UNKNOWNFLAG_33825",""),
-				("33827","AttrFlags_UNKNOWNFLAG_33827",""),
-				("33835","AttrFlags_UNKNOWNFLAG_33835",""),
-				("33843","AttrFlags_UNKNOWNFLAG_33843",""),
-				("33851","AttrFlags_UNKNOWNFLAG_33851",""),
-				("33939","AttrFlags_UNKNOWNFLAG_33939",""),
-				("33955","AttrFlags_UNKNOWNFLAG_33955",""),
-				("33963","AttrFlags_UNKNOWNFLAG_33963",""),
-				("33971","AttrFlags_COLLLISION_ENABLED_FLAG_33971",""),
-				("33979","AttrFlags_UNKNOWNFLAG_33979",""),
-				("34043","AttrFlags_UNKNOWNFLAG_34043",""),
-				("34083","AttrFlags_UNKNOWNFLAG_34083",""),
-				("34091","AttrFlags_UNKNOWNFLAG_34091",""),
-				("34099","AttrFlags_UNKNOWNFLAG_34099",""),
-				("34211","AttrFlags_UNKNOWNFLAG_34211",""),
-				("34227","AttrFlags_UNKNOWNFLAG_34227",""),
-				("34291","AttrFlags_UNKNOWNFLAG_34291",""),
-				("34299","AttrFlags_UNKNOWNFLAG_34299",""),
-				("34315","AttrFlags_UNKNOWNFLAG_34315",""),
-				("37923","AttrFlags_UNKNOWNFLAG_37923","")
-			   ]
+		items=getAttrFlagsItems,
 		)
 	collisionFilterFlags: EnumProperty(
 		name="Collision Filter Flags",
@@ -1255,11 +1281,17 @@ class chainGroupPropertyGroup(bpy.types.PropertyGroup):
 		description="Unknown 2",#TODO Add description
 		default = 0,
 		)
+	unknGroupValue3: IntProperty(
+		name = "Unknown 3",
+		description="Unknown 3",#TODO Add description
+		default = 0,
+		)
+
 def getChainGroup(ChainGroupData,targetObject):
 	#Done manually to be able to account for chain version differences eventually
 	targetObject.re_chain_chaingroup.rotationOrder = str(ChainGroupData.rotationOrder)
 	targetObject.re_chain_chaingroup.autoBlendCheckNodeNo = ChainGroupData.autoBlendCheckNodeNo
-	targetObject.re_chain_chaingroup.attrFlags = str(ChainGroupData.attrFlags)
+	targetObject.re_chain_chaingroup.attrFlags = addAttrFlag(ChainGroupData.attrFlags)
 	targetObject.re_chain_chaingroup.collisionFilterFlags = str(ChainGroupData.collisionFilterFlags)
 	targetObject.re_chain_chaingroup.extraNodeLocalPos = (ChainGroupData.extraNodeLocalPosX,ChainGroupData.extraNodeLocalPosY,ChainGroupData.extraNodeLocalPosZ)
 	targetObject.re_chain_chaingroup.tag0 = ChainGroupData.tag0
@@ -1276,6 +1308,7 @@ def getChainGroup(ChainGroupData,targetObject):
 	targetObject.re_chain_chaingroup.unknBoneHash = ChainGroupData.unknBoneHash
 	targetObject.re_chain_chaingroup.unknGroupValue1 = ChainGroupData.unknGroupValue1
 	targetObject.re_chain_chaingroup.unknGroupValue2 = ChainGroupData.unknGroupValue2
+	targetObject.re_chain_chaingroup.unknGroupValue3 = ChainGroupData.unknGroupValue3
 def setChainGroupData(ChainGroupData,targetObject):
 	ChainGroupData.rotationOrder = int(targetObject.re_chain_chaingroup.rotationOrder)
 	ChainGroupData.autoBlendCheckNodeNo = targetObject.re_chain_chaingroup.autoBlendCheckNodeNo 
@@ -1301,7 +1334,8 @@ def setChainGroupData(ChainGroupData,targetObject):
 	ChainGroupData.unknBoneHash = targetObject.re_chain_chaingroup.unknBoneHash 
 	ChainGroupData.unknGroupValue1 = targetObject.re_chain_chaingroup.unknGroupValue1 
 	ChainGroupData.unknGroupValue2 = targetObject.re_chain_chaingroup.unknGroupValue2 
-	
+	ChainGroupData.unknGroupValue3 = targetObject.re_chain_chaingroup.unknGroupValue3 
+
 	if targetObject.parent.get("TYPE",None) == "RE_CHAIN_WINDSETTINGS":
 		ChainGroupData.windID = targetObject.parent.re_chain_windsettings.id
 		
@@ -1374,47 +1408,7 @@ class chainNodePropertyGroup(bpy.types.PropertyGroup):
 	attrFlags: EnumProperty(
 		name="Attribute Flags",
 		description="Apply Data to attribute.",
-		items=[ ("0", "AttrFlags_None", ""),
-				("1", "AttrFlags_RootRotation", ""),
-				("2", "AttrFlags_AngleLimit", ""),
-				("4", "AttrFlags_ExtraNode", ""),
-				("8", "AttrFlags_CollisionDefault", ""),
-				("16", "AttrFlags_CollisionSelf", ""),
-				("32", "AttrFlags_CollisionModel", ""),
-				("64", "AttrFlags_CollisionVGround", ""),
-				("128", "AttrFlags_CollisionCollider", ""),
-				("256", "AttrFlags_CollisionGroup", ""),
-				("512", "AttrFlags_EnablePartBlend", ""),
-				("1024", "AttrFlags_WindDefault", ""),
-				("2048", "AttrFlags_TransAnimation", ""),
-				("4096", "AttrFlags_AngleLimitRestitution", ""),
-				("8192", "AttrFlags_StretchBoth", ""),
-				("16384", "AttrFlags_EndRotConstraint", ""),
-				("11", "AttrFlags_UNKNOWNFLAG_11", ""),
-				("35", "AttrFlags_UNKNOWNFLAG_35", ""),
-				("507", "AttrFlags_UNKNOWNFLAG_507", ""),
-				("1025", "AttrFlags_UNKNOWNFLAG_1025", ""),
-				("1027", "AttrFlags_UNKNOWNFLAG_1027", ""),
-				("1034", "AttrFlags_UNKNOWNFLAG_1034", ""),
-				("1035", "AttrFlags_UNKNOWNFLAG_1035", ""),
-				("1039", "AttrFlags_UNKNOWNFLAG_1039", ""),
-				("1051", "AttrFlags_UNKNOWNFLAG_1051", ""),
-				("1057", "AttrFlags_UNKNOWNFLAG_1057", ""),
-				("1059", "AttrFlags_UNKNOWNFLAG_1059", ""),
-				("1067", "AttrFlags_UNKNOWNFLAG_1067", ""),
-				("1203", "AttrFlags_UNKNOWNFLAG_1203", ""),
-				("1075", "AttrFlags_UNKNOWNFLAG_1075", ""),
-				("1083", "AttrFlags_UNKNOWNFLAG_1083", ""),
-				("1203", "AttrFlags_UNKNOWNFLAG_1203", ""),
-				("1211", "AttrFlags_UNKNOWNFLAG_1211", ""),
-				("1323", "AttrFlags_UNKNOWNFLAG_1323", ""),
-				("1331", "AttrFlags_UNKNOWNFLAG_1331", ""),
-				("1459", "AttrFlags_UNKNOWNFLAG_1459", ""),
-				("1533", "AttrFlags_UNKNOWNFLAG_1523", ""),
-				("1531", "AttrFlags_UNKNOWNFLAG_1531", ""),
-				("1547", "AttrFlags_UNKNOWNFLAG_1547", ""),
-				
-			   ]
+		items=getAttrFlagsItems
 		)
 	windCoef: FloatProperty(
 		name = "Wind Coefficient",
@@ -1453,11 +1447,6 @@ class chainNodePropertyGroup(bpy.types.PropertyGroup):
 		description="Rotation Type",#TODO Add description
 		default = 0,
 		)
-	jiggleData: IntProperty(
-		name = "Jiggle Data",
-		description = "Jiggle Data",#TODO Add description
-		default = 0,
-		)
 	unknChainNodeValue0: FloatProperty(
 		name = "Unknown 0",
 		description="Unknown 0",#TODO Add description
@@ -1466,16 +1455,6 @@ class chainNodePropertyGroup(bpy.types.PropertyGroup):
 	unknChainNodeValue1: FloatProperty(
 		name = "Unknown 1",
 		description="Unknown 1",#TODO Add description
-		default = 0.0,
-		)
-	unknChainNodeValue2: FloatProperty(
-		name = "Unknown 2",
-		description="Unknown 2",#TODO Add description
-		default = 1.0,
-		)
-	unknChainNodeValue3: FloatProperty(
-		name = "Unknown 3",
-		description="Unknown 3",#TODO Add description
 		default = 0.0,
 		)
 def getChainNode(ChainNodeData,targetObject):
@@ -1488,17 +1467,14 @@ def getChainNode(ChainNodeData,targetObject):
 	targetObject.re_chain_chainnode.collisionFilterFlags = str(ChainNodeData.collisionFilterFlags)
 	targetObject.re_chain_chainnode.capsuleStretchRate0 = ChainNodeData.capsuleStretchRate0
 	targetObject.re_chain_chainnode.capsuleStretchRate1 = ChainNodeData.capsuleStretchRate1
-	targetObject.re_chain_chainnode.attrFlags = str(ChainNodeData.attrFlags)
+	targetObject.re_chain_chainnode.attrFlags = addAttrFlag(ChainNodeData.attrFlags)
 	targetObject.re_chain_chainnode.windCoef = ChainNodeData.windCoef
 	targetObject.re_chain_chainnode.angleMode = str(ChainNodeData.angleMode)
 	targetObject.re_chain_chainnode.collisionShape = str(ChainNodeData.collisionShape)
 	targetObject.re_chain_chainnode.attachType = ChainNodeData.attachType
 	targetObject.re_chain_chainnode.rotationType = ChainNodeData.rotationType
-	#targetObject.re_chain_chainnode.jiggleData = ChainNodeData.jiggleData
 	targetObject.re_chain_chainnode.unknChainNodeValue0 = ChainNodeData.unknChainNodeValue0
 	targetObject.re_chain_chainnode.unknChainNodeValue1 = ChainNodeData.unknChainNodeValue1
-	targetObject.re_chain_chainnode.unknChainNodeValue2 = ChainNodeData.unknChainNodeValue2
-	targetObject.re_chain_chainnode.unknChainNodeValue3 = ChainNodeData.unknChainNodeValue3
 	
 def setChainNodeData(ChainNodeData,targetObject):
 	ChainNodeData.angleLimitRad = targetObject.re_chain_chainnode.angleLimitRad 
@@ -1517,9 +1493,6 @@ def setChainNodeData(ChainNodeData,targetObject):
 	ChainNodeData.rotationType = targetObject.re_chain_chainnode.rotationType
 	ChainNodeData.unknChainNodeValue0 = targetObject.re_chain_chainnode.unknChainNodeValue0
 	ChainNodeData.unknChainNodeValue1 = targetObject.re_chain_chainnode.unknChainNodeValue1
-	ChainNodeData.unknChainNodeValue2 = targetObject.re_chain_chainnode.unknChainNodeValue2
-	ChainNodeData.unknChainNodeValue3 = targetObject.re_chain_chainnode.unknChainNodeValue3
-	#ChainNodeData.jiggleData = targetObject.re_chain_chainnode.jiggleData 
 
 	for child in targetObject.children:
 		if child.get("TYPE",None) == "RE_CHAIN_NODE_FRAME":
@@ -1529,7 +1502,93 @@ def setChainNodeData(ChainNodeData,targetObject):
 	ChainNodeData.angleLimitDirectionY = frame.rotation_quaternion[2]
 	ChainNodeData.angleLimitDirectionZ = frame.rotation_quaternion[3]
 	ChainNodeData.angleLimitDirectionW = frame.rotation_quaternion[0]
-	
+
+class chainJigglePropertyGroup(bpy.types.PropertyGroup):
+	'''range: FloatVectorProperty(
+		name = "Jiggle Range",
+		description="Jiggle Range",#TODO Add description
+		#default = (0.0,0.0,0.0),
+		step = .1,
+		subtype = "XYZ",
+		)
+	rangeOffset: FloatVectorProperty(
+		name = "Jiggle Range Offset",
+		description="Jiggle Range Offset",#TODO Add description
+		#default = (0.0,0.0,0.0),
+		step = .1,
+		subtype = "XYZ"
+		)
+	rangeAxis: FloatVectorProperty(
+		name = "Jiggle Range Axis",
+		description="Jiggle Range Axis",#TODO Add description
+		#default = (0.0,0.0,0.0,1.0),
+		step = .1,
+		subtype = "QUATERNION"
+		)'''
+	rangeShape: EnumProperty(
+		name="Collision Shape",
+		description="Apply Data to attribute.",
+		items=[ ("0", "ChainJiggleRangeShape_None", ""),
+				("1", "ChainJiggleRangeShape_OBB", ""),
+				("2", "ChainJiggleRangeShape_Sphere", ""),
+				("3", "ChainJiggleRangeShape_Cone", ""),
+			   ]
+		)
+	springForce: FloatProperty(
+		name = "Spring Force",
+		description = "Jiggle Spring Force",#TODO Add description
+		default = 0.00,
+		soft_min=0.000,
+		soft_max=1.000
+		)
+	gravityCoef: FloatProperty(
+		name = "Gravity Coefficient",
+		description = "Jiggle Gravity Coefficient",#TODO Add description
+		default = 0.00,
+		soft_min=0.000,
+		soft_max=1.000
+		)
+	damping: FloatProperty(
+		name = "Damping",
+		description = "Jiggle Damping",#TODO Add description
+		default = 0.00,
+		soft_min=0.000,
+		soft_max=1.000
+		)
+	attrFlags: EnumProperty(
+		name="Attribute Flags",
+		description="Apply Data to attribute.",
+		items=getAttrFlagsItems
+		)
+
+def getChainJiggle(ChainJiggleData,targetObject):
+	#Done manually to be able to account for chain version differences eventually
+	targetObject.re_chain_chainjiggle.rangeShape = str(ChainJiggleData.rangeShape)
+	targetObject.re_chain_chainjiggle.springForce = ChainJiggleData.springForce
+	targetObject.re_chain_chainjiggle.gravityCoef = ChainJiggleData.gravityCoef
+	targetObject.re_chain_chainjiggle.damping = ChainJiggleData.damping
+	targetObject.re_chain_chainjiggle.attrFlags = addAttrFlag(ChainJiggleData.attrFlags)
+
+def setChainJiggleData(ChainJiggleData,targetObject):
+	ChainJiggleData.rangeX = targetObject.scale[0]
+	ChainJiggleData.rangeY = targetObject.scale[1]
+	ChainJiggleData.rangeZ = targetObject.scale[2]
+
+	ChainJiggleData.rangeOffsetX = targetObject.location[0]
+	ChainJiggleData.rangeOffsetY = targetObject.location[1]
+	ChainJiggleData.rangeOffsetZ = targetObject.location[2]
+
+	ChainJiggleData.rangeAxisX = targetObject.rotation_quaternion[0]
+	ChainJiggleData.rangeAxisY = targetObject.rotation_quaternion[1]
+	ChainJiggleData.rangeAxisZ = targetObject.rotation_quaternion[2]
+	ChainJiggleData.rangeAxisW = targetObject.rotation_quaternion[3]
+
+	ChainJiggleData.rangeShape = int(targetObject.re_chain_chainjiggle.rangeShape)
+	ChainJiggleData.springForce = targetObject.re_chain_chainjiggle.springForce
+	ChainJiggleData.gravityCoef = targetObject.re_chain_chainjiggle.gravityCoef
+	ChainJiggleData.damping = targetObject.re_chain_chainjiggle.damping
+	ChainJiggleData.attrFlags = int(targetObject.re_chain_chainjiggle.attrFlags)
+
 class chainCollisionPropertyGroup(bpy.types.PropertyGroup):
 	rotationOrder: EnumProperty(
 		name="Rotation Order",
@@ -1545,7 +1604,7 @@ class chainCollisionPropertyGroup(bpy.types.PropertyGroup):
 	collisionOffset: FloatVectorProperty(
 		name = "Collision Offset",
 		description="Set the positional offset of the collision from the bone",
-		default = (0.0,0.0,0.0),
+		#default = (0.0,0.0,0.0),
 		step = .1,
 		subtype = "XYZ",
 		update = update_CollisionOffset
@@ -1553,7 +1612,7 @@ class chainCollisionPropertyGroup(bpy.types.PropertyGroup):
 	endCollisionOffset: FloatVectorProperty(
 		name = "End Collision Offset",
 		description="Set the collision offset from the end bone for collision capsules",
-		default = (0.0,0.0,0.0),
+		#default = (0.0,0.0,0.0),
 		step = .1,
 		subtype = "XYZ",
 		update = update_EndCollisionOffset
@@ -1588,7 +1647,6 @@ class chainCollisionPropertyGroup(bpy.types.PropertyGroup):
 				("6", "ChainCollisionShape_LerpSphere", ""),
 			   ]
 		)
-		
 	subDataCount: IntProperty(
 		name = "SubData Count",
 		description = "SubData Count",#TODO Add description
@@ -1758,5 +1816,6 @@ class chainClipboardPropertyGroup(bpy.types.PropertyGroup):
 	re_chain_chainsettings : PointerProperty(type=chainSettingsPropertyGroup)
 	re_chain_chaingroup : PointerProperty(type=chainGroupPropertyGroup)
 	re_chain_chainnode : PointerProperty(type=chainNodePropertyGroup)
+	re_chain_chainjiggle : PointerProperty(type=chainJigglePropertyGroup)
 	re_chain_chaincollision : PointerProperty(type=chainCollisionPropertyGroup)
 	re_chain_chainlink : PointerProperty(type=chainLinkPropertyGroup)

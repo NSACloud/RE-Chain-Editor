@@ -1,7 +1,7 @@
 bl_info = {
 	"name": "RE Chain Editor",
-	"author": "NSA Cloud",
-	"version": (1, 0),
+	"author": "NSA Cloud, alphaZomega",
+	"version": (1, 1),
 	"blender": (2, 93, 0),
 	"location": "File > Import-Export",
 	"description": "Import and export RE Engine chain files.",
@@ -9,6 +9,8 @@ bl_info = {
 	"wiki_url": "https://github.com/NSACloud/RE-Chain-Editor",
 	"tracker_url": "",
 	"category": "Import-Export"}
+
+#Modified by alphaZomega to support RE2R, RE3R, RE8, RE2-3-7 RT, DMC5 and SF6 
 
 #TODO Fix Header only export
 
@@ -20,13 +22,13 @@ from bpy.props import StringProperty, BoolProperty, EnumProperty, CollectionProp
 from bpy.types import Operator, OperatorFileListElement
 
 from .modules.blender_re_chain import importChainFile,exportChainFile
-from .modules.re_chain_propertyGroups import chainToolPanelPropertyGroup,chainHeaderPropertyGroup,chainWindSettingsPropertyGroup,chainSettingsPropertyGroup,chainGroupPropertyGroup,chainNodePropertyGroup,chainCollisionPropertyGroup,chainClipboardPropertyGroup,chainLinkPropertyGroup
-from .modules.ui_re_chain_panels import OBJECT_PT_ChainObjectModePanel,OBJECT_PT_ChainPoseModePanel,OBJECT_PT_ChainPresetPanel,OBJECT_PT_ChainHeaderPanel,OBJECT_PT_WindSettingsPanel,OBJECT_PT_ChainSettingsPanel,OBJECT_PT_ChainGroupPanel,OBJECT_PT_ChainNodePanel,OBJECT_PT_ChainCollisionPanel,OBJECT_PT_ChainClipboardPanel,OBJECT_PT_ChainLinkPanel,OBJECT_PT_ChainVisibilityPanel
-from .modules.re_chain_operators import WM_OT_ChainFromBone,WM_OT_CollisionFromBones,WM_OT_AlignChainsToBones,WM_OT_AlignFrames,WM_OT_PointFrame,WM_OT_CopyChainProperties,WM_OT_PasteChainProperties,WM_OT_NewChainHeader,WM_OT_ApplyChainSettingsPreset,WM_OT_NewChainSettings,WM_OT_NewWindSettings,WM_OT_ApplyChainGroupPreset,WM_OT_ApplyChainNodePreset,WM_OT_ApplyWindSettingsPreset,WM_OT_SavePreset,WM_OT_OpenPresetFolder,WM_OT_NewChainLink,WM_OT_CreateChainBoneGroup,WM_OT_SwitchToPoseMode,WM_OT_SwitchToObjectMode
+from .modules.re_chain_propertyGroups import chainToolPanelPropertyGroup,chainHeaderPropertyGroup,chainWindSettingsPropertyGroup,chainSettingsPropertyGroup,chainGroupPropertyGroup,chainNodePropertyGroup,chainJigglePropertyGroup,chainCollisionPropertyGroup,chainClipboardPropertyGroup,chainLinkPropertyGroup
+from .modules.ui_re_chain_panels import OBJECT_PT_ChainObjectModePanel,OBJECT_PT_ChainPoseModePanel,OBJECT_PT_ChainPresetPanel,OBJECT_PT_ChainHeaderPanel,OBJECT_PT_WindSettingsPanel,OBJECT_PT_ChainSettingsPanel,OBJECT_PT_ChainGroupPanel,OBJECT_PT_ChainNodePanel,OBJECT_PT_ChainJigglePanel,OBJECT_PT_ChainCollisionPanel,OBJECT_PT_ChainClipboardPanel,OBJECT_PT_ChainLinkPanel,OBJECT_PT_ChainVisibilityPanel
+from .modules.re_chain_operators import WM_OT_ChainFromBone,WM_OT_CollisionFromBones,WM_OT_AlignChainsToBones,WM_OT_AlignFrames,WM_OT_PointFrame,WM_OT_CopyChainProperties,WM_OT_PasteChainProperties,WM_OT_NewChainHeader,WM_OT_ApplyChainSettingsPreset,WM_OT_NewChainSettings,WM_OT_NewWindSettings,WM_OT_NewChainJiggle,WM_OT_ApplyChainGroupPreset,WM_OT_ApplyChainNodePreset,WM_OT_ApplyWindSettingsPreset,WM_OT_SavePreset,WM_OT_OpenPresetFolder,WM_OT_NewChainLink,WM_OT_CreateChainBoneGroup,WM_OT_SwitchToPoseMode,WM_OT_SwitchToObjectMode
 class ImportREChain(bpy.types.Operator, ImportHelper):
 	'''Import RE Engine Chain File'''
 	bl_idname = "re_chain.importfile"
-	bl_label = "Import RE Chain (.chain.48)"
+	bl_label = "Import RE Chain (.chain.*)"
 	bl_options = {'PRESET', "REGISTER", "UNDO"}
 	files : CollectionProperty(
 			name="File Path",
@@ -52,7 +54,7 @@ class ImportREChain(bpy.types.Operator, ImportHelper):
 					return {"CANCELLED"}
 		
 class ExportREChain(bpy.types.Operator, ExportHelper):
-	'''Export RE Engine Chain File'''
+	'''Export RE Engine Chain File (MHRise Sunbreak)'''
 	bl_idname = "re_chain.exportfile"
 	bl_label = "Export RE Chain (.chain.48)"
 	bl_options = {'PRESET'}
@@ -60,7 +62,77 @@ class ExportREChain(bpy.types.Operator, ExportHelper):
 	filter_glob: StringProperty(default="*.chain*", options={'HIDDEN'})
 
 	def execute(self, context):
-		success = exportChainFile(self.filepath)
+		success = exportChainFile(self.filepath, 48)
+		if success:
+			self.report({"INFO"},"Exported RE Chain successfully.")
+		return {"FINISHED"}
+
+class ExportREChain21(bpy.types.Operator, ExportHelper):
+	'''Export RE Engine Chain File (DMC5, RE2R)'''
+	bl_idname = "re_chain.exportfile21"
+	bl_label = "Export RE Chain (.chain.21)"
+	bl_options = {'PRESET'}
+	filename_ext = ".21"
+	filter_glob: StringProperty(default="*.chain*", options={'HIDDEN'})
+
+	def execute(self, context):
+		success = exportChainFile(self.filepath, 21)
+		if success:
+			self.report({"INFO"},"Exported RE Chain successfully.")
+		return {"FINISHED"}
+
+class ExportREChain24(bpy.types.Operator, ExportHelper):
+	'''Export RE Engine Chain File (RE3R, Resistance)'''
+	bl_idname = "re_chain.exportfile24"
+	bl_label = "Export RE Chain (.chain.24)"
+	bl_options = {'PRESET'}
+	filename_ext = ".24"
+	filter_glob: StringProperty(default="*.chain*", options={'HIDDEN'})
+
+	def execute(self, context):
+		success = exportChainFile(self.filepath, 24)
+		if success:
+			self.report({"INFO"},"Exported RE Chain successfully.")
+		return {"FINISHED"}
+
+class ExportREChain39(bpy.types.Operator, ExportHelper):
+	'''Export RE Engine Chain File (RE8)'''
+	bl_idname = "re_chain.exportfile39"
+	bl_label = "Export RE Chain (.chain.39)"
+	bl_options = {'PRESET'}
+	filename_ext = ".39"
+	filter_glob: StringProperty(default="*.chain*", options={'HIDDEN'})
+
+	def execute(self, context):
+		success = exportChainFile(self.filepath, 39)
+		if success:
+			self.report({"INFO"},"Exported RE Chain successfully.")
+		return {"FINISHED"}
+
+class ExportREChain46(bpy.types.Operator, ExportHelper):
+	'''Export RE Engine Chain File (Ray Tracing RE2,3,7)'''
+	bl_idname = "re_chain.exportfile46"
+	bl_label = "Export RE Chain (.chain.46)"
+	bl_options = {'PRESET'}
+	filename_ext = ".46"
+	filter_glob: StringProperty(default="*.chain*", options={'HIDDEN'})
+
+	def execute(self, context):
+		success = exportChainFile(self.filepath, 46)
+		if success:
+			self.report({"INFO"},"Exported RE Chain successfully.")
+		return {"FINISHED"}
+
+class ExportREChain52(bpy.types.Operator, ExportHelper):
+	'''Export RE Engine Chain File (Street Fighter 6 Beta)'''
+	bl_idname = "re_chain.exportfile52"
+	bl_label = "Export RE Chain (.chain.52)"
+	bl_options = {'PRESET'}
+	filename_ext = ".52"
+	filter_glob: StringProperty(default="*.chain*", options={'HIDDEN'})
+
+	def execute(self, context):
+		success = exportChainFile(self.filepath, 52)
 		if success:
 			self.report({"INFO"},"Exported RE Chain successfully.")
 		return {"FINISHED"}
@@ -71,12 +143,18 @@ class ExportREChain(bpy.types.Operator, ExportHelper):
 classes = [
 	ImportREChain,
 	ExportREChain,
+	ExportREChain21,
+	ExportREChain24,
+	ExportREChain39,
+	ExportREChain46,
+	ExportREChain52,
 	chainToolPanelPropertyGroup,
 	chainHeaderPropertyGroup,
 	chainWindSettingsPropertyGroup,
 	chainSettingsPropertyGroup,
 	chainGroupPropertyGroup,
 	chainNodePropertyGroup,
+	chainJigglePropertyGroup,
 	chainCollisionPropertyGroup,
 	chainLinkPropertyGroup,
 	chainClipboardPropertyGroup,
@@ -89,6 +167,7 @@ classes = [
 	OBJECT_PT_ChainSettingsPanel,
 	OBJECT_PT_ChainGroupPanel,
 	OBJECT_PT_ChainNodePanel,
+	OBJECT_PT_ChainJigglePanel,
 	OBJECT_PT_ChainCollisionPanel,
 	OBJECT_PT_ChainLinkPanel,
 	OBJECT_PT_ChainVisibilityPanel,
@@ -100,6 +179,7 @@ classes = [
 	WM_OT_NewChainHeader,
 	WM_OT_NewChainSettings,
 	WM_OT_NewWindSettings,
+	WM_OT_NewChainJiggle,
 	WM_OT_NewChainLink,
 	WM_OT_CopyChainProperties,
 	WM_OT_PasteChainProperties,
@@ -116,10 +196,15 @@ classes = [
 
 
 def re_chain_import(self, context):
-	self.layout.operator(ImportREChain.bl_idname, text="RE Chain (.chain.48)")
+	self.layout.operator(ImportREChain.bl_idname, text="RE Chain (.chain.*)")
 	
 def re_chain_export(self, context):
+	self.layout.operator(ExportREChain21.bl_idname, text="RE Chain (.chain.21)")
+	self.layout.operator(ExportREChain24.bl_idname, text="RE Chain (.chain.24)")
+	self.layout.operator(ExportREChain39.bl_idname, text="RE Chain (.chain.39)")
+	self.layout.operator(ExportREChain46.bl_idname, text="RE Chain (.chain.46)")
 	self.layout.operator(ExportREChain.bl_idname, text="RE Chain (.chain.48)")
+	self.layout.operator(ExportREChain52.bl_idname, text="RE Chain (.chain.52)")
 
 def register():
 	for classEntry in classes:
@@ -136,6 +221,7 @@ def register():
 	bpy.types.Object.re_chain_chainsettings = bpy.props.PointerProperty(type=chainSettingsPropertyGroup)
 	bpy.types.Object.re_chain_chaingroup = bpy.props.PointerProperty(type=chainGroupPropertyGroup)
 	bpy.types.Object.re_chain_chainnode = bpy.props.PointerProperty(type=chainNodePropertyGroup)
+	bpy.types.Object.re_chain_chainjiggle = bpy.props.PointerProperty(type=chainJigglePropertyGroup)
 	bpy.types.Object.re_chain_chaincollision = bpy.props.PointerProperty(type=chainCollisionPropertyGroup)
 	bpy.types.Object.re_chain_chainlink = bpy.props.PointerProperty(type=chainLinkPropertyGroup)
 	
