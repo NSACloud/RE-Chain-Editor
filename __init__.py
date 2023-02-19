@@ -1,7 +1,7 @@
 bl_info = {
 	"name": "RE Chain Editor",
 	"author": "NSA Cloud, alphaZomega",
-	"version": (1, 1),
+	"version": (2, 0),
 	"blender": (2, 93, 0),
 	"location": "File > Import-Export",
 	"description": "Import and export RE Engine chain files.",
@@ -22,9 +22,9 @@ from bpy.props import StringProperty, BoolProperty, EnumProperty, CollectionProp
 from bpy.types import Operator, OperatorFileListElement
 
 from .modules.blender_re_chain import importChainFile,exportChainFile
-from .modules.re_chain_propertyGroups import chainToolPanelPropertyGroup,chainHeaderPropertyGroup,chainWindSettingsPropertyGroup,chainSettingsPropertyGroup,chainGroupPropertyGroup,chainNodePropertyGroup,chainJigglePropertyGroup,chainCollisionPropertyGroup,chainClipboardPropertyGroup,chainLinkPropertyGroup
-from .modules.ui_re_chain_panels import OBJECT_PT_ChainObjectModePanel,OBJECT_PT_ChainPoseModePanel,OBJECT_PT_ChainPresetPanel,OBJECT_PT_ChainHeaderPanel,OBJECT_PT_WindSettingsPanel,OBJECT_PT_ChainSettingsPanel,OBJECT_PT_ChainGroupPanel,OBJECT_PT_ChainNodePanel,OBJECT_PT_ChainJigglePanel,OBJECT_PT_ChainCollisionPanel,OBJECT_PT_ChainClipboardPanel,OBJECT_PT_ChainLinkPanel,OBJECT_PT_ChainVisibilityPanel
-from .modules.re_chain_operators import WM_OT_ChainFromBone,WM_OT_CollisionFromBones,WM_OT_AlignChainsToBones,WM_OT_AlignFrames,WM_OT_PointFrame,WM_OT_CopyChainProperties,WM_OT_PasteChainProperties,WM_OT_NewChainHeader,WM_OT_ApplyChainSettingsPreset,WM_OT_NewChainSettings,WM_OT_NewWindSettings,WM_OT_NewChainJiggle,WM_OT_ApplyChainGroupPreset,WM_OT_ApplyChainNodePreset,WM_OT_ApplyWindSettingsPreset,WM_OT_SavePreset,WM_OT_OpenPresetFolder,WM_OT_NewChainLink,WM_OT_CreateChainBoneGroup,WM_OT_SwitchToPoseMode,WM_OT_SwitchToObjectMode
+from .modules.re_chain_propertyGroups import chainToolPanelPropertyGroup,chainHeaderPropertyGroup,chainWindSettingsPropertyGroup,chainSettingsPropertyGroup,chainGroupPropertyGroup,chainNodePropertyGroup,chainJigglePropertyGroup,chainCollisionPropertyGroup,chainClipboardPropertyGroup,chainLinkPropertyGroup,collisionSubDataPropertyGroup
+from .modules.ui_re_chain_panels import OBJECT_PT_ChainObjectModePanel,OBJECT_PT_ChainPoseModePanel,OBJECT_PT_ChainPresetPanel,OBJECT_PT_ChainHeaderPanel,OBJECT_PT_WindSettingsPanel,OBJECT_PT_ChainSettingsPanel,OBJECT_PT_ChainGroupPanel,OBJECT_PT_ChainNodePanel,OBJECT_PT_ChainJigglePanel,OBJECT_PT_ChainCollisionPanel,OBJECT_PT_ChainClipboardPanel,OBJECT_PT_ChainLinkPanel,OBJECT_PT_ChainVisibilityPanel,OBJECT_PT_ChainCollisionSubDataPanel
+from .modules.re_chain_operators import WM_OT_ChainFromBone,WM_OT_CollisionFromBones,WM_OT_AlignChainsToBones,WM_OT_AlignFrames,WM_OT_PointFrame,WM_OT_CopyChainProperties,WM_OT_PasteChainProperties,WM_OT_NewChainHeader,WM_OT_ApplyChainSettingsPreset,WM_OT_NewChainSettings,WM_OT_NewWindSettings,WM_OT_NewChainJiggle,WM_OT_ApplyChainGroupPreset,WM_OT_ApplyChainNodePreset,WM_OT_ApplyWindSettingsPreset,WM_OT_SavePreset,WM_OT_OpenPresetFolder,WM_OT_NewChainLink,WM_OT_CreateChainBoneGroup,WM_OT_SwitchToPoseMode,WM_OT_SwitchToObjectMode,WM_OT_HideNonNodes,WM_OT_HideNonAngleLimits,WM_OT_UnhideAll,WM_OT_RenameBoneChain,WM_OT_ApplyAngleLimitRamp,WM_OT_AlignBoneTailsToAxis,WM_OT_SetAttrFlags
 class ImportREChain(bpy.types.Operator, ImportHelper):
 	'''Import RE Engine Chain File'''
 	bl_idname = "re_chain.importfile"
@@ -157,6 +157,7 @@ classes = [
 	chainJigglePropertyGroup,
 	chainCollisionPropertyGroup,
 	chainLinkPropertyGroup,
+	collisionSubDataPropertyGroup,
 	chainClipboardPropertyGroup,
 	OBJECT_PT_ChainObjectModePanel,
 	OBJECT_PT_ChainClipboardPanel,
@@ -171,6 +172,7 @@ classes = [
 	OBJECT_PT_ChainCollisionPanel,
 	OBJECT_PT_ChainLinkPanel,
 	OBJECT_PT_ChainVisibilityPanel,
+	OBJECT_PT_ChainCollisionSubDataPanel,
 	WM_OT_ChainFromBone,
 	WM_OT_CollisionFromBones,
 	WM_OT_AlignChainsToBones,
@@ -192,6 +194,13 @@ classes = [
 	WM_OT_CreateChainBoneGroup,
 	WM_OT_SwitchToPoseMode,
 	WM_OT_SwitchToObjectMode,
+	WM_OT_HideNonNodes,
+	WM_OT_HideNonAngleLimits,
+	WM_OT_UnhideAll,
+	WM_OT_RenameBoneChain,
+	WM_OT_ApplyAngleLimitRamp,
+	WM_OT_AlignBoneTailsToAxis,
+	WM_OT_SetAttrFlags,
 	]
 
 
@@ -222,6 +231,7 @@ def register():
 	bpy.types.Object.re_chain_chaingroup = bpy.props.PointerProperty(type=chainGroupPropertyGroup)
 	bpy.types.Object.re_chain_chainnode = bpy.props.PointerProperty(type=chainNodePropertyGroup)
 	bpy.types.Object.re_chain_chainjiggle = bpy.props.PointerProperty(type=chainJigglePropertyGroup)
+	bpy.types.Object.re_chain_collision_subdata = bpy.props.PointerProperty(type=collisionSubDataPropertyGroup)
 	bpy.types.Object.re_chain_chaincollision = bpy.props.PointerProperty(type=chainCollisionPropertyGroup)
 	bpy.types.Object.re_chain_chainlink = bpy.props.PointerProperty(type=chainLinkPropertyGroup)
 	
