@@ -1,14 +1,34 @@
 
 # RE-Chain-Editor
-## Multi-Game Version
+
 This addon allows for importing and exporting of RE Engine chain (physics bone) files from Blender.
 
-![Blender Preview](https://github.com/mhvuze/MonsterHunterRiseModding/blob/main/img/guides/models/REChainEditor/RE_Chain_Editor_Preview.png)
+![Blender Preview](https://user-images.githubusercontent.com/46909075/219907729-70494035-68e8-419b-a000-58503fd7727f.png)
+
 ## Features
  - Allows for importing and exporting of RE Engine chain files.
  - Can create new chain files entirely within Blender.
  - Presets of chain configurations can be saved and shared.
- ### Supported Games
+ 
+ ## Change Log
+### V2 - 2/18/2023
+
+If you are updating to V2 from a previous version, any chain files previously saved to Blender have to be reimported.
+
+This is because certain settings have been stored differently compared to the previous version and it will cause issues when exporting.
+
+**New Features:**
+* Angle limit orientation is now set automatically when creating new chains. Manual adjustments may still be required at times.
+* Chain nodes now have cones to display angle limits.
+* In the Object Mode Tools panel, added 2 new buttons for aligning angle limits and setting an angle limit radius ramp across a chain.
+* In the Object Mode Visibility panel, added buttons for hiding non chain objects to make selecting things quicker.
+* In the Pose Mode Tools panel, added 2 new buttons for renaming bone chains and aligning bone tails to an axis.
+* Angle limit object orientations can now be copied and pasted using the clipboard.
+* Added support for collision filter file (.cfil) paths to chain settings.
+* Added support for collision subdata (For RE2 RT).
+* Several minor bug fixes.
+ 
+ ## Supported Games
 
  - **Monster Hunter Rise: Sunbreak**
  - **Resident Evil 2 Remake**
