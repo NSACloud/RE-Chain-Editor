@@ -1,10 +1,10 @@
 {
 	"chainVersion": 48,
-    "presetVersion": 3,
+    "presetVersion": 4,
     "presetType": "RE_CHAIN_CHAINGROUP",
     "rotationOrder": 0,
     "autoBlendCheckNodeNo": 0,
-    "attrFlags": 61,
+    "attrFlags": 33971,
     "collisionFilterFlags": 0,
     "extraNodeLocalPos": [
         0.0,

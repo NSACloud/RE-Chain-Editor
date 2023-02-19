@@ -14,95 +14,69 @@ from .pymmh3 import hash_wide
 
 from .re_chain_presets import reloadPresets
 
-attrFlagsItems = [ ("0", "AttrFlags_None", ""),
-	("1", "AttrFlags_RootRotation", ""),
-	("2", "AttrFlags_AngleLimit", ""),
-	("4", "AttrFlags_ExtraNode", ""),
-	("8", "AttrFlags_CollisionDefault", ""),
-	("16", "AttrFlags_CollisionSelf", ""),
-	("32", "AttrFlags_CollisionModel", ""),
-	("64", "AttrFlags_CollisionVGround", ""),
-	("128", "AttrFlags_CollisionCollider", ""),
-	("256", "AttrFlags_CollisionGroup", ""),
-	("512", "AttrFlags_EnablePartBlend", ""),
-	("1024", "AttrFlags_WindDefault", ""),
-	("2048", "AttrFlags_TransAnimation", ""),
-	("4096", "AttrFlags_AngleLimitRestitution", ""),
-	("8192", "AttrFlags_StretchBoth", ""),
-	("16384", "AttrFlags_EndRotConstraint", ""),
-	("3", "AttrFlags_UNKNOWNFLAG_3", ""),
-	("11", "AttrFlags_UNKNOWNFLAG_11", ""),
-	("35", "AttrFlags_UNKNOWNFLAG_35", ""),
-	("507", "AttrFlags_UNKNOWNFLAG_507", ""),
-	("1025", "AttrFlags_UNKNOWNFLAG_1025", ""),
-	("1027", "AttrFlags_UNKNOWNFLAG_1027", ""),
-	("1034", "AttrFlags_UNKNOWNFLAG_1034", ""),
-	("1035", "AttrFlags_UNKNOWNFLAG_1035", ""),
-	("1039", "AttrFlags_UNKNOWNFLAG_1039", ""),
-	("1051", "AttrFlags_UNKNOWNFLAG_1051", ""),
-	("1057", "AttrFlags_UNKNOWNFLAG_1057", ""),
-	("1059", "AttrFlags_UNKNOWNFLAG_1059", ""),
-	("1067", "AttrFlags_UNKNOWNFLAG_1067", ""),
-	("1203", "AttrFlags_UNKNOWNFLAG_1203", ""),
-	("1075", "AttrFlags_UNKNOWNFLAG_1075", ""),
-	("1083", "AttrFlags_UNKNOWNFLAG_1083", ""),
-	("1203", "AttrFlags_UNKNOWNFLAG_1203", ""),
-	("1211", "AttrFlags_UNKNOWNFLAG_1211", ""),
-	("1323", "AttrFlags_UNKNOWNFLAG_1323", ""),
-	("1331", "AttrFlags_UNKNOWNFLAG_1331", ""),
-	("1459", "AttrFlags_UNKNOWNFLAG_1459", ""),
-	("1523", "AttrFlags_UNKNOWNFLAG_1523", ""),
-	("1531", "AttrFlags_UNKNOWNFLAG_1531", ""),
-	("1547", "AttrFlags_UNKNOWNFLAG_1547", ""),
-	("32779","AttrFlags_UNKNOWNFLAG_32779",""),
-	("32803","AttrFlags_UNKNOWNFLAG_32803",""),
-	("32811","AttrFlags_UNKNOWNFLAG_32811",""),
-	("32819","AttrFlags_UNKNOWNFLAG_32819",""),
-	("32947","AttrFlags_UNKNOWNFLAG_32947",""),
-	("33275","AttrFlags_UNKNOWNFLAG_33275",""),
-	("33793","AttrFlags_UNKNOWNFLAG_33793",""),
-	("33795","AttrFlags_UNKNOWNFLAG_33795",""),
-	("33802","AttrFlags_UNKNOWNFLAG_33802",""),
-	("33803","AttrFlags_UNKNOWNFLAG_33803",""),
-	("33807","AttrFlags_UNKNOWNFLAG_33807",""),
-	("33811","AttrFlags_UNKNOWNFLAG_33811",""),
-	("33819","AttrFlags_UNKNOWNFLAG_33819",""),
-	("33825","AttrFlags_UNKNOWNFLAG_33825",""),
-	("33827","AttrFlags_UNKNOWNFLAG_33827",""),
-	("33835","AttrFlags_UNKNOWNFLAG_33835",""),
-	("33843","AttrFlags_UNKNOWNFLAG_33843",""),
-	("33851","AttrFlags_UNKNOWNFLAG_33851",""),
-	("33939","AttrFlags_UNKNOWNFLAG_33939",""),
-	("33955","AttrFlags_UNKNOWNFLAG_33955",""),
-	("33963","AttrFlags_UNKNOWNFLAG_33963",""),
-	("33971","AttrFlags_COLLLISION_ENABLED_FLAG_33971",""),
-	("33979","AttrFlags_UNKNOWNFLAG_33979",""),
-	("34043","AttrFlags_UNKNOWNFLAG_34043",""),
-	("34083","AttrFlags_UNKNOWNFLAG_34083",""),
-	("34091","AttrFlags_UNKNOWNFLAG_34091",""),
-	("34099","AttrFlags_UNKNOWNFLAG_34099",""),
-	("34211","AttrFlags_UNKNOWNFLAG_34211",""),
-	("34227","AttrFlags_UNKNOWNFLAG_34227",""),
-	("34291","AttrFlags_UNKNOWNFLAG_34291",""),
-	("34299","AttrFlags_UNKNOWNFLAG_34299",""),
-	("34315","AttrFlags_UNKNOWNFLAG_34315",""),
-	("37923","AttrFlags_UNKNOWNFLAG_37923","")
-	]
-
-def getAttrFlagsItems(ChainSettingsData,targetObject):
-	return attrFlagsItems
-
-def addAttrFlag(attrFlag):
-	newAttr = (str(attrFlag), "AttrFlags_UNKNOWNFLAG_" + str(attrFlag), "")
-	if newAttr not in attrFlagsItems:
-		attrFlagsItems.append(newAttr)
-	sorted(attrFlagsItems, key=lambda attr: int(attr[0]))
-	return str(attrFlag)
+#V2 - Removed AttrFlags enum, replaced with a pseudo enum using int value and operator due to large variations in values
 
 def update_angleLimitSize(self, context):
 	for obj in bpy.data.objects:
 		if obj.get("TYPE",None) == "RE_CHAIN_NODE_FRAME":
 			obj.empty_display_size = self.angleLimitDisplaySize
+
+def update_angleLimitConeVis(self, context):
+	for obj in bpy.data.objects:
+		if obj.get("TYPE",None) == "RE_CHAIN_NODE_FRAME_HELPER":
+			obj.hide_viewport = not self.showAngleLimitCones
+
+def update_coneSize(self, context):
+	for obj in bpy.data.objects:
+		if obj.get("TYPE",None) == "RE_CHAIN_NODE_FRAME_HELPER":
+			
+			xScaleModifier = 1.0
+			yScaleModifier = 1.0
+			zScaleModifier = 1.0
+			
+			#Get chain node to check settings
+			if obj.parent != None and obj.parent.parent != None and obj.parent.parent.get("TYPE") == "RE_CHAIN_NODE":
+				nodeObj = obj.parent.parent
+				if nodeObj.re_chain_chainnode.angleMode == "2":#Hinge angle mode
+					yScaleModifier = .01
+				elif nodeObj.re_chain_chainnode.angleMode == "4":#Limit oval angle mode
+					xScaleModifier = .5
+				elif nodeObj.re_chain_chainnode.angleMode == "5":#Limit elliptic angle mode
+					yScaleModifier = .5
+			obj.scale = (self.coneDisplaySize*xScaleModifier,self.coneDisplaySize*yScaleModifier,self.coneDisplaySize*zScaleModifier)
+
+
+def update_AngleLimitMode(self, context):
+	obj = self.id_data
+	#Get child frame, then get the angle limt cone from frame
+	if type(obj).__name__ == "Object":#Check if it's an object to prevent issues with clipboard 
+		if obj.get("TYPE",None) == "RE_CHAIN_NODE":
+			for child in obj.children:
+				if child.get("TYPE",None) == "RE_CHAIN_NODE_FRAME":
+					for frameChild in child.children:
+						if frameChild.get("TYPE",None) == "RE_CHAIN_NODE_FRAME_HELPER":					
+							#Determine cone scale
+							xScaleModifier = 1.0
+							yScaleModifier = 1.0
+							zScaleModifier = 1.0
+							if obj.re_chain_chainnode.angleMode == "2":#Hinge angle mode
+								yScaleModifier = .01
+							elif obj.re_chain_chainnode.angleMode == "4":#Limit oval angle mode
+								xScaleModifier = .5
+							elif obj.re_chain_chainnode.angleMode == "5":#Limit elliptic angle mode
+								yScaleModifier = .5
+							frameChild.scale = (bpy.context.scene.re_chain_toolpanel.coneDisplaySize*xScaleModifier,bpy.context.scene.re_chain_toolpanel.coneDisplaySize*yScaleModifier,bpy.context.scene.re_chain_toolpanel.coneDisplaySize*zScaleModifier)
+							
+def update_AngleLimitRad(self, context):
+	obj = self.id_data
+	#Get child frame, then get the angle limt cone from frame
+	if type(obj).__name__ == "Object":#Check if it's an object to prevent issues with clipboard 
+		if obj.get("TYPE",None) == "RE_CHAIN_NODE":
+			for child in obj.children:
+				if child.get("TYPE",None) == "RE_CHAIN_NODE_FRAME":
+					for frameChild in child.children:
+						if frameChild.get("TYPE",None) == "RE_CHAIN_NODE_FRAME_HELPER":					
+							frameChild.data.spot_size = obj.re_chain_chainnode.angleLimitRad
 
 def update_NodeRadius(self, context):
 	obj = self.id_data
@@ -111,6 +85,7 @@ def update_NodeRadius(self, context):
 			obj.empty_display_size = obj.re_chain_chainnode.collisionRadius * 100
 		else:
 			obj.empty_display_size = 1
+
 
 def update_CollisionRadius(self, context):
 	obj = self.id_data
@@ -142,10 +117,16 @@ def update_CollisionNameVis(self, context):
 		if obj.get("TYPE",None) in collisionTypes:
 			obj.show_name = self.showCollisionNames
 
+
 def update_DrawNodesThroughObjects(self, context):
 	for obj in bpy.data.objects:
 		if obj.get("TYPE",None) == "RE_CHAIN_NODE" or obj.get("TYPE",None) == "RE_CHAIN_NODE_FRAME":
 			obj.show_in_front = self.drawNodesThroughObjects
+			
+def update_DrawConesThroughObjects(self, context):
+	for obj in bpy.data.objects:
+		if obj.get("TYPE",None) == "RE_CHAIN_NODE_FRAME_HELPER":
+			obj.show_in_front = self.drawConesThroughObjects
 
 def update_DrawCollisionsThroughObjects(self, context):
 	collisionTypes = [
@@ -234,7 +215,7 @@ class chainToolPanelPropertyGroup(bpy.types.PropertyGroup):
 	drawNodesThroughObjects: BoolProperty(
 		name="Draw Nodes Through Objects",
 		description="Make all chain node and frame objects render through any objects in front of them",
-		default = False,
+		default = True,
 		update = update_DrawNodesThroughObjects
 		)
 	showCollisionNames: BoolProperty(
@@ -249,13 +230,34 @@ class chainToolPanelPropertyGroup(bpy.types.PropertyGroup):
 		default = False,
 		update = update_DrawCollisionsThroughObjects
 		)
+	showAngleLimitCones: BoolProperty(
+		name="Show Cones",
+		description="Show Angle Limit Cones in 3D View",
+		default = True,
+		update = update_angleLimitConeVis
+		)
+	drawConesThroughObjects: BoolProperty(
+		name="Draw Cones Through Objects",
+		description="Make all angle limit cones render through any objects in front of them",
+		default = False,
+		update = update_DrawConesThroughObjects
+		)
 	angleLimitDisplaySize: FloatProperty(
-		name="Angle Limit Display Size",
+		name="Angle Limit Size",
 		description="Set the display size of node angle limits",
 		default = 4.0,
 		soft_min = 0.0,
-		soft_max = 20.0,
+		soft_max = 30.0,
 		update = update_angleLimitSize
+		)
+	
+	coneDisplaySize: FloatProperty(
+		name="Cone Size",
+		description="Set the display size of node angle limit cones",
+		default = 0.75,
+		soft_min = 0.0,
+		soft_max = 30.0,
+		update = update_coneSize
 		)
 class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
 
@@ -459,7 +461,7 @@ def getChainHeader(ChainHeaderData,targetObject):
 	targetObject.re_chain_header.rotationOrder = str(ChainHeaderData.rotationOrder)
 	targetObject.re_chain_header.defaultSettingIdx = ChainHeaderData.defaultSettingIdx
 	targetObject.re_chain_header.calculateMode = str(ChainHeaderData.calculateMode)
-	targetObject.re_chain_header.chainAttrFlags = addAttrFlag(ChainHeaderData.chainAttrFlags)
+	targetObject.re_chain_header.chainAttrFlags = str(ChainHeaderData.chainAttrFlags)
 	targetObject.re_chain_header.parameterFlag = str(ChainHeaderData.parameterFlag)
 	targetObject.re_chain_header.calculateStepTime = ChainHeaderData.calculateStepTime
 	targetObject.re_chain_header.modelCollisionSearch = ChainHeaderData.modelCollisionSearch
@@ -500,7 +502,7 @@ class chainWindSettingsPropertyGroup(bpy.types.PropertyGroup):
 
 	id: IntProperty(
 		name = "ID",
-		description="ID",#TODO Add description
+		description="Set the ID of the wind settings. Note that ID conflicts are resolved automatically upon export, so changing it is not necessary",#TODO Add description
 		default = 1,
 		)
 	windDirection: EnumProperty(
@@ -813,8 +815,13 @@ class chainSettingsPropertyGroup(bpy.types.PropertyGroup):
 
 	id: IntProperty(
 		name = "ID",
-		description="ID",#TODO Add description
+		description="Set the ID of the chain settings. Note that ID conflicts are resolved automatically upon export, so changing it is not necessary",
 		default = 0,
+		)
+	colliderFilterInfoPath: StringProperty(
+		name = "Collider Filter Info",
+		description = "Set the file path of collider filter file (.cfil)",
+		default = "",
 		)
 	sprayParameterArc: FloatProperty(
 		name = "Spray Parameter Arc",
@@ -1027,10 +1034,11 @@ class chainSettingsPropertyGroup(bpy.types.PropertyGroup):
 		default = 0.00,
 		
 		)
-	groupDefaultAttr: EnumProperty(
+
+	groupDefaultAttr: IntProperty(
 		name="Group Default Attribute",
-		description="Apply Data to attribute.",
-		items=getAttrFlagsItems
+		description="Controls how chain groups interact. Also affects whether nodes can collide",
+		default = 0,
 		)
 	windEffectCoef: FloatProperty(
 		name = "Wind Effect Coefficient",
@@ -1075,6 +1083,7 @@ class chainSettingsPropertyGroup(bpy.types.PropertyGroup):
 def getChainSettings(ChainSettingsData,targetObject):
 	#Done manually to be able to account for chain version differences eventually
 	targetObject.re_chain_chainsettings.id = ChainSettingsData.id
+	targetObject.re_chain_chainsettings.colliderFilterInfoPath = str(ChainSettingsData.colliderFilterInfoPath)
 	targetObject.re_chain_chainsettings.sprayParameterArc = ChainSettingsData.sprayParameterArc
 	targetObject.re_chain_chainsettings.sprayParameterFrequency = ChainSettingsData.sprayParameterFrequency
 	targetObject.re_chain_chainsettings.sprayParameterCurve1 = ChainSettingsData.sprayParameterCurve1
@@ -1107,10 +1116,8 @@ def getChainSettings(ChainSettingsData,targetObject):
 	targetObject.re_chain_chainsettings.stretchInteractionRatio = ChainSettingsData.stretchInteractionRatio
 	targetObject.re_chain_chainsettings.angleLimitInteractionRatio = ChainSettingsData.angleLimitInteractionRatio
 	targetObject.re_chain_chainsettings.shootingElasticLimitRate = ChainSettingsData.shootingElasticLimitRate
-	try:
-		targetObject.re_chain_chainsettings.groupDefaultAttr = str(ChainSettingsData.groupDefaultAttr)
-	except:
-		pass
+	targetObject.re_chain_chainsettings.groupDefaultAttr = ChainSettingsData.groupDefaultAttr
+
 	targetObject.re_chain_chainsettings.windEffectCoef = ChainSettingsData.windEffectCoef
 	targetObject.re_chain_chainsettings.velocityLimit = ChainSettingsData.velocityLimit
 	targetObject.re_chain_chainsettings.hardness = ChainSettingsData.hardness
@@ -1120,6 +1127,7 @@ def getChainSettings(ChainSettingsData,targetObject):
 	targetObject.re_chain_chainsettings.unknChainSettingValue3 = ChainSettingsData.unknChainSettingValue3
 def setChainSettingsData(ChainSettingsData,targetObject):
 	ChainSettingsData.id = targetObject.re_chain_chainsettings.id 
+	ChainSettingsData.colliderFilterInfoPath = str(targetObject.re_chain_chainsettings.colliderFilterInfoPath) 
 	ChainSettingsData.sprayParameterArc = targetObject.re_chain_chainsettings.sprayParameterArc 
 	ChainSettingsData.sprayParameterFrequency = targetObject.re_chain_chainsettings.sprayParameterFrequency 
 	ChainSettingsData.sprayParameterCurve1 = targetObject.re_chain_chainsettings.sprayParameterCurve1 
@@ -1159,7 +1167,7 @@ def setChainSettingsData(ChainSettingsData,targetObject):
 	ChainSettingsData.stretchInteractionRatio = targetObject.re_chain_chainsettings.stretchInteractionRatio 
 	ChainSettingsData.angleLimitInteractionRatio = targetObject.re_chain_chainsettings.angleLimitInteractionRatio 
 	ChainSettingsData.shootingElasticLimitRate = targetObject.re_chain_chainsettings.shootingElasticLimitRate 
-	ChainSettingsData.groupDefaultAttr = int(targetObject.re_chain_chainsettings.groupDefaultAttr)
+	ChainSettingsData.groupDefaultAttr = targetObject.re_chain_chainsettings.groupDefaultAttr
 	ChainSettingsData.windEffectCoef = targetObject.re_chain_chainsettings.windEffectCoef 
 	ChainSettingsData.velocityLimit = targetObject.re_chain_chainsettings.velocityLimit 
 	ChainSettingsData.hardness = targetObject.re_chain_chainsettings.hardness
@@ -1190,10 +1198,10 @@ class chainGroupPropertyGroup(bpy.types.PropertyGroup):
 		description="Auto Blend Check Node Number",#TODO Add description
 		default = 0,
 		)
-	attrFlags: EnumProperty(
+	attrFlags: IntProperty(
 		name="Attribute Flags",
-		description="Apply Data to attribute.",
-		items=getAttrFlagsItems,
+		description="Controls how chain groups interact. Also affects whether nodes can collide",
+		default = 0,
 		)
 	collisionFilterFlags: EnumProperty(
 		name="Collision Filter Flags",
@@ -1291,7 +1299,7 @@ def getChainGroup(ChainGroupData,targetObject):
 	#Done manually to be able to account for chain version differences eventually
 	targetObject.re_chain_chaingroup.rotationOrder = str(ChainGroupData.rotationOrder)
 	targetObject.re_chain_chaingroup.autoBlendCheckNodeNo = ChainGroupData.autoBlendCheckNodeNo
-	targetObject.re_chain_chaingroup.attrFlags = addAttrFlag(ChainGroupData.attrFlags)
+	targetObject.re_chain_chaingroup.attrFlags = ChainGroupData.attrFlags
 	targetObject.re_chain_chaingroup.collisionFilterFlags = str(ChainGroupData.collisionFilterFlags)
 	targetObject.re_chain_chaingroup.extraNodeLocalPos = (ChainGroupData.extraNodeLocalPosX,ChainGroupData.extraNodeLocalPosY,ChainGroupData.extraNodeLocalPosZ)
 	targetObject.re_chain_chaingroup.tag0 = ChainGroupData.tag0
@@ -1312,7 +1320,7 @@ def getChainGroup(ChainGroupData,targetObject):
 def setChainGroupData(ChainGroupData,targetObject):
 	ChainGroupData.rotationOrder = int(targetObject.re_chain_chaingroup.rotationOrder)
 	ChainGroupData.autoBlendCheckNodeNo = targetObject.re_chain_chaingroup.autoBlendCheckNodeNo 
-	ChainGroupData.attrFlags = int(targetObject.re_chain_chaingroup.attrFlags)
+	ChainGroupData.attrFlags = targetObject.re_chain_chaingroup.attrFlags
 	ChainGroupData.collisionFilterFlags = int(targetObject.re_chain_chaingroup.collisionFilterFlags)
 	
 	ChainGroupData.extraNodeLocalPosX = targetObject.re_chain_chaingroup.extraNodeLocalPos[0] 
@@ -1353,10 +1361,12 @@ def setChainGroupData(ChainGroupData,targetObject):
 class chainNodePropertyGroup(bpy.types.PropertyGroup):
 	angleLimitRad: FloatProperty(
 		name = "Angle Limit Radius",
-		description = "The amount the node is allowed to rotate from it's angle limt direction",#TODO Add description
-		default = 0.00,
-		soft_min=0.000,
-		soft_max=180.000,
+		description = "The amount the node is allowed to rotate from it's angle limit direction",
+		default = 0.0,
+		soft_min=0.0,
+		soft_max=180.0,
+        subtype = "ANGLE",
+		update = update_AngleLimitRad
 		)
 	angleLimitDistance: FloatProperty(
 		name = "Angle Limit Distance",
@@ -1405,10 +1415,10 @@ class chainNodePropertyGroup(bpy.types.PropertyGroup):
 		soft_min=0.000,
 		soft_max=1.000
 		)
-	attrFlags: EnumProperty(
+	attrFlags: IntProperty(
 		name="Attribute Flags",
-		description="Apply Data to attribute.",
-		items=getAttrFlagsItems
+		description="Controls how chain groups interact. Also affects whether nodes can collide",
+		default = 0,
 		)
 	windCoef: FloatProperty(
 		name = "Wind Coefficient",
@@ -1426,8 +1436,10 @@ class chainNodePropertyGroup(bpy.types.PropertyGroup):
 				("3", "AngleMode_LimitConeBox", ""),
 				("4", "AngleMode_LimitOval", "Y Axis Compressed"),
 				("5", "AngleMode_LimitElliptic", "Z Axis Compressed"),
-			   ]
+			   ],
+		update = update_AngleLimitMode
 		)
+		
 	collisionShape: EnumProperty(
 		name="Collision Shape",
 		description="Apply Data to attribute.",
@@ -1450,7 +1462,7 @@ class chainNodePropertyGroup(bpy.types.PropertyGroup):
 	unknChainNodeValue0: FloatProperty(
 		name = "Unknown 0",
 		description="Unknown 0",#TODO Add description
-		default = 0.0,
+		default = 1.0,
 		)
 	unknChainNodeValue1: FloatProperty(
 		name = "Unknown 1",
@@ -1467,7 +1479,7 @@ def getChainNode(ChainNodeData,targetObject):
 	targetObject.re_chain_chainnode.collisionFilterFlags = str(ChainNodeData.collisionFilterFlags)
 	targetObject.re_chain_chainnode.capsuleStretchRate0 = ChainNodeData.capsuleStretchRate0
 	targetObject.re_chain_chainnode.capsuleStretchRate1 = ChainNodeData.capsuleStretchRate1
-	targetObject.re_chain_chainnode.attrFlags = addAttrFlag(ChainNodeData.attrFlags)
+	targetObject.re_chain_chainnode.attrFlags = ChainNodeData.attrFlags
 	targetObject.re_chain_chainnode.windCoef = ChainNodeData.windCoef
 	targetObject.re_chain_chainnode.angleMode = str(ChainNodeData.angleMode)
 	targetObject.re_chain_chainnode.collisionShape = str(ChainNodeData.collisionShape)
@@ -1502,7 +1514,7 @@ def setChainNodeData(ChainNodeData,targetObject):
 	ChainNodeData.angleLimitDirectionY = frame.rotation_quaternion[2]
 	ChainNodeData.angleLimitDirectionZ = frame.rotation_quaternion[3]
 	ChainNodeData.angleLimitDirectionW = frame.rotation_quaternion[0]
-
+	frame.rotation_mode = "XYZ"
 class chainJigglePropertyGroup(bpy.types.PropertyGroup):
 	'''range: FloatVectorProperty(
 		name = "Jiggle Range",
@@ -1555,10 +1567,10 @@ class chainJigglePropertyGroup(bpy.types.PropertyGroup):
 		soft_min=0.000,
 		soft_max=1.000
 		)
-	attrFlags: EnumProperty(
+	attrFlags: IntProperty(
 		name="Attribute Flags",
-		description="Apply Data to attribute.",
-		items=getAttrFlagsItems
+		description="Controls how chain groups interact. Also affects whether nodes can collide",
+		default = 0,
 		)
 
 def getChainJiggle(ChainJiggleData,targetObject):
@@ -1567,7 +1579,7 @@ def getChainJiggle(ChainJiggleData,targetObject):
 	targetObject.re_chain_chainjiggle.springForce = ChainJiggleData.springForce
 	targetObject.re_chain_chainjiggle.gravityCoef = ChainJiggleData.gravityCoef
 	targetObject.re_chain_chainjiggle.damping = ChainJiggleData.damping
-	targetObject.re_chain_chainjiggle.attrFlags = addAttrFlag(ChainJiggleData.attrFlags)
+	targetObject.re_chain_chainjiggle.attrFlags = ChainJiggleData.attrFlags
 
 def setChainJiggleData(ChainJiggleData,targetObject):
 	ChainJiggleData.rangeX = targetObject.scale[0]
@@ -1578,16 +1590,72 @@ def setChainJiggleData(ChainJiggleData,targetObject):
 	ChainJiggleData.rangeOffsetY = targetObject.location[1]
 	ChainJiggleData.rangeOffsetZ = targetObject.location[2]
 
-	ChainJiggleData.rangeAxisX = targetObject.rotation_quaternion[0]
-	ChainJiggleData.rangeAxisY = targetObject.rotation_quaternion[1]
-	ChainJiggleData.rangeAxisZ = targetObject.rotation_quaternion[2]
-	ChainJiggleData.rangeAxisW = targetObject.rotation_quaternion[3]
+	ChainJiggleData.rangeAxisX = targetObject.rotation_quaternion[1]
+	ChainJiggleData.rangeAxisY = targetObject.rotation_quaternion[2]
+	ChainJiggleData.rangeAxisZ = targetObject.rotation_quaternion[3]
+	ChainJiggleData.rangeAxisW = targetObject.rotation_quaternion[0]
 
 	ChainJiggleData.rangeShape = int(targetObject.re_chain_chainjiggle.rangeShape)
 	ChainJiggleData.springForce = targetObject.re_chain_chainjiggle.springForce
 	ChainJiggleData.gravityCoef = targetObject.re_chain_chainjiggle.gravityCoef
 	ChainJiggleData.damping = targetObject.re_chain_chainjiggle.damping
-	ChainJiggleData.attrFlags = int(targetObject.re_chain_chainjiggle.attrFlags)
+	ChainJiggleData.attrFlags = targetObject.re_chain_chainjiggle.attrFlags
+
+class collisionSubDataPropertyGroup(bpy.types.PropertyGroup):
+	pos: FloatVectorProperty(
+		name = "Collision Offset",
+		description="Set the positional offset of the collision from the bone",
+		#default = (0.0,0.0,0.0),
+		step = .1,
+		subtype = "XYZ",
+		)
+	pairPos: FloatVectorProperty(
+		name = "End Collision Offset",
+		description="Set the collision offset from the end bone for collision capsules",
+		#default = (0.0,0.0,0.0),
+		step = .1,
+		subtype = "XYZ",
+		)
+	rotOffset: FloatVectorProperty(
+		name = "Rotation Offset",
+		description="Set collision rotation (Quaternion)",
+		#default = (1.0,0.0,0.0),
+		size = 4,
+		subtype = "QUATERNION",
+		)
+	radius: FloatProperty(
+		name = "Radius",
+		description = "Radius",#TODO Add description
+		default = 0.00,
+		update = update_CollisionRadius,
+		step = .1,
+		soft_min = 0.00
+		)
+	id: IntProperty(
+		name = "ID",
+		description = "Unknown Collision Value",#TODO Add description
+		default = 0,
+		)
+	unknSubCollisionData0: IntProperty(
+		name = "Unknown Collision Sub Data 0",
+		description = "Unknown Collision Value",#TODO Add description
+		default = 0,
+		)
+	unknSubCollisionData1: IntProperty(
+		name = "Unknown Collision Sub Data 1",
+		description = "Unknown Collision Value",#TODO Add description
+		default = 0,
+		)
+	unknSubCollisionData2: IntProperty(
+		name = "Unknown Collision Sub Data 2",
+		description = "Unknown Collision Value",#TODO Add description
+		default = 0,
+		)
+	unknSubCollisionData3: IntProperty(
+		name = "Unknown Collision Sub Data 3",
+		description = "Unknown Collision Value",#TODO Add description
+		default = 0,
+		)
 
 class chainCollisionPropertyGroup(bpy.types.PropertyGroup):
 	rotationOrder: EnumProperty(
@@ -1648,8 +1716,8 @@ class chainCollisionPropertyGroup(bpy.types.PropertyGroup):
 			   ]
 		)
 	subDataCount: IntProperty(
-		name = "SubData Count",
-		description = "SubData Count",#TODO Add description
+		name = "Unknown Count",
+		description = "SubData Count?",#TODO Add description
 		default = 0,
 		)
 	collisionFilterFlags: EnumProperty(
@@ -1662,6 +1730,13 @@ class chainCollisionPropertyGroup(bpy.types.PropertyGroup):
 				("3", "ChainCollisionType_VGround", ""),
 			   ]
 		)
+	subDataFlag: IntProperty(
+		name = "Use Sub Data Flag",
+		description = "Set to 1 to enable subdata",
+		default = -1,
+		min = -1,
+		max = 1,
+		)
 
 def getChainCollision(ChainCollisionData,targetObject):
 	#Done manually to be able to account for chain version differences eventually
@@ -1672,7 +1747,18 @@ def getChainCollision(ChainCollisionData,targetObject):
 	targetObject.re_chain_chaincollision.chainCollisionShape = str(ChainCollisionData.chainCollisionShape)
 	targetObject.re_chain_chaincollision.subDataCount = ChainCollisionData.subDataCount
 	targetObject.re_chain_chaincollision.collisionFilterFlags = str(ChainCollisionData.collisionFilterFlags)
+	targetObject.re_chain_chaincollision.subDataFlag = ChainCollisionData.subDataFlag
 	
+	if ChainCollisionData.subDataFlag >= 1:
+		targetObject.re_chain_collision_subdata.pos = (ChainCollisionData.subData.posX,ChainCollisionData.subData.posY,ChainCollisionData.subData.posZ)
+		targetObject.re_chain_collision_subdata.pairPos = (ChainCollisionData.subData.pairPosX,ChainCollisionData.subData.pairPosY,ChainCollisionData.subData.pairPosZ)
+		targetObject.re_chain_collision_subdata.rotOffset = (ChainCollisionData.subData.rotOffsetW,ChainCollisionData.subData.rotOffsetX,ChainCollisionData.subData.rotOffsetY,ChainCollisionData.subData.rotOffsetZ)
+		targetObject.re_chain_collision_subdata.radius = ChainCollisionData.subData.radius
+		targetObject.re_chain_collision_subdata.id = ChainCollisionData.subData.id
+		targetObject.re_chain_collision_subdata.unknSubCollisionData0 = ChainCollisionData.subData.unknSubCollisionData0
+		targetObject.re_chain_collision_subdata.unknSubCollisionData1 = ChainCollisionData.subData.unknSubCollisionData1
+		targetObject.re_chain_collision_subdata.unknSubCollisionData2 = ChainCollisionData.subData.unknSubCollisionData2
+		targetObject.re_chain_collision_subdata.unknSubCollisionData3 = ChainCollisionData.subData.unknSubCollisionData3
 
 def setChainCollisionData(ChainCollisionData,targetObject):
 	ChainCollisionData.rotationOrder = int(targetObject.re_chain_chaincollision.rotationOrder)
@@ -1719,6 +1805,25 @@ def setChainCollisionData(ChainCollisionData,targetObject):
 			ChainCollisionData.pairPosY = 0.0
 			ChainCollisionData.pairPosZ = 0.0
 			ChainCollisionData.pairJointNameHash = 0
+	
+	ChainCollisionData.subDataFlag = targetObject.re_chain_chaincollision.subDataFlag
+	if targetObject.re_chain_chaincollision.subDataFlag:
+		ChainCollisionData.subData.posX = targetObject.re_chain_collision_subdata.pos[0]
+		ChainCollisionData.subData.posY = targetObject.re_chain_collision_subdata.pos[1]
+		ChainCollisionData.subData.posZ = targetObject.re_chain_collision_subdata.pos[2]
+		ChainCollisionData.subData.pairPosX = targetObject.re_chain_collision_subdata.pairPos[0]
+		ChainCollisionData.subData.pairPosY = targetObject.re_chain_collision_subdata.pairPos[1]
+		ChainCollisionData.subData.pairPosZ = targetObject.re_chain_collision_subdata.pairPos[2]
+		ChainCollisionData.subData.rotOffsetX = targetObject.re_chain_collision_subdata.rotOffset[1]
+		ChainCollisionData.subData.rotOffsetY = targetObject.re_chain_collision_subdata.rotOffset[2]
+		ChainCollisionData.subData.rotOffsetZ = targetObject.re_chain_collision_subdata.rotOffset[3]
+		ChainCollisionData.subData.rotOffsetW = targetObject.re_chain_collision_subdata.rotOffset[0]
+		ChainCollisionData.subData.radius = targetObject.re_chain_collision_subdata.radius
+		ChainCollisionData.subData.id = targetObject.re_chain_collision_subdata.id
+		ChainCollisionData.subData.unknSubCollisionData0 = targetObject.re_chain_collision_subdata.unknSubCollisionData0
+		ChainCollisionData.subData.unknSubCollisionData1 = targetObject.re_chain_collision_subdata.unknSubCollisionData1
+		ChainCollisionData.subData.unknSubCollisionData2 = targetObject.re_chain_collision_subdata.unknSubCollisionData2
+		ChainCollisionData.subData.unknSubCollisionData3 = targetObject.re_chain_collision_subdata.unknSubCollisionData3
 
 class chainLinkPropertyGroup(bpy.types.PropertyGroup):
 	chainGroupAObject: StringProperty(
@@ -1755,6 +1860,7 @@ class chainLinkPropertyGroup(bpy.types.PropertyGroup):
 		items=[ ("1", "ConnectionFlags_Neighbour", ""),
 				("2", "ConnectionFlags_Upper", ""),
 				("4", "ConnectionFlags_Bottom", ""),
+				("7", "ConnectionFlags_UNKNOWNFLAG_7", ""),
 			   ]
 		)
 	linkAttrFlags: EnumProperty(
@@ -1817,5 +1923,11 @@ class chainClipboardPropertyGroup(bpy.types.PropertyGroup):
 	re_chain_chaingroup : PointerProperty(type=chainGroupPropertyGroup)
 	re_chain_chainnode : PointerProperty(type=chainNodePropertyGroup)
 	re_chain_chainjiggle : PointerProperty(type=chainJigglePropertyGroup)
+	re_chain_collision_subdata : PointerProperty(type=collisionSubDataPropertyGroup)
 	re_chain_chaincollision : PointerProperty(type=chainCollisionPropertyGroup)
 	re_chain_chainlink : PointerProperty(type=chainLinkPropertyGroup)
+	frameOrientation: FloatVectorProperty(
+		name = "Frame Orientation",
+		size = 3,
+		subtype = "XYZ"
+		)

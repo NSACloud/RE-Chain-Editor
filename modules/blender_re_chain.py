@@ -1,6 +1,9 @@
 #---BLENDER FUNCTIONS---#
 import bpy
 
+from mathutils import Matrix
+from math import radians
+
 from .gen_functions import textColors,raiseWarning,raiseError
 from .file_re_chain import readREChain,writeREChain
 from .pymmh3 import hash_wide
@@ -116,7 +119,7 @@ def alignChains():
 				currentNode.rotation_euler = (0.0,0.0,0.0)
 				currentNode.scale = (1.0,1.0,1.0)
 				for child in currentNode.children:
-					if child["TYPE"] == "RE_CHAIN_NODE":
+					if child.get("TYPE",None) == "RE_CHAIN_NODE":
 						nodeObjList.append(child)
 						
 						currentNode = child
@@ -292,8 +295,53 @@ def importChainFile(filepath):
 					frame.show_in_front = bpy.context.scene.re_chain_toolpanel.drawNodesThroughObjects
 					frame.rotation_mode = "QUATERNION"
 					frame.rotation_quaternion = (node.angleLimitDirectionW,node.angleLimitDirectionX,node.angleLimitDirectionY,node.angleLimitDirectionZ)
+					frame.rotation_mode = "XYZ"
+					#Constrain frame location to node
+						
+					constraint = frame.constraints.new(type = "COPY_LOCATION")
+					constraint.target = nodeObj
+					
+					constraint = frame.constraints.new(type = "COPY_SCALE")
+					constraint.target = nodeObj
+					
+					#Add angle limit cone
+					light_data = bpy.data.lights.new(name=nodeObj.name+"_ANGLE_LIMIT_HELPER", type="SPOT")
+					light_data.energy = 0.0
+					light_data.use_shadow = False
+					light_data.spot_blend = 0.0
+					light_data.use_custom_distance = True
+					light_data.cutoff_distance = 0.05
+					#light_data.shadow_soft_size = nodeObj.parent.re_chain_chainnode.collisionRadius
+					light_data.shadow_soft_size = 0.0
+					light_data.spot_size = nodeObj.re_chain_chainnode.angleLimitRad
+					# Create new object, pass the light data 
+					lightObj = bpy.data.objects.new(name=nodeObj.name+"_ANGLE_LIMIT_HELPER", object_data=light_data)
+					lightObj["TYPE"] = "RE_CHAIN_NODE_FRAME_HELPER"
+					rotationMat = Matrix.Rotation(radians(-90.0),4,"Y")
+					lightObj.parent = frame
+					lightObj.matrix_world = frame.matrix_world
+					lightObj.matrix_local = lightObj.matrix_local @ rotationMat
+					lightObj.hide_select = True#Disable ability to select to avoid it getting in the way
+					
+					lightObj.show_in_front = bpy.context.scene.re_chain_toolpanel.drawConesThroughObjects
+					lightObj.hide_viewport = not bpy.context.scene.re_chain_toolpanel.showAngleLimitCones
+
+					#Determine cone scale
+					xScaleModifier = 1.0
+					yScaleModifier = 1.0
+					zScaleModifier = 1.0
+					if nodeObj.re_chain_chainnode.angleMode == "2":#Hinge angle mode
+						yScaleModifier = .01
+					elif nodeObj.re_chain_chainnode.angleMode == "4":#Limit oval angle mode
+						xScaleModifier = .5
+					elif nodeObj.re_chain_chainnode.angleMode == "5":#Limit elliptic angle mode
+						yScaleModifier = .5
+					lightObj.scale = (bpy.context.scene.re_chain_toolpanel.coneDisplaySize*xScaleModifier,bpy.context.scene.re_chain_toolpanel.coneDisplaySize*yScaleModifier,bpy.context.scene.re_chain_toolpanel.coneDisplaySize*zScaleModifier)
+					
+					bpy.data.collections["chainData"].objects.link(lightObj)
+					
 					if currentBone != None:
-						constraint = nodeObj.constraints.new(type = "CHILD_OF")
+						constraint = nodeObj.constraints.new(type = "COPY_TRANSFORMS")
 						constraint.target = armature
 						constraint.subtarget = currentBone.name #.split(":")[len(bone.name.split(":"))-1]
 						#terminalNameHashDict[hash_wide(currentBone.name)] = nodeObj
@@ -307,7 +355,7 @@ def importChainFile(filepath):
 						jiggleObj.show_name = bpy.context.scene.re_chain_toolpanel.showNodeNames
 						jiggleObj.show_in_front = bpy.context.scene.re_chain_toolpanel.drawNodesThroughObjects
 						jiggleObj.rotation_mode = 'QUATERNION'
-						jiggleObj.rotation_quaternion = (jiggle.rangeAxisX,jiggle.rangeAxisY,jiggle.rangeAxisZ,jiggle.rangeAxisW)
+						jiggleObj.rotation_quaternion = (jiggle.rangeAxisW,jiggle.rangeAxisX,jiggle.rangeAxisY,jiggle.rangeAxisZ)
 						jiggleObj.scale = (jiggle.rangeX, jiggle.rangeY, jiggle.rangeZ)
 						jiggleObj.location = (jiggle.rangeOffsetX, jiggle.rangeOffsetY, jiggle.rangeOffsetZ)
 		alignChains()
@@ -324,14 +372,14 @@ def importChainFile(filepath):
 			subName = "COLLISION_"+str(currentCollisionIndex).zfill(2)
 		
 		shape = enumItemDict[chainCollision.chainCollisionShape]
-		if shape != "CAPSULE":
+		if shape != "CAPSULE" and chainCollision.pairJointNameHash == 0:
 			name = "COLLISION_" +str(currentCollisionIndex).zfill(2)+ "_"+shape
 			colSphereObj = createEmpty(name, [("TYPE","RE_CHAIN_COLLISION_SINGLE")],headerObj,"chainData")
 			getChainCollision(chainCollision,colSphereObj)
 			colSphereObj.re_chain_chaincollision.chainCollisionShape = str(chainCollision.chainCollisionShape)
 			colSphereObj.re_chain_chaincollision.collisionOffset = (chainCollision.posX,chainCollision.posY,chainCollision.posZ)
 			colSphereObj.rotation_mode = "QUATERNION" 
-			colSphereObj.rotation_quaternion = (chainCollision.rotOffsetX,chainCollision.rotOffsetY,chainCollision.rotOffsetZ,chainCollision.rotOffsetW)
+			colSphereObj.rotation_quaternion = (chainCollision.rotOffsetW,chainCollision.rotOffsetX,chainCollision.rotOffsetY,chainCollision.rotOffsetZ)
 			
 			colSphereObj.empty_display_type = "SPHERE"
 			colSphereObj.empty_display_size = 1
@@ -343,6 +391,8 @@ def importChainFile(filepath):
 			colSphereObj.show_name = bpy.context.scene.re_chain_toolpanel.showCollisionNames
 			colSphereObj.show_in_front = bpy.context.scene.re_chain_toolpanel.drawCollisionsThroughObjects
 		else:#CAPSULE
+			if chainCollision.chainCollisionShape == 0:
+				subName +="_NONE"
 			name = subName+ "_CAPSULE"
 			colCapsuleRootObj = createEmpty(name, [("TYPE","RE_CHAIN_COLLISION_CAPSULE_ROOT")],headerObj,"chainData")
 			colCapsuleRootObj.empty_display_size = .1
@@ -354,7 +404,7 @@ def importChainFile(filepath):
 			
 			colCapsuleStartObj.re_chain_chaincollision.collisionOffset = (chainCollision.posX,chainCollision.posY,chainCollision.posZ)
 			colCapsuleStartObj.rotation_mode = "QUATERNION" 
-			colCapsuleStartObj.rotation_quaternion = (chainCollision.rotOffsetX,chainCollision.rotOffsetY,chainCollision.rotOffsetZ,chainCollision.rotOffsetW)
+			colCapsuleStartObj.rotation_quaternion = (chainCollision.rotOffsetW,chainCollision.rotOffsetX,chainCollision.rotOffsetY,chainCollision.rotOffsetZ)
 			
 			colCapsuleStartObj.empty_display_type = "SPHERE"
 			colCapsuleStartObj.empty_display_size = 1
@@ -515,7 +565,7 @@ def chainErrorCheck():
 			else:
 				errorList.append(obj.name + " object must be parented to a chain header object")
 			
-			if obj.re_chain_chaincollision.chainCollisionShape != "2":#Capsule
+			if obj.re_chain_chaincollision.chainCollisionShape != "2" and obj.re_chain_chaincollision.chainCollisionShape != "0":#Capsule OR None
 				errorList.append(obj.name + " object collision shape is not set to capsule. Create other collision shapes by using the Create Collision From Bone button after selecting a single bone")
 			startCapsule = None
 			for child in obj.children:

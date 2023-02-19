@@ -1,6 +1,6 @@
 #Author: NSA Cloud
 
-from .gen_functions import textColors,raiseWarning,raiseError,getPaddingAmount,read_uint,read_int,read_uint64,read_int64,read_float,read_ushort,read_ubyte,read_unicode_string,read_byte,write_uint,write_int,write_uint64,write_int64,write_float,write_ushort,write_ubyte,write_unicode_string,write_byte
+from .gen_functions import textColors,raiseWarning,raiseError,getPaddingAmount,read_uint,read_int,read_uint64,read_int64,read_float,read_ushort,read_ubyte,read_unicode_string,read_byte,read_short,write_uint,write_int,write_uint64,write_int64,write_float,write_ushort,write_ubyte,write_unicode_string,write_byte,write_short
 
 version = 48
 
@@ -11,6 +11,7 @@ class SIZE_DATA():
 		self.CHAIN_SETTING_SIZE = 168
 		self.CHAIN_GROUP_SIZE = 112
 		self.COLLISION_SIZE = 80
+		self.COLLISION_SUBDATA_SIZE = 64
 		self.NODE_SIZE = 80
 		self.JIGGLE_SIZE = 72
 		self.WIND_SIZE = 184
@@ -48,6 +49,8 @@ class ChainHeaderData():
 		self.masterSize = 0
 		self.collisionAttrAssetOffset = 0
 		self.chainModelCollisionOffset = 0
+		self.chainSubDataOffset = 0 #For internal use, does not exist in file
+		self.chainSubDataCount = 0 #For internal use, does not exist in file
 		self.extraDataOffset = 0
 		self.chainGroupOffset = 0
 		self.chainLinkOffset = 0
@@ -117,7 +120,7 @@ class ChainHeaderData():
 		self.collisionFilterHit6 = read_ubyte(file)
 		self.collisionFilterHit7 = read_ubyte(file)
 		
-	def write(self,file):#TODO finish write
+	def write(self,file):
 		write_uint(file, self.version)
 		write_uint(file, self.magic)
 		write_uint(file, self.errFlags)#ENUM
@@ -174,6 +177,7 @@ class ChainSettingsData():
 	def __init__(self):
 		self.jointList = []
 		self.colliderFilterInfoPathOffset = 0
+		self.colliderFilterInfoPath = ""
 		self.sprayParameterArc = 0.0
 		self.sprayParameterFrequency = 0.0
 		self.sprayParameterCurve1 = 0.0
@@ -224,6 +228,11 @@ class ChainSettingsData():
 	def read(self,file):
 		self.jointList = []
 		self.colliderFilterInfoPathOffset = read_uint64(file)
+		if self.colliderFilterInfoPathOffset != 0:
+			currentPos = file.tell()
+			file.seek(self.colliderFilterInfoPathOffset)
+			self.colliderFilterInfoPath = read_unicode_string(file)
+			file.seek(currentPos)
 		self.sprayParameterArc = read_float(file)
 		self.sprayParameterFrequency = read_float(file)
 		self.sprayParameterCurve1 = read_float(file)
@@ -276,7 +285,7 @@ class ChainSettingsData():
 			self.unknChainSettingValue2 = read_float(file)#VERSION 52
 			self.unknChainSettingValue3 = read_float(file)#VERSION 52
 		
-	def write(self,file):#TODO finish write
+	def write(self,file):
 		write_uint64(file, self.colliderFilterInfoPathOffset)
 		write_float(file, self.sprayParameterArc)
 		write_float(file, self.sprayParameterFrequency)
@@ -334,6 +343,71 @@ class ChainSettingsData():
 	def __str__(self):
 		return str(self.__class__) + ": " + str(self.__dict__)
 
+class CollisionSubData():
+	def __init__(self):
+		self.posX = 0.0
+		self.posY = 0.0
+		self.posZ = 0.0
+		self.pairPosX = 0.0
+		self.pairPosY = 0.0
+		self.pairPosZ = 0.0
+		self.rotOffsetX = 0.0
+		self.rotOffsetY = 0.0
+		self.rotOffsetZ = 0.0
+		self.rotOffsetW = 1.0
+		self.radius = 0.12
+		self.id = 0
+		self.unknSubCollisionData0 = 0
+		self.unknSubCollisionData1 = 0
+		self.unknSubCollisionData2 = 0
+		self.unknSubCollisionData3 = 0
+		
+	def read(self,file):
+		self.posX = read_float(file)
+		self.posY = read_float(file)
+		self.posZ = read_float(file)
+		self.pairPosX = read_float(file)
+		self.pairPosY = read_float(file)
+		self.pairPosZ = read_float(file)
+		
+		#if version >= 35:
+		self.rotOffsetX = read_float(file)
+		self.rotOffsetY = read_float(file)
+		self.rotOffsetZ = read_float(file)
+		self.rotOffsetW = read_float(file)
+		
+		self.radius = read_float(file)
+		self.id = read_int(file)
+		self.unknSubCollisionData0 = read_int(file)#MURMUR HASH
+		self.unknSubCollisionData1 = read_int(file)
+		self.unknSubCollisionData2 = read_int(file)
+		self.unknSubCollisionData3 = read_int(file)
+		
+	def write(self,file):
+		write_float(file, self.posX)
+		write_float(file, self.posY)
+		write_float(file, self.posZ)
+		write_float(file, self.pairPosX)
+		write_float(file, self.pairPosY)
+		write_float(file, self.pairPosZ)
+		
+		#if version >= 35:
+		write_float(file, self.rotOffsetX)
+		write_float(file, self.rotOffsetY)
+		write_float(file, self.rotOffsetZ)
+		write_float(file, self.rotOffsetW)
+		
+		write_float(file, self.radius)
+		write_int(file, self.id)
+		write_int(file, self.unknSubCollisionData0)
+		write_int(file, self.unknSubCollisionData1)
+		write_int(file, self.unknSubCollisionData2)
+		write_int(file, self.unknSubCollisionData3)
+		
+	def __str__(self):
+		return str(self.__class__) + ": " + str(self.__dict__)
+
+
 class ChainCollisionData():
 	def __init__(self):
 		self.subDataOffset = 0
@@ -357,7 +431,10 @@ class ChainCollisionData():
 		self.div = 0
 		self.subDataCount = 0
 		self.collisionFilterFlags = -1
-		self.padding = 0
+		self.subDataFlag = 0
+		self.padding = -1
+		self.subData = CollisionSubData()
+		
 		
 	def read(self,file):
 		self.subDataOffset = read_uint64(file)
@@ -386,11 +463,18 @@ class ChainCollisionData():
 		self.chainCollisionShape = read_ubyte(file)#ENUM, sphere by default
 		self.div = read_ubyte(file)
 		self.subDataCount = read_ushort(file)
-		self.collisionFilterFlags = read_int(file)
+		self.collisionFilterFlags = read_short(file)
+		self.subDataFlag = read_short(file)
 		if version == 39 or version == 46:
 			self.padding = read_int(file)
 		
-	def write(self,file):#TODO finish write
+		if self.subDataFlag > 0:
+			currentPos = file.tell()
+			file.seek(self.subDataOffset)
+			self.subData.read(file)
+			file.seek(currentPos)
+		
+	def write(self,file):
 		write_uint64(file, self.subDataOffset)
 		write_float(file, self.posX)
 		write_float(file, self.posY)
@@ -417,12 +501,17 @@ class ChainCollisionData():
 		write_ubyte(file, self.chainCollisionShape)#ENUM, sphere by default
 		write_ubyte(file, self.div)
 		write_ushort(file, self.subDataCount)
-		write_int(file, self.collisionFilterFlags)
+		write_short(file, self.collisionFilterFlags)
+		write_short(file, self.subDataFlag)
 		if version == 39 or version == 46:
 			write_int(file, self.padding)
-
+		
+		#Write subdata later
+			
 	def __str__(self):
 		return str(self.__class__) + ": " + str(self.__dict__)
+
+
 
 class ChainJiggleData():
 	def __init__(self):
@@ -439,9 +528,9 @@ class ChainJiggleData():
 		self.rangeAxisZ = 0.0
 		self.rangeAxisW = 1.0
 		self.rangeShape = 2
-		self.springForce = 0
-		self.gravityCoef = 0
-		self.damping = 0
+		self.springForce = 0.04
+		self.gravityCoef = 1.0
+		self.damping = 0.04
 		self.attrFlags = 0
 		self.padding2 = 0
 
@@ -510,7 +599,7 @@ class ChainNodeData():
 		self.attachType = 0
 		self.rotationType = 0
 		self.jiggleDataOffset = 0
-		self.unknChainNodeValue0 = 0.0#VERSION 48
+		self.unknChainNodeValue0 = 1.0#VERSION 48
 		self.unknChainNodeValue1 = 0.0#VERSION 48
 		self.jiggleData = None
 		
@@ -546,7 +635,7 @@ class ChainNodeData():
 			file.seek(currentPos)
 
 		file.seek(file.tell()+getPaddingAmount(file.tell(),16))#Skip padding
-	def write(self,file):#TODO finish write
+	def write(self,file):
 		write_float(file, self.angleLimitDirectionX)#Quaternion
 		write_float(file, self.angleLimitDirectionY)
 		write_float(file, self.angleLimitDirectionZ)
@@ -661,7 +750,7 @@ class ChainGroupData():
 		#file.seek(currentPos+paddingAmt)#Go back to the end of chain group and skip padding
 		file.seek(currentPos)
 		
-	def write(self,file):#TODO finish write
+	def write(self,file):
 		startPos = file.tell()    
 		write_uint64(file, self.terminateNodeNameOffset)
 		write_uint64(file, self.nodeOffset)
@@ -804,7 +893,7 @@ class WindSettingsData():
 		self.interval3 = read_float(file)
 		self.interval4 = read_float(file)
 		#file.seek(file.tell()+getPaddingAmount(file.tell(),16))#Skip padding
-	def write(self,file):#TODO finish write
+	def write(self,file):
 		write_uint(file, self.id)
 		write_ubyte(file, self.windDirection)#ENUM
 		write_ubyte(file, self.windCount)
@@ -887,7 +976,7 @@ class ChainLinkData():
 		self.skipGroupB = read_ubyte(file)
 		self.linkOrder = read_ubyte(file)#ENUM
 		
-	def write(self,file):#TODO finish write
+	def write(self,file):
 		write_uint64(file, self.nodeOffset)
 		write_uint(file, self.terminateNodeNameHashA)#MURMUR HASH
 		write_uint(file, self.terminateNodeNameHashB)#MURMUR HASH
@@ -979,8 +1068,22 @@ class ChainFile():
 		self.sizeData.setSizeData(self.Header.version)
 		#Update header offsets
 		self.Header.chainSettingsOffset = self.sizeData.HEADER_SIZE + getPaddingAmount(self.sizeData.HEADER_SIZE, 16)
-		self.Header.chainModelCollisionOffset = self.Header.chainSettingsOffset + self.Header.chainSettingsCount*self.sizeData.CHAIN_SETTING_SIZE + getPaddingAmount(self.Header.chainSettingsOffset + self.Header.chainSettingsCount*self.sizeData.CHAIN_SETTING_SIZE, 16)
-		self.Header.chainGroupOffset = self.Header.chainModelCollisionOffset + self.Header.chainModelCollisionCount*self.sizeData.COLLISION_SIZE + getPaddingAmount(self.Header.chainModelCollisionOffset+self.Header.chainModelCollisionCount*self.sizeData.COLLISION_SIZE, 16)
+		
+		currentFilterPathOffset = self.Header.chainSettingsOffset + self.Header.chainSettingsCount*self.sizeData.CHAIN_SETTING_SIZE + getPaddingAmount(self.Header.chainSettingsOffset + self.Header.chainSettingsCount*self.sizeData.CHAIN_SETTING_SIZE, 16)
+		for chainSetting in self.ChainSettingsList:
+			if chainSetting.colliderFilterInfoPath != "":
+				chainSetting.colliderFilterInfoPathOffset = currentFilterPathOffset
+				currentFilterPathOffset = currentFilterPathOffset + (len(chainSetting.colliderFilterInfoPath)*2 + 2) + getPaddingAmount(currentFilterPathOffset + (len(chainSetting.colliderFilterInfoPath)*2 + 2), 16)
+		
+		self.Header.chainModelCollisionOffset = currentFilterPathOffset
+		self.Header.chainSubDataOffset = self.Header.chainModelCollisionOffset + self.Header.chainModelCollisionCount*self.sizeData.COLLISION_SIZE + getPaddingAmount(self.Header.chainModelCollisionOffset+self.Header.chainModelCollisionCount*self.sizeData.COLLISION_SIZE, 16)
+		currentSubDataOffset = self.Header.chainSubDataOffset
+		for collision in self.ChainCollisionList:
+			if collision.subDataFlag > 0:
+				self.Header.chainSubDataCount += collision.subDataFlag
+				collision.subDataOffset = currentSubDataOffset
+				currentSubDataOffset += self.sizeData.COLLISION_SUBDATA_SIZE
+		self.Header.chainGroupOffset = self.Header.chainSubDataOffset + self.Header.chainSubDataCount*self.sizeData.COLLISION_SUBDATA_SIZE + getPaddingAmount(self.Header.chainSubDataOffset + self.Header.chainSubDataCount*self.sizeData.COLLISION_SUBDATA_SIZE, 16)
 		currentNameOffset = self.Header.chainGroupOffset + self.Header.chainGroupCount * self.sizeData.CHAIN_GROUP_SIZE + getPaddingAmount(self.Header.chainGroupOffset + self.Header.chainGroupCount * self.sizeData.CHAIN_GROUP_SIZE, 16)
 		currentNodeOffset = 0 #TEMP
 		for chainGroup in self.ChainGroupList:
@@ -1008,9 +1111,23 @@ class ChainFile():
 		file.seek(self.Header.chainSettingsOffset)
 		for chainSettings in self.ChainSettingsList:
 			chainSettings.write(file)
+		
+		#Loop over chain settings again to write filter paths
+		for chainSettings in self.ChainSettingsList:
+			if chainSettings.colliderFilterInfoPathOffset != 0:
+				file.seek(chainSettings.colliderFilterInfoPathOffset)
+				write_unicode_string(file, chainSettings.colliderFilterInfoPath)
+		
 		file.seek(self.Header.chainModelCollisionOffset)
 		for chainCollision in self.ChainCollisionList:
 			chainCollision.write(file)
+			
+		file.seek(self.Header.chainSubDataOffset)
+		#Loop over again to write subdata
+		for chainCollision in self.ChainCollisionList:
+			if chainCollision.subDataFlag:	
+				chainCollision.subData.write(file)
+		
 		file.seek(self.Header.chainGroupOffset)
 		for chainGroup in self.ChainGroupList:
 			chainGroup.write(file)

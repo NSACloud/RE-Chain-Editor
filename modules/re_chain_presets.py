@@ -16,7 +16,7 @@ def findHeaderObj():
 			return headerList[0]
 		else:
 			return None
-PRESET_VERSION = 3#To be changed when there are changes to chain object variables
+PRESET_VERSION = 4#To be changed when there are changes to chain object variables
 
 def saveAsPreset(selection,presetName):
 	if len(selection) == 1:
@@ -114,7 +114,7 @@ def readPresetJSON(filepath,activeObj):
 			#Find chain header in scene and get the version
 			chainHeader = findHeaderObj()
 			if chainHeader != None:
-				if chainVersion != chainHeader.re_chain_header.version:
+				if str(chainVersion) != str(chainHeader.re_chain_header.version):
 					raiseWarning("Preset was created for chain version " + str(chainVersion)+ " while the current file is version " +str(chainHeader.re_chain_header.version)+".")
 			else:
 				raiseWarning("No chain header in scene, can't compare preset chain version to current file.")

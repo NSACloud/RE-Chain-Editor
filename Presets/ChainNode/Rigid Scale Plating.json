@@ -15,7 +15,7 @@
     "collisionShape": 1,
     "attachType": 0,
     "rotationType": 0,
-    "unknChainNodeValue0": 0.0,
+    "unknChainNodeValue0": 1.0,
     "unknChainNodeValue1": 0.0,
     "unknChainNodeValue2": 1.0,
     "unknChainNodeValue3": 0.0,
