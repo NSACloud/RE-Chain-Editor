@@ -11,6 +11,11 @@ This addon allows for importing and exporting of RE Engine chain (physics bone) 
  - Presets of chain configurations can be saved and shared.
  
  ## Change Log
+### V3 - 4/13/2023
+
+* Added support for Resident Evil 4.
+* Moved exporting of all chain versions to a single export menu. Choose which game to export for in the top right when exporting.
+ 
 ### V2 - 2/18/2023
 
 If you are updating to V2 from a previous version, any chain files previously saved to Blender have to be reimported.
@@ -29,10 +34,10 @@ This is because certain settings have been stored differently compared to the pr
 * Several minor bug fixes.
  
  ## Supported Games
-
  - **Monster Hunter Rise: Sunbreak**
  - **Resident Evil 2 Remake**
  - **Resident Evil 3 Remake**
+ - **Resident Evil 4 Remake**
  - **Resident Evil 8**
  - **Devil May Cry 5**
  - **Street Fighter 6 Beta**
