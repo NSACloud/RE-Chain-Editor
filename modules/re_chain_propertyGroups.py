@@ -276,6 +276,7 @@ class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
 				("46", ".46 (Ray Tracing RE2,3,7)", ""),
 				("48", ".48 (MHRise Sunbreak)", ""),
 				("52", ".52 (Street Fighter 6 Beta)", ""),
+				("53", ".53 (RE4)", ""),
 			   ]
 		)
 	errFlags: EnumProperty(
@@ -1062,24 +1063,25 @@ class chainSettingsPropertyGroup(bpy.types.PropertyGroup):
 		)
 	unknChainSettingValue0: FloatProperty(
 		name = "Unknown 0",
-		description = "Unknown 0",#TODO Add description
+		description = "Capcom Example Values RE4: [0.0]",#TODO Add description
 		default = 0.00,
 		)
 	unknChainSettingValue1: FloatProperty(
-		name = "Unknown 1",
-		description = "Unknown 1",#TODO Add description
+		name = "Env Wind Effect Coefficient",
+		description = "Capcom Example Values RE4: [0.0, 0.003000000026077032, 0.004999999888241291, 0.009999999776482582, 0.019999999552965164, 0.029999999329447746, 0.03500000014901161, 0.03999999910593033, 0.05000000074505806, 0.10000000149011612, 0.5]",
 		default = 0.10,
 		)
 	unknChainSettingValue2: FloatProperty(
 		name = "Unknown 2",
-		description = "Unknown 2",#TODO Add description
+		description = "Capcom Example Values RE4: [0.0, 1.0, 5.0, 20.0, 30.0, 40.0, 41.0, 45.0, 50.0, 53.0, 60.0, 65.0]",
 		default = 0.00,
 		)
 	unknChainSettingValue3: FloatProperty(
 		name = "Unknown 3",
-		description = "Unknown 3",#TODO Add description
-		default = 0.10,
+		description = "Capcom Example Values RE4: [0.0]",
+		default = 0.00,
 		)
+	
 def getChainSettings(ChainSettingsData,targetObject):
 	#Done manually to be able to account for chain version differences eventually
 	targetObject.re_chain_chainsettings.id = ChainSettingsData.id

@@ -22,21 +22,25 @@ class SIZE_DATA():
 			self.CHAIN_SETTING_SIZE = 128
 			self.CHAIN_GROUP_SIZE = 48
 			self.NODE_SIZE = 64
-		if ver == 24:
+		elif ver == 24:
 			self.COLLISION_SIZE = 56
 			self.CHAIN_SETTING_SIZE = 160
 			self.CHAIN_GROUP_SIZE = 48
 			self.NODE_SIZE = 64
-		if ver == 35:
+		elif ver == 35:
 			self.COLLISION_SIZE = 72
 			self.CHAIN_SETTING_SIZE = 160
 			self.CHAIN_GROUP_SIZE = 80
-		if ver == 39:
+		elif ver == 39:
 			self.CHAIN_SETTING_SIZE = 160
 			self.CHAIN_GROUP_SIZE = 80
-		if ver == 46:
+		elif ver == 46:
 			self.CHAIN_GROUP_SIZE = 88
-		if ver == 52:
+		elif ver == 52:
+			self.CHAIN_SETTING_SIZE = 176
+			self.CHAIN_GROUP_SIZE = 120
+		elif ver == 53:
+			self.HEADER_SIZE = 112
 			self.CHAIN_SETTING_SIZE = 176
 			self.CHAIN_GROUP_SIZE = 120
 
@@ -54,6 +58,7 @@ class ChainHeaderData():
 		self.extraDataOffset = 0
 		self.chainGroupOffset = 0
 		self.chainLinkOffset = 0
+		self.ver53UnknOffset = 0
 		self.chainSettingsOffset = 0
 		self.chainWindSettingsOffset = 0
 		self.chainGroupCount = 0
@@ -96,6 +101,8 @@ class ChainHeaderData():
 		self.extraDataOffset = read_uint64(file)
 		self.chainGroupOffset = read_uint64(file)
 		self.chainLinkOffset = read_uint64(file)
+		if version >= 53:
+			self.ver53UnknOffset = read_uint64(file)
 		self.chainSettingsOffset = read_uint64(file)
 		self.chainWindSettingsOffset = read_uint64(file)
 		self.chainGroupCount = read_ubyte(file)
@@ -130,6 +137,8 @@ class ChainHeaderData():
 		write_uint64(file, self.extraDataOffset)
 		write_uint64(file, self.chainGroupOffset)
 		write_uint64(file, self.chainLinkOffset)
+		if version >= 53:
+			write_uint64(file, self.ver53UnknOffset)
 		write_uint64(file, self.chainSettingsOffset)
 		write_uint64(file, self.chainWindSettingsOffset)
 		write_ubyte(file, self.chainGroupCount)
@@ -264,6 +273,9 @@ class ChainSettingsData():
 			self.springCalcType = read_ubyte(file) #ENUM
 			self.unknFlag = read_ubyte(file)
 			self.padding = read_ushort(file)
+		if version >= 53:
+			self.unknChainSettingValue2 = read_float(file)#VERSION 52
+			self.unknChainSettingValue3 = read_float(file)#VERSION 52
 		self.reduceSelfDistanceRate = read_float(file)
 		self.secondReduceDistanceRate = read_float(file)
 		self.secondReduceDistanceSpeed = read_float(file)
@@ -281,7 +293,7 @@ class ChainSettingsData():
 		if version >= 46:
 			self.unknChainSettingValue0 = read_float(file)#VERSION 48
 			self.unknChainSettingValue1 = read_float(file)#VERSION 48
-		if version >= 52:
+		if version == 52:
 			self.unknChainSettingValue2 = read_float(file)#VERSION 52
 			self.unknChainSettingValue3 = read_float(file)#VERSION 52
 		
@@ -318,6 +330,9 @@ class ChainSettingsData():
 			write_ubyte(file, self.springCalcType) #ENUM
 			write_ubyte(file, self.unknFlag)
 			write_ushort(file, self.padding)
+		if version >= 53:
+			write_float(file, self.unknChainSettingValue2)#VERSION 52
+			write_float(file, self.unknChainSettingValue3)#VERSION 52
 		write_float(file, self.reduceSelfDistanceRate)
 		write_float(file, self.secondReduceDistanceRate)
 		write_float(file, self.secondReduceDistanceSpeed)
@@ -335,7 +350,7 @@ class ChainSettingsData():
 		if version >= 46:
 			write_float(file, self.unknChainSettingValue0)#VERSION 48
 			write_float(file, self.unknChainSettingValue1)#VERSION 48
-		if version >= 52:
+		if version == 52:
 			write_float(file, self.unknChainSettingValue2)#VERSION 52
 			write_float(file, self.unknChainSettingValue3)#VERSION 52
 

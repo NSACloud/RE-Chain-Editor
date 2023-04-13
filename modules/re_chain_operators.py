@@ -33,6 +33,7 @@ attrFlagsItems = [
 	("16384", "AttrFlags_EndRotConstraint", ""),
 	("33971","MHRise_COLLLISION_ENABLED_FLAG_33971",""),
 	("33807","RE2_RT_COLLLISION_ENABLED_FLAG_33807",""),
+	("33803","RE4_COLLLISION_ENABLED_FLAG_33803",""),
 	]
 
 
