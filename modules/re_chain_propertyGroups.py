@@ -961,6 +961,8 @@ class chainSettingsPropertyGroup(bpy.types.PropertyGroup):
 		description="Apply Data to attribute.",
 		items=[ ("0", "ChainSpringCalcType_Position", ""),
 				("1", "ChainSpringCalcType_Rotation", ""),
+				("2", "ChainSpringCalcType_VFRPosition", ""),
+				("3", "ChainSpringCalcType_VFRRotation", ""),
 			   ]
 		)
 	unknFlag: BoolProperty(
@@ -1401,6 +1403,10 @@ class chainNodePropertyGroup(bpy.types.PropertyGroup):
 				("1", "ChainCollisionType_Model", ""),
 				("2", "ChainCollisionType_Collider", ""),
 				("3", "ChainCollisionType_VGround", ""),
+				("4", "ChainCollisionType_UNKNOWN4", ""),
+				("5", "ChainCollisionType_UNKNOWN5", ""),
+				("6", "ChainCollisionType_UNKNOWN6", ""),
+				("7", "ChainCollisionType_UNKNOWN7", ""),
 			   ]
 		)
 	capsuleStretchRate0: FloatProperty(
