@@ -10,10 +10,15 @@ This addon allows for importing and exporting of RE Engine chain (physics bone) 
  - Can create new chain files entirely within Blender.
  - Presets of chain configurations can be saved and shared.
  
- ## Change Log
-### V3 - 4/13/2023
+## Change Log
+### V4 - 4/16/2023
 
-If you are updating to V3, uncheck RE Chain Editor in the addons menu and restart Blender before installing the new version.
+If you are updating to V4, uncheck RE Chain Editor in the addons menu and restart Blender before installing the new version.
+
+* Added support for RE:Verse.
+* Added experimental features under the Pose Mode tools. This allows for things such as chains connected to chains and single bone capsule collisions. Be warned that there is no error checking if you make a mistake. Use at your own risk.
+* Minor bug fixes.
+### V3 - 4/13/2023
 
 * Added support for Resident Evil 4.
 * Moved exporting of all chain versions to a single export menu. Choose which game to export for in the top right when exporting.

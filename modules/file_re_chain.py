@@ -4,6 +4,8 @@ from .gen_functions import textColors,raiseWarning,raiseError,getPaddingAmount,r
 
 version = 48
 
+supportedVersionSet = set([53,48,52,39,46,24,44,21])
+
 #---CHAIN STRUCTS---#
 class SIZE_DATA():
 	def __init__(self):
@@ -34,6 +36,8 @@ class SIZE_DATA():
 		elif ver == 39:
 			self.CHAIN_SETTING_SIZE = 160
 			self.CHAIN_GROUP_SIZE = 80
+		elif ver == 44:
+			self.CHAIN_GROUP_SIZE = 88
 		elif ver == 46:
 			self.CHAIN_GROUP_SIZE = 88
 		elif ver == 52:
@@ -88,12 +92,13 @@ class ChainHeaderData():
 		print("Reading Header...")
 		self.version = read_uint(file)
 		version = self.version
-		#if self.version != 48:
-		#	raiseWarning("Unsupported chain version " + str(self.version) + ", file may not load correctly.")
+		
 		self.magic = read_uint(file)
 		if self.magic != 1851877475:
 			raiseError("File is not a chain file.")
 		print("Version", version)
+		if version not in supportedVersionSet:
+			raiseWarning("Unsupported chain version " + str(self.version) + ", file may not load correctly.")
 		self.errFlags = read_uint(file)#ENUM
 		self.masterSize = read_uint(file)
 		self.collisionAttrAssetOffset = read_uint64(file)
@@ -480,7 +485,7 @@ class ChainCollisionData():
 		self.subDataCount = read_ushort(file)
 		self.collisionFilterFlags = read_short(file)
 		self.subDataFlag = read_short(file)
-		if version == 39 or version == 46:
+		if version == 39 or version == 46 or version == 44:
 			self.padding = read_int(file)
 		
 		if self.subDataFlag > 0:
@@ -518,7 +523,7 @@ class ChainCollisionData():
 		write_ushort(file, self.subDataCount)
 		write_short(file, self.collisionFilterFlags)
 		write_short(file, self.subDataFlag)
-		if version == 39 or version == 46:
+		if version == 39 or version == 46 or version == 44:
 			write_int(file, self.padding)
 		
 		#Write subdata later
@@ -751,7 +756,7 @@ class ChainGroupData():
 			self.unknGroupValue2 = read_uint64(file)#VERSION 48
 		if version >= 52:
 			self.unknGroupValue3 = read_int64(file)#VERSION 52
-		if version >= 46:
+		if version >= 44:
 			self.nextChainName = read_uint64(file)#VERSION 46
 		self.nodeList = []
 		currentPos = file.tell()
@@ -799,7 +804,7 @@ class ChainGroupData():
 			write_uint64(file, self.unknGroupValue2)#VERSION 48
 		if version >= 52:
 			write_int64(file, self.unknGroupValue3)#VERSION 52
-		if version >= 46:
+		if version >= 44:
 			write_uint64(file, self.nextChainNameOffset)#VERSION 46
 		
 

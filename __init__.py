@@ -63,6 +63,7 @@ class ExportREChain(bpy.types.Operator, ExportHelper):
 				(".39", "RE8", "Resident Evil 8"),
 				(".46", "RE2/3/7 Ray Tracing", "Resident Evil 2/3/7 Ray Tracing Update"),
 				(".24", "RE3 / Resistance", "Resident Evil 3 / RE Resistance"),
+				(".44", "RE:Verse", "RE:Verse"),
 				(".21", "DMC 5 /  RE2", "Devil May Cry 5 / Resident Evil 2"),
 			   ]
 		)

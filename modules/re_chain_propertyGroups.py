@@ -16,6 +16,12 @@ from .re_chain_presets import reloadPresets
 
 #V2 - Removed AttrFlags enum, replaced with a pseudo enum using int value and operator due to large variations in values
 
+def update_chainFromBoneName(self, context):
+	if self.experimentalPoseModeOptions:
+		self.chainFromBoneLabelName = "Create Chain From Selection"
+	else:
+		self.chainFromBoneLabelName = "Create Chain From Bone"
+
 def update_angleLimitSize(self, context):
 	for obj in bpy.data.objects:
 		if obj.get("TYPE",None) == "RE_CHAIN_NODE_FRAME":
@@ -259,6 +265,17 @@ class chainToolPanelPropertyGroup(bpy.types.PropertyGroup):
 		soft_max = 30.0,
 		update = update_coneSize
 		)
+	experimentalPoseModeOptions: BoolProperty(
+		name="Enable Experimental Features",
+		description="READ THIS BEFORE ENABLING.\n\nThis button allows for chains to be created from selected bones only.\n\nWith this, you can have multiple chains starting from the same bone and have chains attached to chains.\n\nYou have to select every chain bone in order from top to bottom when creating a new chain.\n\nThere is no error checking on this, if you make a mistake, it will cause issues with the chain.\n\nThis option also enables the ability to create a collision capsule on a single bone.\n\nThese changes are not fully tested and may have issues",
+		default = False,
+		update = update_chainFromBoneName
+		)
+	chainFromBoneLabelName: StringProperty(
+		name="chainFromBoneLabelName",
+		default = "Create Chain From Bone",
+		
+		)
 class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
 
 	'''version: IntProperty(
@@ -277,6 +294,7 @@ class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
 				("48", ".48 (MHRise Sunbreak)", ""),
 				("52", ".52 (Street Fighter 6 Beta)", ""),
 				("53", ".53 (RE4)", ""),
+				("44", ".44 (RE:Verse)", ""),
 			   ]
 		)
 	errFlags: EnumProperty(
@@ -911,31 +929,31 @@ class chainSettingsPropertyGroup(bpy.types.PropertyGroup):
 		)
 	minDamping: FloatProperty(
 		name = "Min Damping",
-		description = "Minimum amount of damping to be applied",#TODO Add description
+		description = "Minimum amount of damping to be applied\nVersion 24 and above only",#TODO Add description
 		default = 0.2,
 		soft_min = 0.00,
 		soft_max = 1.00,
 		)
 	secondMinDamping: FloatProperty(
 		name = "Second Min Damping",
-		description = "Minimum amount of damping to be applied",#TODO Add description
+		description = "Minimum amount of damping to be applied\nVersion 24 and above only",#TODO Add description
 		default = 0.00,
 		soft_min = 0.00,
 		soft_max = 1.00,
 		)
 	dampingPow: FloatProperty(
 		name = "Damping Power",
-		description = "Damping Power",#TODO Add description
+		description = "Damping Power\nVersion 24 and above only",#TODO Add description
 		default = 1.00,
 		)
 	secondDampingPow: FloatProperty(
 		name = "Second Damping Power",
-		description = "Second Damping Power",#TODO Add description
+		description = "Second Damping Power\nVersion 24 and above only",#TODO Add description
 		default = 0.00,
 		)
 	collideMaxVelocity: FloatProperty(
 		name = "Collide Max Velocity",
-		description = "Collide Max Velocity",#TODO Add description
+		description = "Collide Max Velocity\nVersion 24 and above only",#TODO Add description
 		default = 0.00,
 		unit = "VELOCITY"
 		)
@@ -947,18 +965,18 @@ class chainSettingsPropertyGroup(bpy.types.PropertyGroup):
 		)
 	springLimitRate: FloatProperty(
 		name = "Spring Limit Rate",
-		description = "Spring Limit Rate",#TODO Add description
+		description = "Spring Limit Rate\nVersion 24 and above only",#TODO Add description
 		default = 0.00,
 		)
 	springMaxVelocity: FloatProperty(
 		name = "Spring Max Velocity",
-		description = "Spring Max Velocity",#TODO Add description
+		description = "Spring Max Velocity\nVersion 24 and above only",#TODO Add description
 		default = 0.00,
 		unit = "VELOCITY"
 		)
 	springCalcType: EnumProperty(
 		name="Spring Calculation Type",
-		description="Apply Data to attribute.",
+		description="Spring Calculation Type.\nVersion 24 and above only",
 		items=[ ("0", "ChainSpringCalcType_Position", ""),
 				("1", "ChainSpringCalcType_Rotation", ""),
 				("2", "ChainSpringCalcType_VFRPosition", ""),
@@ -967,7 +985,7 @@ class chainSettingsPropertyGroup(bpy.types.PropertyGroup):
 		)
 	unknFlag: BoolProperty(
 		name="Unknown Spring Calculation Flag",
-		description="Model Collision Search",#TODO Add description
+		description="Unknown Spring Calculation Flag\nVersion 24 and above only",#TODO Add description
 		default = False
 		)
 	reduceSelfDistanceRate: FloatProperty(
@@ -1065,22 +1083,22 @@ class chainSettingsPropertyGroup(bpy.types.PropertyGroup):
 		)
 	unknChainSettingValue0: FloatProperty(
 		name = "Unknown 0",
-		description = "Capcom Example Values RE4: [0.0]",#TODO Add description
+		description = "Capcom Example Values RE4: [0.0]\nVersion 48 and above only",#TODO Add description
 		default = 0.00,
 		)
 	unknChainSettingValue1: FloatProperty(
 		name = "Env Wind Effect Coefficient",
-		description = "Capcom Example Values RE4: [0.0, 0.003000000026077032, 0.004999999888241291, 0.009999999776482582, 0.019999999552965164, 0.029999999329447746, 0.03500000014901161, 0.03999999910593033, 0.05000000074505806, 0.10000000149011612, 0.5]",
+		description = "Capcom Example Values RE4: [0.0, 0.003000000026077032, 0.004999999888241291, 0.009999999776482582, 0.019999999552965164, 0.029999999329447746, 0.03500000014901161, 0.03999999910593033, 0.05000000074505806, 0.10000000149011612, 0.5]\nVersion 48 and above only",
 		default = 0.10,
 		)
 	unknChainSettingValue2: FloatProperty(
 		name = "Unknown 2",
-		description = "Capcom Example Values RE4: [0.0, 1.0, 5.0, 20.0, 30.0, 40.0, 41.0, 45.0, 50.0, 53.0, 60.0, 65.0]",
+		description = "Capcom Example Values RE4: [0.0, 1.0, 5.0, 20.0, 30.0, 40.0, 41.0, 45.0, 50.0, 53.0, 60.0, 65.0]\nVersion 52 and above only",
 		default = 0.00,
 		)
 	unknChainSettingValue3: FloatProperty(
 		name = "Unknown 3",
-		description = "Capcom Example Values RE4: [0.0]",
+		description = "Capcom Example Values RE4: [0.0]\nVersion 52 and above only",
 		default = 0.00,
 		)
 	
@@ -1223,79 +1241,79 @@ class chainGroupPropertyGroup(bpy.types.PropertyGroup):
 		)
 	tag0: IntProperty(
 		name = "Tag 0",
-		description="Tag 0",#TODO Add description
+		description="Tag 0\nVersion 35 and above only",#TODO Add description
 		default = 0,
 		)
 	tag1: IntProperty(
 		name = "Tag 1",
-		description="Tag 1",#TODO Add description
+		description="Tag 1\nVersion 35 and above only",#TODO Add description
 		default = 0,
 		)
 	tag2: IntProperty(
 		name = "Tag 2",
-		description="Tag 2",#TODO Add description
+		description="Tag 2\nVersion 35 and above only",#TODO Add description
 		default = 0,
 		)
 	tag3: IntProperty(
 		name = "Tag 3",
-		description="Tag 3",#TODO Add description
+		description="Tag 3\nVersion 35 and above only",#TODO Add description
 		default = 0,
 		)
 	dampingNoise0: FloatProperty(
 		name = "Damping Noise 0",
-		description = "Damping Noise 0",#TODO Add description
+		description = "Damping Noise 0\nVersion 35 and above only",#TODO Add description
 		default = 0.00,
 		)
 	dampingNoise1: FloatProperty(
 		name = "Damping Noise 1",
-		description = "Damping Noise 1",#TODO Add description
+		description = "Damping Noise 1\nVersion 35 and above only",#TODO Add description
 		default = 0.00,
 		)
 	endRotConstMax: FloatProperty(
-		name = "End Rotation Constant Max",
+		name = "End Rotation Constant Max\nVersion 35 and above only",
 		description = "Damping Noise 1",#TODO Add description
 		default = 0.00,
 		)
 	tagCount: IntProperty(
 		name = "Tag Count",
-		description="Tag Count",#TODO Add description
+		description="Tag Count\nVersion 35 and above only",#TODO Add description
 		default = 0,
 		)
 	angleLimitDirectionMode: EnumProperty(
 		name="Angle Limit Direction Mode",
-		description="Apply Data to attribute.",
+		description="Apply Data to attribute.\nVersion 35 and above only",
 		items=[ ("0", "AngleLimitDirectionMode_BasePose", ""),
 				("1", "AngleLimitDirectionMode_MotionPose", ""),
 			  ]
 		)
 	unknGroupValue0: FloatProperty(
 		name = "Unknown 0 A",
-		description="Unknown 0 A",#TODO Add description
+		description="Unknown 0 A\nVersion 48 and above only",#TODO Add description
 		default = 0.0,
 		)
 	unknGroupValue0B: FloatProperty(
 		name = "Unknown 0 B",
-		description="Unknown 0 B",#TODO Add description
+		description="Unknown 0 B\nVersion 48 and above only",#TODO Add description
 		default = 0.0,
 		)
 	unknBoneHash: IntProperty(
 		name = "Unknown Bone Hash",
-		description="Unknown Bone Hash",#TODO Add description
+		description="Unknown Bone Hash\nVersion 48 and above only",#TODO Add description
 		default = 1095307227,
 		)
 	unknGroupValue1: IntProperty(
 		name = "Unknown 1",
-		description="Unknown 1",#TODO Add description
+		description="Unknown 1\nVersion 48 and above only",#TODO Add description
 		default = 0,
 		)
 	unknGroupValue2: IntProperty(
 		name = "Unknown 2",
-		description="Unknown 2",#TODO Add description
+		description="Unknown 2\nVersion 48 and above only",#TODO Add description
 		default = 0,
 		)
 	unknGroupValue3: IntProperty(
 		name = "Unknown 3",
-		description="Unknown 3",#TODO Add description
+		description="Unknown 3\nVersion 52 and above only",#TODO Add description
 		default = 0,
 		)
 
@@ -1469,12 +1487,12 @@ class chainNodePropertyGroup(bpy.types.PropertyGroup):
 		)
 	unknChainNodeValue0: FloatProperty(
 		name = "Unknown 0",
-		description="Unknown 0",#TODO Add description
+		description="Unknown 0\nVersion 35 and above only",#TODO Add description
 		default = 1.0,
 		)
 	unknChainNodeValue1: FloatProperty(
 		name = "Unknown 1",
-		description="Unknown 1",#TODO Add description
+		description="Unknown 1\nVersion 35 and above only",#TODO Add description
 		default = 0.0,
 		)
 def getChainNode(ChainNodeData,targetObject):
@@ -1668,7 +1686,7 @@ class collisionSubDataPropertyGroup(bpy.types.PropertyGroup):
 class chainCollisionPropertyGroup(bpy.types.PropertyGroup):
 	rotationOrder: EnumProperty(
 		name="Rotation Order",
-		description="Apply Data to attribute.",
+		description="Apply Data to attribute.\nVersion 48 and above only",
 		items=[ ("0", "RotationOrder_XYZ", ""),
 				("1", "RotationOrder_YZX", ""),
 				("2", "RotationOrder_ZXY", ""),
@@ -1708,7 +1726,7 @@ class chainCollisionPropertyGroup(bpy.types.PropertyGroup):
 		)
 	unknCollisionValue: FloatProperty(
 		name = "Unknown Collision Value",
-		description = "Unknown Collision Value",#TODO Add description
+		description = "Unknown Collision Value\nVersion 48 and above only",#TODO Add description
 		default = 0.00,
 		)
 	chainCollisionShape: EnumProperty(

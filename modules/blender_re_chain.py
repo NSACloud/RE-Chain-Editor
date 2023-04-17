@@ -565,8 +565,8 @@ def chainErrorCheck():
 			else:
 				errorList.append(obj.name + " object must be parented to a chain header object")
 			
-			if obj.re_chain_chaincollision.chainCollisionShape != "2" and obj.re_chain_chaincollision.chainCollisionShape != "0":#Capsule OR None
-				errorList.append(obj.name + " object collision shape is not set to capsule. Create other collision shapes by using the Create Collision From Bone button after selecting a single bone")
+			#if obj.re_chain_chaincollision.chainCollisionShape != "2" and obj.re_chain_chaincollision.chainCollisionShape != "0":#Capsule OR None
+				#errorList.append(obj.name + " object collision shape is not set to capsule. Create other collision shapes by using the Create Collision From Bone button after selecting a single bone")
 			startCapsule = None
 			for child in obj.children:
 				if child.get("TYPE",None) == "RE_CHAIN_COLLISION_CAPSULE_START":

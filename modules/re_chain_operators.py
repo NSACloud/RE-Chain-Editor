@@ -43,23 +43,32 @@ class WM_OT_ChainFromBone(Operator):
 	bl_options = {'UNDO'}
 	bl_description = "Create new chain group and chain node objects starting from the selected bone and ending at the last child bone. Note that chains cannot be branching. Must be parented to a chain settings object"
 	def execute(self, context):
+		experimentalFeatures = bpy.context.scene.re_chain_toolpanel.experimentalPoseModeOptions
 		selected = bpy.context.selected_pose_bones
 		chainList = []
 		headerObj = findHeaderObj()
-		if len(selected) == 1:
-			startBone = selected[0]
-			
-			chainList = startBone.children_recursive
-			chainList.insert(0,startBone)
-			#print(chainList)
+		if experimentalFeatures:
+			if len(selected) >= 1:
+				chainList = selected
+				valid = True
+			else:
+				showErrorMessageBox("Must select pose bones to create a chain from selection.")
+				return {'CANCELLED'}
 		else:
-			showErrorMessageBox("Select only the chain start bone.")
-			return {'CANCELLED'}
-		valid = True
-		
-		for bone in chainList:
-			if len(bone.children) > 1:
-				valid = False
+			if len(selected) == 1:
+				startBone = selected[0]
+				
+				chainList = startBone.children_recursive
+				chainList.insert(0,startBone)
+				#print(chainList)
+			else:
+				showErrorMessageBox("Select only the chain start bone.")
+				return {'CANCELLED'}
+			valid = True
+			
+			for bone in chainList:
+				if len(bone.children) > 1:
+					valid = False
 		
 		if not valid:
 			showErrorMessageBox("Cannot have branching bones in a chain.")
@@ -195,6 +204,8 @@ class WM_OT_CollisionFromBones(Operator):
 	bl_options = {'UNDO'}
 	bl_description = "Create collision object from selected bone(s). Select one bone to create a sphere and two bones to create a collision capsule"
 	def execute(self, context):
+		experimentalFeatures = bpy.context.scene.re_chain_toolpanel.experimentalPoseModeOptions
+		
 		selected = bpy.context.selected_pose_bones
 		headerObj = findHeaderObj()
 		if len(selected) == 1:
@@ -202,7 +213,12 @@ class WM_OT_CollisionFromBones(Operator):
 			valid = True
 			shape = str(bpy.context.scene.re_chain_toolpanel.collisionShape)
 			if shape == "CAPSULE":#Two bones need to be selected to make a capsule
-				valid = False
+				if experimentalFeatures:
+					startBone = selected[0]
+					endBone = selected[0]
+					valid = True
+				else:
+					valid = False
 			#print(chainList)
 		elif len(selected) == 2:#Force capsule if two bones are selected
 			startBone = selected[0]
