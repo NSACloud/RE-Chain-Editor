@@ -1063,7 +1063,7 @@ class chainSettingsPropertyGroup(bpy.types.PropertyGroup):
 		)
 	windEffectCoef: FloatProperty(
 		name = "Wind Effect Coefficient",
-		description = "Wind Effect Coefficient",#TODO Add description
+		description = "Affects how much stage wind affects chain. NOTE: Applies to chain even if it is not parented to wind settings",#TODO Add description
 		default = 0.00,
 		soft_min = 0.00,
 		soft_max = 1.00,
@@ -1082,7 +1082,7 @@ class chainSettingsPropertyGroup(bpy.types.PropertyGroup):
 		soft_max = 1.00,
 		)
 	unknChainSettingValue0: FloatProperty(
-		name = "Unknown 0",
+		name = "Wind Delay Speed",
 		description = "Capcom Example Values RE4: [0.0]\nVersion 48 and above only",#TODO Add description
 		default = 0.00,
 		)
@@ -1092,7 +1092,7 @@ class chainSettingsPropertyGroup(bpy.types.PropertyGroup):
 		default = 0.10,
 		)
 	unknChainSettingValue2: FloatProperty(
-		name = "Unknown 2",
+		name = "Motion Force",
 		description = "Capcom Example Values RE4: [0.0, 1.0, 5.0, 20.0, 30.0, 40.0, 41.0, 45.0, 50.0, 53.0, 60.0, 65.0]\nVersion 52 and above only",
 		default = 0.00,
 		)
@@ -1232,6 +1232,10 @@ class chainGroupPropertyGroup(bpy.types.PropertyGroup):
 				("1", "ChainCollisionType_Model", ""),
 				("2", "ChainCollisionType_Collider", ""),
 				("3", "ChainCollisionType_VGround", ""),
+				("4", "ChainCollisionType_UNKNOWN4", ""),
+				("5", "ChainCollisionType_UNKNOWN5", ""),
+				("6", "ChainCollisionType_UNKNOWN6", ""),
+				("7", "ChainCollisionType_UNKNOWN7", ""),
 			   ]
 		)
 	extraNodeLocalPos: FloatVectorProperty(
@@ -1270,8 +1274,8 @@ class chainGroupPropertyGroup(bpy.types.PropertyGroup):
 		default = 0.00,
 		)
 	endRotConstMax: FloatProperty(
-		name = "End Rotation Constant Max\nVersion 35 and above only",
-		description = "Damping Noise 1",#TODO Add description
+		name = "End Rotation Constant Max",
+		description = "End Rotation Constant Max\nVersion 35 and above only",#TODO Add description
 		default = 0.00,
 		)
 	tagCount: IntProperty(
@@ -1754,6 +1758,10 @@ class chainCollisionPropertyGroup(bpy.types.PropertyGroup):
 				("1", "ChainCollisionType_Model", ""),
 				("2", "ChainCollisionType_Collider", ""),
 				("3", "ChainCollisionType_VGround", ""),
+				("4", "ChainCollisionType_UNKNOWN4", ""),
+				("5", "ChainCollisionType_UNKNOWN5", ""),
+				("6", "ChainCollisionType_UNKNOWN6", ""),
+				("7", "ChainCollisionType_UNKNOWN7", ""),
 			   ]
 		)
 	subDataFlag: IntProperty(

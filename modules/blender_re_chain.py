@@ -270,6 +270,8 @@ def importChainFile(filepath):
 				baseNodeName = chainGroup.terminateNodeName.split("_end")[0]
 				nodeParent = chainGroupObj
 				terminalNameHashDict[chainGroup.terminateNodeNameHash]=chainGroupObj.name
+				
+				#TODO Add chain group subdata import and export, currently the subdata count is set to 0 and not imported
 	#CHAIN NODES IMPORT
 				for nodeIndex,node in enumerate(chainGroup.nodeList):
 					if boneList != [None]:
@@ -373,7 +375,7 @@ def importChainFile(filepath):
 		
 		shape = enumItemDict[chainCollision.chainCollisionShape]
 		if shape != "CAPSULE" and chainCollision.pairJointNameHash == 0:
-			name = "COLLISION_" +str(currentCollisionIndex).zfill(2)+ "_"+shape
+			name = "COLLISION_" +str(currentCollisionIndex).zfill(2)+ "_"+shape + " " + boneHashDict[chainCollision.jointNameHash].name
 			colSphereObj = createEmpty(name, [("TYPE","RE_CHAIN_COLLISION_SINGLE")],headerObj,"chainData")
 			getChainCollision(chainCollision,colSphereObj)
 			colSphereObj.re_chain_chaincollision.chainCollisionShape = str(chainCollision.chainCollisionShape)
@@ -398,7 +400,7 @@ def importChainFile(filepath):
 			colCapsuleRootObj.empty_display_size = .1
 			getChainCollision(chainCollision,colCapsuleRootObj)
 			colCapsuleRootObj.re_chain_chaincollision.chainCollisionShape = str(chainCollision.chainCollisionShape)
-			name = subName+ "_CAPSULE_START"
+			name = subName+ "_CAPSULE_START" + " " + boneHashDict[chainCollision.jointNameHash].name
 			colCapsuleStartObj = createEmpty(name, [("TYPE","RE_CHAIN_COLLISION_CAPSULE_START")],colCapsuleRootObj,"chainData")
 			
 			
@@ -416,7 +418,7 @@ def importChainFile(filepath):
 			colCapsuleStartObj.show_name = bpy.context.scene.re_chain_toolpanel.showCollisionNames
 			colCapsuleStartObj.show_in_front = bpy.context.scene.re_chain_toolpanel.drawCollisionsThroughObjects
 			
-			name = subName+ "_CAPSULE_END"
+			name = subName+ "_CAPSULE_END" + " " + boneHashDict[chainCollision.pairJointNameHash].name
 			colCapsuleEndObj = createEmpty(name, [("TYPE","RE_CHAIN_COLLISION_CAPSULE_END")],colCapsuleRootObj,"chainData")
 			colCapsuleEndObj.re_chain_chaincollision.endCollisionOffset = (chainCollision.pairPosX,chainCollision.pairPosY,chainCollision.pairPosZ)
 			colCapsuleEndObj.empty_display_type = "SPHERE"
@@ -706,7 +708,7 @@ def exportChainFile(filepath, version):
 			setChainGroupData(chainGroup, chainGroupObj)
 			#Get nodes
 			nodeObjList = []
-			
+			#TODO Add chain group subdata export
 			currentNode = chainGroupObj.children[0]
 			nodeObjList = [currentNode]
 			hasChildNode = True

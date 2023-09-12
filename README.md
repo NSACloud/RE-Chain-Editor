@@ -11,13 +11,25 @@ This addon allows for importing and exporting of RE Engine chain (physics bone) 
  - Presets of chain configurations can be saved and shared.
  
 ## Change Log
-### V4 - 4/16/2023
 
-If you are updating to V4, uncheck RE Chain Editor in the addons menu and restart Blender before installing the new version.
+### V5 - 9/11/2023
+If you are updating to V5, uncheck RE Chain Editor in the addons menu and restart Blender before installing the new version.
+
+* Fixed an issue where Street Fighter 6 chain settings did not import or export correctly. Any previously imported chains saved in a blend file should be reimported.
+* Fixed issue causing crashes with SF6 due to certain data being missing when importing certain chain files.
+* Chain collisions now show the bone they're connected to in their name.
+
+NOTE: Due to them containing lots of currently unmapped data, certain SF6 chain files such as Kimberly's cannot be imported without them having issues in game when exported.
+
+<details>
+  <summary>Older Version Change Logs</summary>
+
+### V4 - 4/16/2023
 
 * Added support for RE:Verse.
 * Added experimental features under the Pose Mode tools. This allows for things such as chains connected to chains and single bone capsule collisions. Be warned that there is no error checking if you make a mistake. Use at your own risk.
 * Minor bug fixes.
+
 ### V3 - 4/13/2023
 
 * Added support for Resident Evil 4.
@@ -40,6 +52,8 @@ This is because certain settings have been stored differently compared to the pr
 * Added support for collision subdata (For RE2 RT).
 * Several minor bug fixes.
  
+ </details>
+ 
  ## Supported Games
  - **Monster Hunter Rise: Sunbreak**
  - **Resident Evil 2 Remake**
@@ -47,12 +61,12 @@ This is because certain settings have been stored differently compared to the pr
  - **Resident Evil 4 Remake**
  - **Resident Evil 8**
  - **Devil May Cry 5**
- - **Street Fighter 6 Beta**
+ - **Street Fighter 6**  (Street Fighter 6 is only partially supported at the moment and has issues with certain files.)
  
 Support for more games may be added in the future.
 
 ## Requirements
-* [Blender 2.8 or higher (version 2.93.0 recommended)](https://www.blender.org/download/)
+* [Blender 3.1.2 (Direct Download Link)](https://download.blender.org/release/Blender3.1/blender-3.1.2-windows-x64.msi)
 * [Blender RE Mesh Noesis Wrapper](https://github.com/NSACloud/Blender-RE-Mesh-Noesis-Wrapper)
 
 ## Installation

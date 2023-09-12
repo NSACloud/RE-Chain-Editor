@@ -341,11 +341,13 @@ class OBJECT_PT_ChainSettingsPanel(Panel):
 		row.prop(re_chain_chainsettings, "groupDefaultAttr")
 		row.operator("re_chain.set_attr_flags",icon='DOWNARROW_HLT', text="")
 		col2.prop(re_chain_chainsettings, "windEffectCoef",slider=True)
+		col2.prop(re_chain_chainsettings, "unknChainSettingValue1",slider=True)
+		col2.prop(re_chain_chainsettings, "unknChainSettingValue0")
 		col2.prop(re_chain_chainsettings, "velocityLimit")
 		col2.prop(re_chain_chainsettings, "hardness",slider=True)
 		#if version >= 48:
-		col2.prop(re_chain_chainsettings, "unknChainSettingValue0")
-		col2.prop(re_chain_chainsettings, "unknChainSettingValue1")
+		
+		
 		#if version >= 52:
 		col2.prop(re_chain_chainsettings, "unknChainSettingValue2")
 		col2.prop(re_chain_chainsettings, "unknChainSettingValue3")

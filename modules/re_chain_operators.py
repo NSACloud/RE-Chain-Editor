@@ -243,7 +243,7 @@ class WM_OT_CollisionFromBones(Operator):
 			singleObjectColList = ["SPHERE","OBB","PLANE","LINESPHERE","LERPSPHERE"]
 			enumItemDict ={"SPHERE":"1","CAPSULE":"2","OBB":"3","PLANE":"4","LINESPHERE":"5","LERPSPHERE":"6"}#For setting shape enum value
 			if shape in singleObjectColList:
-				name = "COLLISION_" +str(currentCollisionIndex).zfill(2)+ "_"+shape
+				name = "COLLISION_" +str(currentCollisionIndex).zfill(2)+ "_"+shape +" " + startBone.name
 				colSphereObj = createEmpty(name, [("TYPE","RE_CHAIN_COLLISION_SINGLE")],headerObj,"chainData")
 				chainCollision = ChainCollisionData()
 				getChainCollision(chainCollision,colSphereObj)
@@ -267,7 +267,7 @@ class WM_OT_CollisionFromBones(Operator):
 				colCapsuleRootObj.empty_display_size = .1
 				chainCollision = ChainCollisionData()
 				getChainCollision(chainCollision,colCapsuleRootObj)
-				name = subName+ "_CAPSULE_START"
+				name = subName+ "_CAPSULE_START" + " " + startBone.name
 				colCapsuleStartObj = createEmpty(name, [("TYPE","RE_CHAIN_COLLISION_CAPSULE_START")],colCapsuleRootObj,"chainData")
 				
 				colCapsuleRootObj.re_chain_chaincollision.chainCollisionShape = enumItemDict[shape]
@@ -285,7 +285,7 @@ class WM_OT_CollisionFromBones(Operator):
 				colCapsuleStartObj.show_name = bpy.context.scene.re_chain_toolpanel.showCollisionNames
 				colCapsuleStartObj.show_in_front = bpy.context.scene.re_chain_toolpanel.drawCollisionsThroughObjects
 				
-				name = subName+ "_CAPSULE_END"
+				name = subName+ "_CAPSULE_END" + " " + endBone.name
 				colCapsuleEndObj = createEmpty(name, [("TYPE","RE_CHAIN_COLLISION_CAPSULE_END")],colCapsuleRootObj,"chainData")
 				colCapsuleEndObj.re_chain_chaincollision.endCollisionOffset = (chainCollision.pairPosX,chainCollision.pairPosY,chainCollision.pairPosZ)
 				colCapsuleEndObj.empty_display_type = "SPHERE"

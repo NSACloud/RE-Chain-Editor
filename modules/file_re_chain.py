@@ -278,7 +278,7 @@ class ChainSettingsData():
 			self.springCalcType = read_ubyte(file) #ENUM
 			self.unknFlag = read_ubyte(file)
 			self.padding = read_ushort(file)
-		if version >= 53:
+		if version >= 52:
 			self.unknChainSettingValue2 = read_float(file)#VERSION 52
 			self.unknChainSettingValue3 = read_float(file)#VERSION 52
 		self.reduceSelfDistanceRate = read_float(file)
@@ -298,9 +298,6 @@ class ChainSettingsData():
 		if version >= 46:
 			self.unknChainSettingValue0 = read_float(file)#VERSION 48
 			self.unknChainSettingValue1 = read_float(file)#VERSION 48
-		if version == 52:
-			self.unknChainSettingValue2 = read_float(file)#VERSION 52
-			self.unknChainSettingValue3 = read_float(file)#VERSION 52
 		
 	def write(self,file):
 		write_uint64(file, self.colliderFilterInfoPathOffset)
@@ -335,7 +332,7 @@ class ChainSettingsData():
 			write_ubyte(file, self.springCalcType) #ENUM
 			write_ubyte(file, self.unknFlag)
 			write_ushort(file, self.padding)
-		if version >= 53:
+		if version >= 52:
 			write_float(file, self.unknChainSettingValue2)#VERSION 52
 			write_float(file, self.unknChainSettingValue3)#VERSION 52
 		write_float(file, self.reduceSelfDistanceRate)
@@ -355,9 +352,6 @@ class ChainSettingsData():
 		if version >= 46:
 			write_float(file, self.unknChainSettingValue0)#VERSION 48
 			write_float(file, self.unknChainSettingValue1)#VERSION 48
-		if version == 52:
-			write_float(file, self.unknChainSettingValue2)#VERSION 52
-			write_float(file, self.unknChainSettingValue3)#VERSION 52
 
 
 	def __str__(self):
@@ -714,6 +708,7 @@ class ChainGroupData():
 		self.unknGroupValue0B = 0.0#VERSION 48
 		self.unknBoneHash = 1095307227#VERSION 48 MURMUR HASH
 		self.unknGroupValue1 = 0#VERSION 48
+		self.chainGroupSubDataCount = 0#VERSION 48
 		self.unknGroupValue2 = 0#VERSION 48
 		self.unknGroupValue3 = 0#VERSION 52
 		self.nextChainNameOffset = 0#VERSION 48
@@ -752,7 +747,8 @@ class ChainGroupData():
 			self.unknGroupValue0 = read_float(file)#VERSION 48
 			self.unknGroupValue0B = read_float(file)#VERSION 48
 			self.unknBoneHash = read_uint(file)#VERSION 48
-			self.unknGroupValue1 = read_uint(file)#VERSION 48
+			self.unknGroupValue1 = read_ushort(file)#VERSION 48
+			self.chainGroupSubDataCount = read_ushort(file)#VERSION 48
 			self.unknGroupValue2 = read_uint64(file)#VERSION 48
 		if version >= 52:
 			self.unknGroupValue3 = read_int64(file)#VERSION 52
@@ -800,7 +796,8 @@ class ChainGroupData():
 			write_float(file, self.unknGroupValue0)#VERSION 48
 			write_float(file, self.unknGroupValue0B)#VERSION 48
 			write_uint(file, self.unknBoneHash)#VERSION 48
-			write_uint(file, self.unknGroupValue1)#VERSION 48
+			write_ushort(file, self.unknGroupValue1)#VERSION 48
+			write_ushort(file, self.chainGroupSubDataCount)#VERSION 48
 			write_uint64(file, self.unknGroupValue2)#VERSION 48
 		if version >= 52:
 			write_int64(file, self.unknGroupValue3)#VERSION 52
