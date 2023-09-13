@@ -118,11 +118,16 @@ def alignChains():
 				currentNode.location = (0.0,0.0,0.0)
 				currentNode.rotation_euler = (0.0,0.0,0.0)
 				currentNode.scale = (1.0,1.0,1.0)
+				
+				hasNodeChild = False
 				for child in currentNode.children:
 					if child.get("TYPE",None) == "RE_CHAIN_NODE":
 						nodeObjList.append(child)
+						hasNodeChild = True
 						
 						currentNode = child
+				if not hasNodeChild:#Avoid infinite loop in the case of a chain group consisting of a single node that contains a jiggle node
+					break
 			nodeObjList.reverse()
 			for recurse in nodeObjList:
 				if recurse.re_chain_chainnode.collisionRadius != 0:
@@ -509,11 +514,13 @@ def chainErrorCheck():
 			validChainGroup = False
 			for child in obj.children:
 				if child.get("TYPE") == "RE_CHAIN_NODE":
-					for nodeChild in child.children:
-						if nodeChild.get("TYPE") == "RE_CHAIN_NODE":
-							validChainGroup = True
+					validChainGroup = True
+					#for nodeChild in child.children:
+						#if nodeChild.get("TYPE") == "RE_CHAIN_NODE":
+							#validChainGroup = True
 			if not validChainGroup:
-				errorList.append("Chain group "+obj.name + " must contain at least two nodes.")
+				#errorList.append("Chain group "+obj.name + " must contain at least two nodes.")
+				errorList.append("Chain group "+obj.name + " must contain at least one node.")#Thank SF6 and it's weird chains for this
 		
 		elif obj.get("TYPE",None) == "RE_CHAIN_WINDSETTINGS":
 			if obj.parent != None:

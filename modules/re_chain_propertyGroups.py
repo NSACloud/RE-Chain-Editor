@@ -983,10 +983,10 @@ class chainSettingsPropertyGroup(bpy.types.PropertyGroup):
 				("3", "ChainSpringCalcType_VFRRotation", ""),
 			   ]
 		)
-	unknFlag: BoolProperty(
+	unknFlag: IntProperty(
 		name="Unknown Spring Calculation Flag",
 		description="Unknown Spring Calculation Flag\nVersion 24 and above only",#TODO Add description
-		default = False
+		default = 0
 		)
 	reduceSelfDistanceRate: FloatProperty(
 		name = "Reduce Self Distance Rate",

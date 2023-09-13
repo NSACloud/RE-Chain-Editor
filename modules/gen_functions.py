@@ -64,8 +64,13 @@ def read_string(file_object):
      data =''.join(iter(lambda: file_object.read(1).decode('ascii'), '\x00'))
      return data
 def read_unicode_string(file_object):#Reads unicode string from file into utf-8 string
-    data =(''.join(iter(lambda: file_object.read(2).decode('utf-8'), '\x00\x00'))).replace('\x00', '')#TODO Fix this
-    return data
+	wchar = file_object.read(2)
+	byteString = wchar
+	while wchar != b'\x00\x00':
+		wchar = file_object.read(2)
+		byteString += wchar 
+	unicodeString = byteString.decode("utf-16le").replace('\x00', '')
+	return unicodeString
 # write unsigned byte to file
 def write_ubyte(file_object,input, endian = '<'):
      data = struct.pack(endian+'B', input)
