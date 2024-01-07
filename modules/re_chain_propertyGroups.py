@@ -1429,6 +1429,9 @@ class chainNodePropertyGroup(bpy.types.PropertyGroup):
 				("5", "ChainCollisionType_UNKNOWN5", ""),
 				("6", "ChainCollisionType_UNKNOWN6", ""),
 				("7", "ChainCollisionType_UNKNOWN7", ""),
+				("15", "ChainCollisionType_UNKNOWN15", ""),
+				("16", "ChainCollisionType_UNKNOWN16", ""),
+				("17", "ChainCollisionType_UNKNOWN17", ""),
 			   ]
 		)
 	capsuleStretchRate0: FloatProperty(
@@ -1741,8 +1744,9 @@ class chainCollisionPropertyGroup(bpy.types.PropertyGroup):
 				("2", "ChainCollisionShape_Capsule", ""),
 				("3", "ChainCollisionShape_OBB", ""),
 				("4", "ChainCollisionShape_Plane", ""),
-				("5", "ChainCollisionShape_LineSphere", ""),
-				("6", "ChainCollisionShape_LerpSphere", ""),
+				("5", "ChainCollisionShape_TaperedCapsule", ""),
+				("6", "ChainCollisionShape_LineSphere", ""),
+				("7", "ChainCollisionShape_LerpSphere", ""),
 			   ]
 		)
 	subDataCount: IntProperty(
