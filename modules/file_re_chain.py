@@ -43,7 +43,7 @@ class SIZE_DATA():
 		elif ver == 52:
 			self.CHAIN_SETTING_SIZE = 176
 			self.CHAIN_GROUP_SIZE = 120
-		elif ver == 53:
+		elif ver >= 53:
 			self.HEADER_SIZE = 112
 			self.CHAIN_SETTING_SIZE = 176
 			self.CHAIN_GROUP_SIZE = 120
