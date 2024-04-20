@@ -303,6 +303,7 @@ class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
 				("48", ".48 (MHRise Sunbreak)", ""),
 				("52", ".52 (Street Fighter 6 Beta)", ""),
 				("53", ".53 (RE4)", ""),
+				("54", ".54 (Dragon's Dogma 2')", ""),
 				("44", ".44 (RE:Verse)", ""),
 			   ]
 		)
@@ -483,7 +484,7 @@ class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
   
 def getChainHeader(ChainHeaderData,targetObject):
 	#Done manually to be able to account for chain version differences eventually
-	#targetObject.re_chain_header.version = str(ChainHeaderData.version)
+	targetObject.re_chain_header.version = str(ChainHeaderData.version)
 	targetObject.re_chain_header.errFlags = str(ChainHeaderData.errFlags)
 	targetObject.re_chain_header.masterSize = ChainHeaderData.masterSize
 	targetObject.re_chain_header.rotationOrder = str(ChainHeaderData.rotationOrder)
@@ -505,7 +506,7 @@ def getChainHeader(ChainHeaderData,targetObject):
 
 
 def setChainHeaderData(ChainHeaderData,targetObject):
-	#ChainHeaderData.version = int(targetObject.re_chain_header.version) 
+	ChainHeaderData.version = int(targetObject.re_chain_header.version) 
 	ChainHeaderData.errFlags = int(targetObject.re_chain_header.errFlags)
 	ChainHeaderData.masterSize = targetObject.re_chain_header.masterSize 
 	ChainHeaderData.rotationOrder = int(targetObject.re_chain_header.rotationOrder)

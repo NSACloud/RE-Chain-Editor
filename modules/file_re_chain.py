@@ -4,7 +4,7 @@ from .gen_functions import textColors,raiseWarning,raiseError,getPaddingAmount,r
 
 version = 48
 
-supportedVersionSet = set([53,48,52,39,46,24,44,21])
+supportedVersionSet = set([54,53,48,52,39,46,24,44,21])
 
 #---CHAIN STRUCTS---#
 class SIZE_DATA():
