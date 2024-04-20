@@ -88,7 +88,7 @@ def update_NodeRadius(self, context):
 	obj = self.id_data
 	if type(obj).__name__ == "Object":#Check if it's an object to prevent issues with clipboard 
 		if obj.re_chain_chainnode.collisionRadius != 0:
-			obj.empty_display_size = obj.re_chain_chainnode.collisionRadius * 100
+			obj.empty_display_size = obj.re_chain_chainnode.collisionRadius# * 100
 		else:
 			obj.empty_display_size = 1
 
@@ -98,16 +98,16 @@ def update_CollisionRadius(self, context):
 	if type(obj).__name__ == "Object":#Check if it's an object to prevent issues with clipboard 
 		if obj.get("TYPE",None) != "RE_CHAIN_COLLISION_CAPSULE_ROOT":
 			if obj.re_chain_chaincollision.radius != 0:
-				obj.empty_display_size = obj.re_chain_chaincollision.radius * 100
+				obj.empty_display_size = obj.re_chain_chaincollision.radius# * 100
 			else:
-				obj.empty_display_size = 1
+				obj.empty_display_size = 0.01
 		else:
 			for child in obj.children:
 				if child.get("TYPE",None) == "RE_CHAIN_COLLISION_CAPSULE_START" or child.get("TYPE",None) == "RE_CHAIN_COLLISION_CAPSULE_END":
 					if obj.re_chain_chaincollision.radius != 0:
-						child.empty_display_size = obj.re_chain_chaincollision.radius * 100
+						child.empty_display_size = obj.re_chain_chaincollision.radius# * 100
 					else:
-						child.empty_display_size = 1
+						child.empty_display_size = 0.01
 						
 def update_NodeNameVis(self, context):
 	for obj in bpy.data.objects:
@@ -146,20 +146,20 @@ def update_DrawCollisionsThroughObjects(self, context):
 def update_CollisionOffset(self, context):
 	obj = self.id_data
 	if obj.get("TYPE",None) != "RE_CHAIN_COLLISION_CAPSULE_ROOT":
-		obj.location = obj.re_chain_chaincollision.collisionOffset * 100
+		obj.location = obj.re_chain_chaincollision.collisionOffset# * 100
 	else:
 		for child in obj.children:
 			if child.get("TYPE",None) == "RE_CHAIN_COLLISION_CAPSULE_START":
-				child.location = obj.re_chain_chaincollision.collisionOffset * 100
+				child.location = obj.re_chain_chaincollision.collisionOffset# * 100
 
 def update_EndCollisionOffset(self, context):
 	obj = self.id_data
 	if obj.get("TYPE",None) != "RE_CHAIN_COLLISION_CAPSULE_ROOT":
-		obj.location = obj.re_chain_chaincollision.endCollisionOffset * 100
+		obj.location = obj.re_chain_chaincollision.endCollisionOffset# * 100
 	else:
 		for child in obj.children:
 			if child.get("TYPE",None) == "RE_CHAIN_COLLISION_CAPSULE_END":
-				child.location = obj.re_chain_chaincollision.endCollisionOffset * 100
+				child.location = obj.re_chain_chaincollision.endCollisionOffset# * 100
 			
 class chainToolPanelPropertyGroup(bpy.types.PropertyGroup):
 	
@@ -251,18 +251,22 @@ class chainToolPanelPropertyGroup(bpy.types.PropertyGroup):
 	angleLimitDisplaySize: FloatProperty(
 		name="Angle Limit Size",
 		description="Set the display size of node angle limits",
-		default = 4.0,
+		default = 0.04,
 		soft_min = 0.0,
-		soft_max = 30.0,
+		soft_max = .4,
+		precision = 3,
+		step = .005,
 		update = update_angleLimitSize
 		)
 	
 	coneDisplaySize: FloatProperty(
 		name="Cone Size",
 		description="Set the display size of node angle limit cones",
-		default = 0.75,
+		default = 0.006,
 		soft_min = 0.0,
-		soft_max = 30.0,
+		soft_max = .2,
+		precision = 3,
+		step = .005,
 		update = update_coneSize
 		)
 	experimentalPoseModeOptions: BoolProperty(
@@ -274,6 +278,11 @@ class chainToolPanelPropertyGroup(bpy.types.PropertyGroup):
 	chainFromBoneLabelName: StringProperty(
 		name="chainFromBoneLabelName",
 		default = "Create Chain From Bone",
+		
+		)
+	chainCollection: bpy.props.StringProperty(
+		name="",
+		description = "Set the collection containing the chain file to edit.\nHint: Chain collections are orange.\nYou can create a new chain collection by pressing the \"Create Chain Header\" button",
 		
 		)
 class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
@@ -474,7 +483,7 @@ class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
   
 def getChainHeader(ChainHeaderData,targetObject):
 	#Done manually to be able to account for chain version differences eventually
-	targetObject.re_chain_header.version = str(ChainHeaderData.version)
+	#targetObject.re_chain_header.version = str(ChainHeaderData.version)
 	targetObject.re_chain_header.errFlags = str(ChainHeaderData.errFlags)
 	targetObject.re_chain_header.masterSize = ChainHeaderData.masterSize
 	targetObject.re_chain_header.rotationOrder = str(ChainHeaderData.rotationOrder)
@@ -496,7 +505,7 @@ def getChainHeader(ChainHeaderData,targetObject):
 
 
 def setChainHeaderData(ChainHeaderData,targetObject):
-	ChainHeaderData.version = int(targetObject.re_chain_header.version) 
+	#ChainHeaderData.version = int(targetObject.re_chain_header.version) 
 	ChainHeaderData.errFlags = int(targetObject.re_chain_header.errFlags)
 	ChainHeaderData.masterSize = targetObject.re_chain_header.masterSize 
 	ChainHeaderData.rotationOrder = int(targetObject.re_chain_header.rotationOrder)
@@ -1320,6 +1329,11 @@ class chainGroupPropertyGroup(bpy.types.PropertyGroup):
 		description="Unknown 3\nVersion 52 and above only",#TODO Add description
 		default = 0,
 		)
+	unknGroupValue4: IntProperty(
+		name = "Unknown 4",
+		description="Unknown 4\nVersion 52 and above only",#TODO Add description
+		default = 0,
+		)
 
 def getChainGroup(ChainGroupData,targetObject):
 	#Done manually to be able to account for chain version differences eventually
@@ -1343,6 +1357,7 @@ def getChainGroup(ChainGroupData,targetObject):
 	targetObject.re_chain_chaingroup.unknGroupValue1 = ChainGroupData.unknGroupValue1
 	targetObject.re_chain_chaingroup.unknGroupValue2 = ChainGroupData.unknGroupValue2
 	targetObject.re_chain_chaingroup.unknGroupValue3 = ChainGroupData.unknGroupValue3
+	targetObject.re_chain_chaingroup.unknGroupValue4 = ChainGroupData.unknGroupValue4
 def setChainGroupData(ChainGroupData,targetObject):
 	ChainGroupData.rotationOrder = int(targetObject.re_chain_chaingroup.rotationOrder)
 	ChainGroupData.autoBlendCheckNodeNo = targetObject.re_chain_chaingroup.autoBlendCheckNodeNo 
@@ -1368,7 +1383,8 @@ def setChainGroupData(ChainGroupData,targetObject):
 	ChainGroupData.unknBoneHash = targetObject.re_chain_chaingroup.unknBoneHash 
 	ChainGroupData.unknGroupValue1 = targetObject.re_chain_chaingroup.unknGroupValue1 
 	ChainGroupData.unknGroupValue2 = targetObject.re_chain_chaingroup.unknGroupValue2 
-	ChainGroupData.unknGroupValue3 = targetObject.re_chain_chaingroup.unknGroupValue3 
+	ChainGroupData.unknGroupValue3 = targetObject.re_chain_chaingroup.unknGroupValue3
+	ChainGroupData.unknGroupValue4 = targetObject.re_chain_chaingroup.unknGroupValue4
 
 	if targetObject.parent.get("TYPE",None) == "RE_CHAIN_WINDSETTINGS":
 		ChainGroupData.windID = targetObject.parent.re_chain_windsettings.id
@@ -1526,7 +1542,7 @@ def setChainNodeData(ChainNodeData,targetObject):
 	ChainNodeData.angleLimitDistance = targetObject.re_chain_chainnode.angleLimitDistance 
 	ChainNodeData.angleLimitRestitution = targetObject.re_chain_chainnode.angleLimitRestitution 
 	ChainNodeData.angleLimitRestituteStopSpeed = targetObject.re_chain_chainnode.angleLimitRestituteStopSpeed 
-	ChainNodeData.collisionRadius = targetObject.re_chain_chainnode.collisionRadius 
+	ChainNodeData.collisionRadius = targetObject.re_chain_chainnode.collisionRadius * targetObject.scale[0]
 	ChainNodeData.collisionFilterFlags = int(targetObject.re_chain_chainnode.collisionFilterFlags)
 	ChainNodeData.capsuleStretchRate0 = targetObject.re_chain_chainnode.capsuleStretchRate0 
 	ChainNodeData.capsuleStretchRate1 = targetObject.re_chain_chainnode.capsuleStretchRate1 
@@ -1800,7 +1816,7 @@ def getChainCollision(ChainCollisionData,targetObject):
 
 def setChainCollisionData(ChainCollisionData,targetObject):
 	ChainCollisionData.rotationOrder = int(targetObject.re_chain_chaincollision.rotationOrder)
-	ChainCollisionData.radius = targetObject.re_chain_chaincollision.radius
+	ChainCollisionData.radius = targetObject.re_chain_chaincollision.radius * targetObject.scale[0]
 	ChainCollisionData.lerp = targetObject.re_chain_chaincollision.lerp
 	ChainCollisionData.unknCollisionValue = targetObject.re_chain_chaincollision.unknCollisionValue
 	ChainCollisionData.chainCollisionShape = int(targetObject.re_chain_chaincollision.chainCollisionShape)
@@ -1808,9 +1824,13 @@ def setChainCollisionData(ChainCollisionData,targetObject):
 	ChainCollisionData.collisionFilterFlags = int(targetObject.re_chain_chaincollision.collisionFilterFlags)
 	
 	
-	ChainCollisionData.posX = targetObject.re_chain_chaincollision.collisionOffset[0]
-	ChainCollisionData.posY = targetObject.re_chain_chaincollision.collisionOffset[1]
-	ChainCollisionData.posZ = targetObject.re_chain_chaincollision.collisionOffset[2]
+	
+	#ChainCollisionData.posX = targetObject.re_chain_chaincollision.collisionOffset[0]
+	#ChainCollisionData.posY = targetObject.re_chain_chaincollision.collisionOffset[1]
+	#ChainCollisionData.posZ = targetObject.re_chain_chaincollision.collisionOffset[2]
+	ChainCollisionData.posX = targetObject.location[0]
+	ChainCollisionData.posY = targetObject.location[1]
+	ChainCollisionData.posZ = targetObject.location[2]
 	
 	ChainCollisionData.pairPosX = targetObject.re_chain_chaincollision.endCollisionOffset[0]
 	ChainCollisionData.pairPosY = targetObject.re_chain_chaincollision.endCollisionOffset[1]
@@ -1821,6 +1841,7 @@ def setChainCollisionData(ChainCollisionData,targetObject):
 		ChainCollisionData.rotOffsetY = targetObject.rotation_quaternion[2]
 		ChainCollisionData.rotOffsetZ = targetObject.rotation_quaternion[3]
 		ChainCollisionData.rotOffsetW = targetObject.rotation_quaternion[0]
+		targetObject.re_chain_chaincollision.collisionOffset = targetObject.location
 	else:
 		startCapsule = None
 		endCapsule = None
@@ -1831,13 +1852,24 @@ def setChainCollisionData(ChainCollisionData,targetObject):
 				endCapsule = child
 				
 		if startCapsule != None:
+			ChainCollisionData.radius = targetObject.re_chain_chaincollision.radius * startCapsule.scale[0]
 			ChainCollisionData.jointNameHash = hash_wide(startCapsule.constraints["BoneName"].subtarget)		
 			ChainCollisionData.rotOffsetX = startCapsule.rotation_quaternion[1]
 			ChainCollisionData.rotOffsetY = startCapsule.rotation_quaternion[2]
 			ChainCollisionData.rotOffsetZ = startCapsule.rotation_quaternion[3]
 			ChainCollisionData.rotOffsetW = startCapsule.rotation_quaternion[0]
+			ChainCollisionData.posX = startCapsule.location[0]
+			ChainCollisionData.posY = startCapsule.location[1]
+			ChainCollisionData.posZ = startCapsule.location[2]
+			#Update UI value if the user moved the collision via the grab tool
+			targetObject.re_chain_chaincollision.collisionOffset = startCapsule.location
 		if endCapsule != None:
 			ChainCollisionData.pairJointNameHash = hash_wide(endCapsule.constraints["BoneName"].subtarget)
+			ChainCollisionData.pairPosX = endCapsule.location[0]
+			ChainCollisionData.pairPosY = endCapsule.location[1]
+			ChainCollisionData.pairPosZ = endCapsule.location[2]
+			#Update UI value if the user moved the collision via the grab tool
+			targetObject.re_chain_chaincollision.endCollisionOffset = endCapsule.location
 		else:
 			ChainCollisionData.pairPosX = 0.0
 			ChainCollisionData.pairPosY = 0.0

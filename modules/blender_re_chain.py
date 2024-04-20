@@ -1,6 +1,6 @@
 #---BLENDER FUNCTIONS---#
 import bpy
-
+import os
 from mathutils import Matrix
 from math import radians
 
@@ -15,21 +15,28 @@ from .file_re_chain import ChainFile, SIZE_DATA, ChainHeaderData, ChainSettingsD
 
 #TODO Add checking for chain groups with -1 chain settings ID
 
-def findHeaderObj():
-	if bpy.data.collections.get("chainData",None) != None:
-		objList = bpy.data.collections["chainData"].all_objects
+def findHeaderObj(chainCollection = None):
+	if chainCollection == None:
+		if bpy.data.collections.get(bpy.context.scene.re_chain_toolpanel.chainCollection,None) != None:
+			chainCollection = bpy.data.collections[bpy.context.scene.re_chain_toolpanel.chainCollection]
+	if chainCollection != None:
+		objList = chainCollection.all_objects
 		headerList = [obj for obj in objList if obj.get("TYPE",None) == "RE_CHAIN_HEADER"]
 		if len(headerList) >= 1:
 			return headerList[0]
 		else:
 			return None
+	else:
+		return None
 
+def checkNameUsage(baseName,checkSubString = True, objList = None):
+	if objList == None:
+		objList = bpy.data.objects
+	if checkSubString:
+		return any(baseName in name for name in [obj.name for obj in objList])
+	else:
+		return baseName in [obj.name for obj in objList]
 
-def checkNameUsage(baseName,checkSubString = True):
-    if checkSubString:
-        return any(baseName in name for name in [obj.name for obj in bpy.data.objects])
-    else:
-        return baseName in [obj.name for obj in bpy.data.objects]
 
 def checkChainSettingsIDUsage(chainSettingsID):
 	idList = [obj.re_chain_chainsettings.id for obj in bpy.context.scene.objects if obj.get("TYPE",None) == "RE_CHAIN_CHAINSETTINGS"]
@@ -45,25 +52,30 @@ def checkWindSettingsIDUsage(windSettingsID):
 	else:
 		return False
 
-def createEmpty(name,propertyList,parent = None,collectionName = None):
+def createChainCollection(collectionName,parentCollection = None):
+	collection = bpy.data.collections.new(collectionName)
+	collection.color_tag = "COLOR_02"
+	collection["~TYPE"] = "RE_CHAIN_COLLECTION"
+	if parentCollection != None:
+		parentCollection.children.link(collection)
+	else:
+		bpy.context.scene.collection.children.link(collection)
+	bpy.context.scene.re_chain_toolpanel.chainCollection = collection.name
+	return collection
+
+def createEmpty(name,propertyList,parent = None,collection = None):
 	obj = bpy.data.objects.new( name, None )
-	bpy.context.scene.collection.objects.link(obj)
 	obj.empty_display_size = .10
 	obj.empty_display_type = 'PLAIN_AXES'
 	obj.parent = parent
 	for property in propertyList:#Reverse list so items get added in correct order
  
 		obj[property[0]] = property[1]
-	if collectionName != None:    
-		master_collection = bpy.context.scene.collection
+	if collection == None:
+		collection = bpy.context.scene.collection
 		
-		if bpy.data.collections.get(collectionName,None) == None:#Create collection if the name given doesn't exist
-			newCollection = bpy.data.collections.new(collectionName)
-			bpy.context.scene.collection.children.link(newCollection)
+	collection.objects.link(obj)
 		
-		layer_collection = bpy.data.collections[collectionName]
-		layer_collection.objects.link(obj) #link it with collection
-		master_collection.objects.unlink(obj) #unlink it from master collection
 		
 	return obj
 #parent = createEmpty("test",[("TestValue",0.34),("TestValue2",4)],None)
@@ -102,13 +114,13 @@ def syncCollisionOffsets():
 		]
 	for collisionObj in [obj for obj in bpy.context.scene.objects if (obj.get("TYPE",None) in collisionTypeList) and obj.parent != None] :
 		if collisionObj.get("TYPE",None) != "RE_CHAIN_COLLISION_CAPSULE_ROOT":
-			collisionObj.re_chain_chaincollision.collisionOffset = collisionObj.location * .01
+			collisionObj.re_chain_chaincollision.collisionOffset = collisionObj.location# * .01
 		else:
 			for child in collisionObj.children:
 				if child.get("TYPE",None) == "RE_CHAIN_COLLISION_CAPSULE_START":
-					collisionObj.re_chain_chaincollision.collisionOffset = child.location * .01
+					collisionObj.re_chain_chaincollision.collisionOffset = child.location# * .01
 				elif child.get("TYPE",None) == "RE_CHAIN_COLLISION_CAPSULE_END":
-					collisionObj.re_chain_chaincollision.endCollisionOffset = child.location * .01
+					collisionObj.re_chain_chaincollision.endCollisionOffset = child.location# * .01
 def alignChains():
 	for chain in [obj for obj in bpy.context.scene.objects if obj.get("TYPE",None) =="RE_CHAIN_CHAINGROUP"]:
 		if chain.children != []:
@@ -131,9 +143,9 @@ def alignChains():
 			nodeObjList.reverse()
 			for recurse in nodeObjList:
 				if recurse.re_chain_chainnode.collisionRadius != 0:
-					recurse.empty_display_size = recurse.re_chain_chainnode.collisionRadius * 100
+					recurse.empty_display_size = recurse.re_chain_chainnode.collisionRadius# * 100
 				else:
-					recurse.empty_display_size = 1
+					recurse.empty_display_size = .01
 				for obj in nodeObjList:
 					try:
 						obj.constraints["BoneName"].inverse_matrix = obj.parent.matrix_world.inverted()
@@ -150,18 +162,18 @@ def alignCollisions():#TODO Fix matrices
 		if collisionObj.get("TYPE",None) == "RE_CHAIN_COLLISION_SINGLE":
 			collisionObj.constraints["BoneName"].inverse_matrix = collisionObj.parent.matrix_world.inverted()
 			if collisionObj.re_chain_chaincollision.radius != 0:
-				collisionObj.empty_display_size = collisionObj.re_chain_chaincollision.radius * 100
+				collisionObj.empty_display_size = collisionObj.re_chain_chaincollision.radius# * 100
 			else:
-				collisionObj.empty_display_size = 1
+				collisionObj.empty_display_size = .01
 		else:#Capsule
 			for child in collisionObj.children:
 				if child.get("TYPE",None) == "RE_CHAIN_COLLISION_CAPSULE_END" or child.get("TYPE",None) == "RE_CHAIN_COLLISION_CAPSULE_START":
 					child.constraints["BoneName"].inverse_matrix = child.parent.matrix_world.inverted()
 					
 					if collisionObj.re_chain_chaincollision.radius != 0:
-						child.empty_display_size = collisionObj.re_chain_chaincollision.radius * 100
+						child.empty_display_size = collisionObj.re_chain_chaincollision.radius# * 100
 					else:
-						child.empty_display_size = 1
+						child.empty_display_size = .01
 	bpy.context.view_layer.update()
 def getArmatureHashList(armature):
 	boneHashDict = {}
@@ -171,10 +183,13 @@ def getArmatureHashList(armature):
 
 #---CHAIN IMPORT---#
 
-def importChainFile(filepath):
+def importChainFile(filepath,options):
+	
 	armature = None
+	if bpy.data.armatures.get(options["targetArmature"]) != None and bpy.data.objects.get(options["targetArmature"]) != None:
+		armature = bpy.data.objects[options["targetArmature"]]
 	try:
-		if bpy.context.active_object != None and bpy.context.active_object.type == "ARMATURE":
+		if armature == None and bpy.context.active_object != None and bpy.context.active_object.type == "ARMATURE":
 			armature = bpy.context.active_object
 	except:
 		pass
@@ -191,7 +206,13 @@ def importChainFile(filepath):
 	#print(armature)
 	#convert header to empty
 	chainFile = readREChain(filepath)
-	
+	try:
+		chainVersion = int(os.path.splitext(filepath)[1].replace(".",""))
+	except:
+		print("Unable to parse chain version number in file path.")
+		chainVersion = None
+	if chainVersion != None:
+		bpy.context.scene["REChainLastImportedChainVersion"] = chainVersion
 	removedItems = []
 	#Pre check to see if the chain bones are present before trying to import the chain
 	for chainIndex,chainGroup in enumerate(chainFile.ChainGroupList):
@@ -232,16 +253,35 @@ def importChainFile(filepath):
 		if "_end" in bone.name:
 			terminalNameHashDict[hash_wide(bone.name.split("_end")[0])] = bone.name.split("_end")[0]
 	"""
-	headerPropertyList = [("TYPE","RE_CHAIN_HEADER")]
-	headerObj = createEmpty("CHAIN_HEADER",headerPropertyList,None,"chainData")
-	getChainHeader(chainFile.Header,headerObj)
+	
+	headerObj = None
+	if bpy.data.collections.get(options["mergeChain"]):#Merge with existing chain header if this is set
+		headerObj = findHeaderObj(bpy.data.collections[options["mergeChain"]])
+		chainCollection = bpy.data.collections[options["mergeChain"]]
+		mergedChain = True
+	
+	if headerObj == None:
+		mergedChain = False
+		chainFileName = os.path.splitext(os.path.split(filepath)[1])[0]
+		chainCollection = createChainCollection(chainFileName)
+		headerPropertyList = [("TYPE","RE_CHAIN_HEADER")]
+		headerObj = createEmpty("CHAIN_HEADER",headerPropertyList,None,chainCollection)
+		getChainHeader(chainFile.Header,headerObj)
 	#WIND SETTINGS IMPORT
+	currentWindSettingsNameIndex = 0
 	for index, windSettings in enumerate(chainFile.WindSettingsList):
-		name = "WIND_SETTINGS_"+str(index).zfill(2)
-		windSettingsObj = createEmpty(name,[("TYPE","RE_CHAIN_WINDSETTINGS"),("tempID",windSettings.id)],headerObj,"chainData")
+		name = "WIND_SETTINGS_"+str(currentWindSettingsNameIndex).zfill(2)
+		if mergedChain:
+			while(checkNameUsage(name,checkSubString=True)):
+				currentWindSettingsNameIndex += 1
+				name = "WIND_SETTINGS_"+str(currentWindSettingsNameIndex).zfill(2)
+		else:
+			currentWindSettingsNameIndex += 1
+		windSettingsObj = createEmpty(name,[("TYPE","RE_CHAIN_WINDSETTINGS"),("tempID",windSettings.id)],headerObj,chainCollection)
 		getWindSettings(windSettings,windSettingsObj)
 	
 	#CHAIN SETTINGS IMPORT
+	currentChainSettingsNameIndex = 0
 	for index, chainSettings in enumerate(chainFile.ChainSettingsList):
 		matchingWindSettingList = []
 		matchingWindSettingList = [x for x in headerObj.children if x.get("TYPE") == "RE_CHAIN_WINDSETTINGS" and x.get("tempID") == chainSettings.windID]
@@ -251,16 +291,32 @@ def importChainFile(filepath):
 			if len(matchingWindSettingList) > 1:
 				raiseWarning("More than one wind settings object was found with an ID of " + str(chainSettings.windID))
 			chainSettingsParent = matchingWindSettingList[0]
-		name = "CHAIN_SETTINGS_" + str(index).zfill(2)
-		chainSettingsObj = createEmpty(name, [("TYPE","RE_CHAIN_CHAINSETTINGS")],chainSettingsParent,"chainData")
+		
+		name = "CHAIN_SETTINGS_"+str(currentChainSettingsNameIndex).zfill(2)
+		if mergedChain:
+			while(checkNameUsage(name,checkSubString=True)):
+				currentChainSettingsNameIndex += 1
+				name = "CHAIN_SETTINGS_"+str(currentChainSettingsNameIndex).zfill(2)
+		else:
+			currentChainSettingsNameIndex += 1
+		chainSettingsObj = createEmpty(name, [("TYPE","RE_CHAIN_CHAINSETTINGS")],chainSettingsParent,chainCollection)
 		getChainSettings(chainSettings,chainSettingsObj)
 	#CHAIN GROUPS IMPORT
-		
+	
+		currentChainGroupNameIndex = 0
 		for groupIndex, chainGroup in enumerate(chainFile.ChainGroupList):
 			#print(chainGroup)
 			if chainGroup.settingID == chainSettings.id:
-				name = "CHAIN_GROUP_" + str(groupIndex).zfill(2) + "_" + str(chainGroup.terminateNodeName.rsplit("_",1)[0])
-				chainGroupObj = createEmpty(name, [("TYPE","RE_CHAIN_CHAINGROUP")],chainSettingsObj,"chainData")
+				
+				subName = "CHAIN_GROUP_"+str(currentChainGroupNameIndex).zfill(2)
+				if mergedChain:
+					while(checkNameUsage(subName,checkSubString=True)):
+						currentChainGroupNameIndex +=1
+						subName = "CHAIN_GROUP_"+str(currentChainGroupNameIndex).zfill(2)
+				else:
+					currentChainGroupNameIndex += 1
+				name = subName + "_" + str(chainGroup.terminateNodeName.rsplit("_",1)[0])
+				chainGroupObj = createEmpty(name, [("TYPE","RE_CHAIN_CHAINGROUP")],chainSettingsObj,chainCollection)
 				getChainGroup(chainGroup,chainGroupObj)
 				endBone = findBone(chainGroup.terminateNodeName,armature)
 				"""
@@ -288,7 +344,7 @@ def importChainFile(filepath):
 							name = baseNodeName + "_end"
 						else:
 							name = baseNodeName+"_"+str(nodeIndex).zfill(2)
-					nodeObj = createEmpty(name,[("TYPE","RE_CHAIN_NODE")],nodeParent,"chainData")
+					nodeObj = createEmpty(name,[("TYPE","RE_CHAIN_NODE")],nodeParent,chainCollection)
 					getChainNode(node, nodeObj)
 					nodeParent = nodeObj
 					nodeObj.empty_display_size = 2
@@ -296,7 +352,7 @@ def importChainFile(filepath):
 					nodeObj.show_name = bpy.context.scene.re_chain_toolpanel.showNodeNames
 					nodeObj.show_in_front = bpy.context.scene.re_chain_toolpanel.drawNodesThroughObjects
 					#nodeObj.show_name = True
-					frame = createEmpty(nodeObj.name+"_ANGLE_LIMIT", [("TYPE","RE_CHAIN_NODE_FRAME")],nodeObj,"chainData")
+					frame = createEmpty(nodeObj.name+"_ANGLE_LIMIT", [("TYPE","RE_CHAIN_NODE_FRAME")],nodeObj,chainCollection)
 					frame.empty_display_type = "ARROWS"
 					frame.empty_display_size = bpy.context.scene.re_chain_toolpanel.angleLimitDisplaySize
 					frame.show_in_front = bpy.context.scene.re_chain_toolpanel.drawNodesThroughObjects
@@ -345,19 +401,25 @@ def importChainFile(filepath):
 						yScaleModifier = .5
 					lightObj.scale = (bpy.context.scene.re_chain_toolpanel.coneDisplaySize*xScaleModifier,bpy.context.scene.re_chain_toolpanel.coneDisplaySize*yScaleModifier,bpy.context.scene.re_chain_toolpanel.coneDisplaySize*zScaleModifier)
 					
-					bpy.data.collections["chainData"].objects.link(lightObj)
+					chainCollection.objects.link(lightObj)
 					
 					if currentBone != None:
-						constraint = nodeObj.constraints.new(type = "COPY_TRANSFORMS")
+						constraint = nodeObj.constraints.new(type = "COPY_LOCATION")
 						constraint.target = armature
 						constraint.subtarget = currentBone.name #.split(":")[len(bone.name.split(":"))-1]
 						#terminalNameHashDict[hash_wide(currentBone.name)] = nodeObj
 						constraint.name = "BoneName"
+						
+						constraint = nodeObj.constraints.new(type = "COPY_ROTATION")
+						constraint.target = armature
+						constraint.subtarget = currentBone.name #.split(":")[len(bone.name.split(":"))-1]
+						#terminalNameHashDict[hash_wide(currentBone.name)] = nodeObj
+						constraint.name = "BoneRotation"
 					if node.jiggleData:
 						jiggle = node.jiggleData
-						jiggleObj = createEmpty(name+"_JIGGLE",[("TYPE","RE_CHAIN_JIGGLE")],nodeObj,"chainData")
+						jiggleObj = createEmpty(name+"_JIGGLE",[("TYPE","RE_CHAIN_JIGGLE")],nodeObj,chainCollection)
 						getChainJiggle(jiggle, jiggleObj)
-						jiggleObj.empty_display_size = 40
+						jiggleObj.empty_display_size = .04
 						jiggleObj.empty_display_type = "SPHERE"
 						jiggleObj.show_name = bpy.context.scene.re_chain_toolpanel.showNodeNames
 						jiggleObj.show_in_front = bpy.context.scene.re_chain_toolpanel.drawNodesThroughObjects
@@ -381,7 +443,7 @@ def importChainFile(filepath):
 		shape = enumItemDict[chainCollision.chainCollisionShape]
 		if shape != "CAPSULE" and chainCollision.pairJointNameHash == 0:
 			name = "COLLISION_" +str(currentCollisionIndex).zfill(2)+ "_"+shape + " " + boneHashDict[chainCollision.jointNameHash].name
-			colSphereObj = createEmpty(name, [("TYPE","RE_CHAIN_COLLISION_SINGLE")],headerObj,"chainData")
+			colSphereObj = createEmpty(name, [("TYPE","RE_CHAIN_COLLISION_SINGLE")],headerObj,chainCollection)
 			getChainCollision(chainCollision,colSphereObj)
 			colSphereObj.re_chain_chaincollision.chainCollisionShape = str(chainCollision.chainCollisionShape)
 			colSphereObj.re_chain_chaincollision.collisionOffset = (chainCollision.posX,chainCollision.posY,chainCollision.posZ)
@@ -394,6 +456,10 @@ def importChainFile(filepath):
 			constraint.target = armature
 			constraint.subtarget = boneHashDict[chainCollision.jointNameHash].name
 			constraint.name = "BoneName"
+			
+			constraint.use_scale_x = False
+			constraint.use_scale_y = False
+			constraint.use_scale_z = False
 			#colSphereObj.show_name = True
 			colSphereObj.show_name = bpy.context.scene.re_chain_toolpanel.showCollisionNames
 			colSphereObj.show_in_front = bpy.context.scene.re_chain_toolpanel.drawCollisionsThroughObjects
@@ -401,12 +467,12 @@ def importChainFile(filepath):
 			if chainCollision.chainCollisionShape == 0:
 				subName +="_NONE"
 			name = subName+ "_CAPSULE"
-			colCapsuleRootObj = createEmpty(name, [("TYPE","RE_CHAIN_COLLISION_CAPSULE_ROOT")],headerObj,"chainData")
+			colCapsuleRootObj = createEmpty(name, [("TYPE","RE_CHAIN_COLLISION_CAPSULE_ROOT")],headerObj,chainCollection)
 			colCapsuleRootObj.empty_display_size = .1
 			getChainCollision(chainCollision,colCapsuleRootObj)
 			colCapsuleRootObj.re_chain_chaincollision.chainCollisionShape = str(chainCollision.chainCollisionShape)
-			name = subName+ "_CAPSULE_START" + " " + boneHashDict[chainCollision.jointNameHash].name
-			colCapsuleStartObj = createEmpty(name, [("TYPE","RE_CHAIN_COLLISION_CAPSULE_START")],colCapsuleRootObj,"chainData")
+			name = subName+ "_CAPSULE_BEGIN" + " " + boneHashDict[chainCollision.jointNameHash].name
+			colCapsuleStartObj = createEmpty(name, [("TYPE","RE_CHAIN_COLLISION_CAPSULE_START")],colCapsuleRootObj,chainCollection)
 			
 			
 			colCapsuleStartObj.re_chain_chaincollision.collisionOffset = (chainCollision.posX,chainCollision.posY,chainCollision.posZ)
@@ -419,12 +485,16 @@ def importChainFile(filepath):
 			constraint.target = armature
 			constraint.subtarget = boneHashDict[chainCollision.jointNameHash].name
 			constraint.name = "BoneName"
+			
+			constraint.use_scale_x = False
+			constraint.use_scale_y = False
+			constraint.use_scale_z = False
 			#colCapsuleStartObj.show_name = True
 			colCapsuleStartObj.show_name = bpy.context.scene.re_chain_toolpanel.showCollisionNames
 			colCapsuleStartObj.show_in_front = bpy.context.scene.re_chain_toolpanel.drawCollisionsThroughObjects
 			
 			name = subName+ "_CAPSULE_END" + " " + boneHashDict[chainCollision.pairJointNameHash].name
-			colCapsuleEndObj = createEmpty(name, [("TYPE","RE_CHAIN_COLLISION_CAPSULE_END")],colCapsuleRootObj,"chainData")
+			colCapsuleEndObj = createEmpty(name, [("TYPE","RE_CHAIN_COLLISION_CAPSULE_END")],colCapsuleRootObj,chainCollection)
 			colCapsuleEndObj.re_chain_chaincollision.endCollisionOffset = (chainCollision.pairPosX,chainCollision.pairPosY,chainCollision.pairPosZ)
 			colCapsuleEndObj.empty_display_type = "SPHERE"
 			colCapsuleEndObj.empty_display_size = 1
@@ -432,22 +502,36 @@ def importChainFile(filepath):
 			constraint.target = armature
 			constraint.subtarget = boneHashDict[chainCollision.pairJointNameHash].name
 			constraint.name = "BoneName"
+			
+			constraint.use_scale_x = False
+			constraint.use_scale_y = False
+			constraint.use_scale_z = False
 			#colCapsuleEndObj.show_name = True
 			colCapsuleEndObj.show_name = bpy.context.scene.re_chain_toolpanel.showCollisionNames
 			colCapsuleEndObj.show_in_front = bpy.context.scene.re_chain_toolpanel.drawCollisionsThroughObjects
+			
+			constraint = colCapsuleEndObj.constraints.new(type = "COPY_SCALE")
+			constraint.target = colCapsuleStartObj
+			constraint.name = "CopyRadius"
 		alignCollisions()
 	#CHAIN LINK IMPORT
 	#print(terminalNameHashDict)#debug
-	
+	currentChainLinkNameIndex = 0
 	for index, chainLink in enumerate(chainFile.ChainLinkList):
-		name = "CHAIN_LINK_"+str(index).zfill(2)
-		chainLinkObj = createEmpty(name, [("TYPE","RE_CHAIN_LINK")],headerObj,"chainData")
+		name = "CHAIN_LINK_"+str(currentChainLinkNameIndex).zfill(2)
+		if mergedChain:
+			while(checkNameUsage(name,checkSubString=True)):
+				currentChainLinkNameIndex += 1
+				name = "CHAIN_LINK_"+str(currentChainLinkNameIndex).zfill(2)
+		else:
+			currentChainLinkNameIndex += 1
+		chainLinkObj = createEmpty(name, [("TYPE","RE_CHAIN_LINK")],headerObj,chainCollection)
 		getChainLink(chainLink,chainLinkObj)
 		chainLinkObj.re_chain_chainlink.chainGroupAObject = terminalNameHashDict[chainLink.terminateNodeNameHashA] if chainLink.terminateNodeNameHashA in terminalNameHashDict else str(chainLink.terminateNodeNameHashA)
 		chainLinkObj.re_chain_chainlink.chainGroupBObject = terminalNameHashDict[chainLink.terminateNodeNameHashB] if chainLink.terminateNodeNameHashB in terminalNameHashDict else str(chainLink.terminateNodeNameHashB)
 
 	return True
-def chainErrorCheck():
+def chainErrorCheck(chainCollectionName):
 	print("\nChecking for problems with chain structure...")
 	
 	#Check that there is chain data collection
@@ -462,16 +546,14 @@ def chainErrorCheck():
 	#TODO
 	#Check that chain links are valid
 	errorList = []
-	if bpy.data.collections.get("chainData",None) != None:
-		objList = bpy.data.collections["chainData"].all_objects
+	if bpy.data.collections.get(chainCollectionName) != None:
+		objList = bpy.data.collections[chainCollectionName].all_objects
 	else:
-		errorList.append("Chain objects must be in a collection named \"chainData\".")
+		errorList.append("Chain objects must be contained in a collection.")
 		objList = []
 	headerCount = 0
 	for obj in objList:
-	
-		
-		
+
 		if obj.get("TYPE",None) == "RE_CHAIN_HEADER":
 			headerCount += 1
 			if obj.parent != None:
@@ -617,19 +699,19 @@ def chainErrorCheck():
 			if bpy.context.scene.objects.get(obj.re_chain_chainlink.chainGroupAObject,None) != None:
 				if bpy.context.scene.objects[obj.re_chain_chainlink.chainGroupAObject].get("TYPE",None) != "RE_CHAIN_CHAINGROUP":
 					errorList.append(obj.name + ": Chain Group A must be set to a Chain Group object")
-			#else:
-			#	errorList.append(obj.name + ": Chain Group A is not set or set to an object that doesn't exist")
+			elif obj.re_chain_chainlink.chainGroupAObject != "":
+				errorList.append(obj.name + ": Chain Group A is set to an object that doesn't exist")
 				
 			if bpy.context.scene.objects.get(obj.re_chain_chainlink.chainGroupBObject,None) != None:
 				if bpy.context.scene.objects[obj.re_chain_chainlink.chainGroupBObject].get("TYPE",None) != "RE_CHAIN_CHAINGROUP":
 					errorList.append(obj.name + ": Chain Group B must be set to a Chain Group object")
-			#else:
-			#	errorList.append(obj.name + ": Chain Group B is not set or set to an object that doesn't exist")
+			elif obj.re_chain_chainlink.chainGroupBObject != "":
+				errorList.append(obj.name + ": Chain Group B is set to an object that doesn't exist")
 	if headerCount == 0:
-		errorList.append("No chain header object in scene.")
+		errorList.append("No chain header object in collection.")
 		
 	elif headerCount > 1:
-		errorList.append("Cannot export with more than one chain header in a scene.")
+		errorList.append("Cannot export with more than one chain header in a collection.")
 	
 	if errorList == []:
 		print("No problems found.")
@@ -644,13 +726,14 @@ def chainErrorCheck():
 		print(textColors.FAIL + "__________________________________\nChain export failed."+textColors.ENDC)
 		return False
 
-def exportChainFile(filepath, version):
-	valid = chainErrorCheck()
-	if valid:
+def exportChainFile(filepath,options, version):
+	valid = chainErrorCheck(options["targetCollection"])
+	chainCollection = bpy.data.collections.get(options["targetCollection"],None)
+	if valid and chainCollection != None:
 		print(textColors.OKCYAN + "__________________________________\nChain export started."+textColors.ENDC)
 		newChainFile = ChainFile()
 		
-		objList = bpy.data.collections["chainData"].all_objects
+		objList = chainCollection.all_objects
 		
 		windSettingsObjList = []
 		chainSettingsObjList = []
@@ -756,8 +839,8 @@ def exportChainFile(filepath, version):
 			setChainLinkData(chainLink, chainLinkObj)
 			newChainFile.ChainLinkList.append(chainLink)
 			
-			chainLink.terminateNodeNameHashA = chainGroupTerminateNodeHashDict[chainLinkObj.re_chain_chainlink.chainGroupAObject] if chainLinkObj.re_chain_chainlink.chainGroupAObject in chainGroupTerminateNodeHashDict else int(chainLinkObj.re_chain_chainlink.chainGroupAObject)
-			chainLink.terminateNodeNameHashB = chainGroupTerminateNodeHashDict[chainLinkObj.re_chain_chainlink.chainGroupBObject] if chainLinkObj.re_chain_chainlink.chainGroupBObject in chainGroupTerminateNodeHashDict else int(chainLinkObj.re_chain_chainlink.chainGroupBObject)
+			chainLink.terminateNodeNameHashA = chainGroupTerminateNodeHashDict[chainLinkObj.re_chain_chainlink.chainGroupAObject] if chainLinkObj.re_chain_chainlink.chainGroupAObject in chainGroupTerminateNodeHashDict else 0#int(chainLinkObj.re_chain_chainlink.chainGroupAObject)
+			chainLink.terminateNodeNameHashB = chainGroupTerminateNodeHashDict[chainLinkObj.re_chain_chainlink.chainGroupBObject] if chainLinkObj.re_chain_chainlink.chainGroupBObject in chainGroupTerminateNodeHashDict else 0#int(chainLinkObj.re_chain_chainlink.chainGroupBObject)
 			#print(nodeObjList)
 		#Sort chain settings by ID, otherwise the chain groups will be assigned to the wrong chain settings in game
 		newChainFile.ChainSettingsList.sort(key = lambda x: x.id)

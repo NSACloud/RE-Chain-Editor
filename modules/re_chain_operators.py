@@ -6,11 +6,11 @@ from mathutils import Matrix,Vector,Quaternion
 
 from bpy.types import Operator
 
-from .blender_re_chain import createEmpty,alignChains,alignCollisions,checkNameUsage,checkChainSettingsIDUsage,checkWindSettingsIDUsage,findHeaderObj,syncCollisionOffsets
+from .blender_re_chain import createEmpty,alignChains,alignCollisions,checkNameUsage,checkChainSettingsIDUsage,checkWindSettingsIDUsage,findHeaderObj,syncCollisionOffsets,createChainCollection
 from .file_re_chain import ChainHeaderData,ChainSettingsData,WindSettingsData,ChainGroupData,ChainNodeData,ChainJiggleData,ChainCollisionData,ChainLinkData
 from .re_chain_propertyGroups import getChainHeader,getWindSettings,getChainSettings,getChainGroup,getChainNode,getChainJiggle,getChainLink,getChainCollision
 from .ui_re_chain_panels import tag_redraw
-from .blender_utils import showErrorMessageBox
+from .blender_utils import showErrorMessageBox,outlinerShowObject
 from .re_chain_presets import saveAsPreset,readPresetJSON
 
 #Known AttrFlags values for chain groups, nodes and settings
@@ -43,159 +43,170 @@ class WM_OT_ChainFromBone(Operator):
 	bl_options = {'UNDO'}
 	bl_description = "Create new chain group and chain node objects starting from the selected bone and ending at the last child bone. Note that chains cannot be branching. Must be parented to a chain settings object"
 	def execute(self, context):
-		experimentalFeatures = bpy.context.scene.re_chain_toolpanel.experimentalPoseModeOptions
-		selected = bpy.context.selected_pose_bones
-		chainList = []
-		headerObj = findHeaderObj()
-		if experimentalFeatures:
-			if len(selected) >= 1:
-				chainList = selected
-				valid = True
-			else:
-				showErrorMessageBox("Must select pose bones to create a chain from selection.")
-				return {'CANCELLED'}
-		else:
-			if len(selected) == 1:
-				startBone = selected[0]
-				
-				chainList = startBone.children_recursive
-				chainList.insert(0,startBone)
-				#print(chainList)
-			else:
-				showErrorMessageBox("Select only the chain start bone.")
-				return {'CANCELLED'}
-			valid = True
-			
-			for bone in chainList:
-				if len(bone.children) > 1:
-					valid = False
 		
-		if not valid:
-			showErrorMessageBox("Cannot have branching bones in a chain.")
-			return {'CANCELLED'}
-		else:
-			currentChainGroupIndex = 0
-			subName = "CHAIN_GROUP_"+str(currentChainGroupIndex).zfill(2)
-			while(checkNameUsage(subName,checkSubString=True)):
-				currentChainGroupIndex +=1
-				subName = "CHAIN_GROUP_"+str(currentChainGroupIndex).zfill(2)
-			name = subName+"_"+chainList[len(chainList)-1].name.rsplit("_",1)[0]
-				
-			armature = chainList[0].id_data
-			#print(armature)
-			chainGroupObj = createEmpty(name, [("TYPE","RE_CHAIN_CHAINGROUP")],headerObj,"chainData")
-			chainGroup = ChainGroupData()
-			getChainGroup(chainGroup,chainGroupObj)
-			nodeParent = chainGroupObj
-			lastBoneIndex = len(chainList) -1
-			for boneIndex,bone in enumerate(chainList):
-				nodeObj = createEmpty(bone.name,[("TYPE","RE_CHAIN_NODE")],nodeParent,"chainData")
-				node = ChainNodeData()
-				getChainNode(node, nodeObj)
-				nodeParent = nodeObj
-				nodeObj.empty_display_size = 2
-				nodeObj.empty_display_type = "SPHERE"
-				#nodeObj.show_name = True
-				nodeObj.show_name = bpy.context.scene.re_chain_toolpanel.showNodeNames
-				nodeObj.show_in_front = bpy.context.scene.re_chain_toolpanel.drawNodesThroughObjects
-				
-				#Constrain node to bone
-				constraint = nodeObj.constraints.new(type = "COPY_TRANSFORMS")
-				constraint.target = armature
-				constraint.subtarget = bone.name
-				constraint.name = "BoneName"
-				
-				
-				
-				frame = createEmpty(nodeObj.name+"_ANGLE_LIMIT", [("TYPE","RE_CHAIN_NODE_FRAME")],nodeObj,"chainData")
-				frame.empty_display_type = "ARROWS"
-				frame.show_in_front = bpy.context.scene.re_chain_toolpanel.drawNodesThroughObjects
-				frame.empty_display_size = bpy.context.scene.re_chain_toolpanel.angleLimitDisplaySize
-				#frame.rotation_euler.rotate_axis("Z", radians(-90))
-				
-				bpy.context.evaluated_depsgraph_get().update()
-				#Constrain frame location to node
-					
-				constraint = frame.constraints.new(type = "COPY_LOCATION")
-				constraint.target = nodeObj
-				
-				constraint = frame.constraints.new(type = "COPY_SCALE")
-				constraint.target = nodeObj
-				if boneIndex == 0:
-					#Get armature bone, not pose bone
-					#Point X axis away from bone tail
-					
-					a = armature.matrix_world @ armature.data.bones[bone.name].head_local
-					b = armature.matrix_world @ armature.data.bones[bone.name].tail_local
-					
-					direction  = (a - b).normalized()
-					axis_align = Vector((1.0, 0.0, 0.0))
-					
-					angle = axis_align.angle(direction)
-					axis  = axis_align.cross(direction)
-					
-					
-					q = Quaternion(axis, angle)
-					
+		chainCollection = bpy.data.collections.get(bpy.context.scene.re_chain_toolpanel.chainCollection,None)
+		headerObj = findHeaderObj()
+		if chainCollection != None and headerObj != None:
+			experimentalFeatures = bpy.context.scene.re_chain_toolpanel.experimentalPoseModeOptions
+			selected = bpy.context.selected_pose_bones
+			chainList = []
+			
+			if experimentalFeatures:
+				if len(selected) >= 1:
+					chainList = selected
+					valid = True
 				else:
-					if boneIndex != lastBoneIndex:
-						#Point frame towards next bone head
-						targetBone = chainList[boneIndex+1]
+					showErrorMessageBox("Must select pose bones to create a chain from selection.")
+					return {'CANCELLED'}
+			else:
+				if len(selected) == 1:
+					startBone = selected[0]
+					
+					chainList = startBone.children_recursive
+					chainList.insert(0,startBone)
+					#print(chainList)
+				else:
+					showErrorMessageBox("Select only the chain start bone.")
+					return {'CANCELLED'}
+				valid = True
+				
+				for bone in chainList:
+					if len(bone.children) > 1:
+						valid = False
+			
+			if not valid:
+				showErrorMessageBox("Cannot have branching bones in a chain.")
+				return {'CANCELLED'}
+			else:
+				currentChainGroupIndex = 0
+				subName = "CHAIN_GROUP_"+str(currentChainGroupIndex).zfill(2)
+				while(checkNameUsage(subName,checkSubString=True)):
+					currentChainGroupIndex +=1
+					subName = "CHAIN_GROUP_"+str(currentChainGroupIndex).zfill(2)
+				name = subName+"_"+chainList[len(chainList)-1].name.rsplit("_",1)[0]
+					
+				armature = chainList[0].id_data
+				#print(armature)
+				chainGroupObj = createEmpty(name, [("TYPE","RE_CHAIN_CHAINGROUP")],headerObj,chainCollection)
+				chainGroup = ChainGroupData()
+				getChainGroup(chainGroup,chainGroupObj)
+				nodeParent = chainGroupObj
+				lastBoneIndex = len(chainList) -1
+				for boneIndex,bone in enumerate(chainList):
+					nodeObj = createEmpty(bone.name,[("TYPE","RE_CHAIN_NODE")],nodeParent,chainCollection)
+					node = ChainNodeData()
+					getChainNode(node, nodeObj)
+					nodeParent = nodeObj
+					nodeObj.empty_display_size = .02
+					nodeObj.empty_display_type = "SPHERE"
+					#nodeObj.show_name = True
+					nodeObj.show_name = bpy.context.scene.re_chain_toolpanel.showNodeNames
+					nodeObj.show_in_front = bpy.context.scene.re_chain_toolpanel.drawNodesThroughObjects
+					
+					#Constrain node to bone
+					constraint = nodeObj.constraints.new(type = "COPY_LOCATION")
+					constraint.target = armature
+					constraint.subtarget = bone.name
+					constraint.name = "BoneName"
+					
+					constraint = nodeObj.constraints.new(type = "COPY_ROTATION")
+					constraint.target = armature
+					constraint.subtarget = bone.name
+					constraint.name = "BoneRotation"
+					
+					frame = createEmpty(nodeObj.name+"_ANGLE_LIMIT", [("TYPE","RE_CHAIN_NODE_FRAME")],nodeObj,chainCollection)
+					frame.empty_display_type = "ARROWS"
+					frame.show_in_front = bpy.context.scene.re_chain_toolpanel.drawNodesThroughObjects
+					frame.empty_display_size = bpy.context.scene.re_chain_toolpanel.angleLimitDisplaySize
+					#frame.rotation_euler.rotate_axis("Z", radians(-90))
+					
+					bpy.context.evaluated_depsgraph_get().update()
+					#Constrain frame location to node
+						
+					constraint = frame.constraints.new(type = "COPY_LOCATION")
+					constraint.target = nodeObj
+					
+					constraint = frame.constraints.new(type = "COPY_SCALE")
+					constraint.target = nodeObj
+						
+					if boneIndex == 0 and boneIndex == lastBoneIndex:
+						#Get armature bone, not pose bone
+						#Point X axis away from bone tail
+						
 						a = armature.matrix_world @ armature.data.bones[bone.name].head_local
-						b = armature.matrix_world @ armature.data.bones[targetBone.name].head_local
-						direction  = (b - a).normalized()
+						b = armature.matrix_world @ armature.data.bones[bone.name].tail_local
+						
+						direction  = (a - b).normalized()
 						axis_align = Vector((1.0, 0.0, 0.0))
 						
 						angle = axis_align.angle(direction)
 						axis  = axis_align.cross(direction)
 						
-						q = Quaternion(axis, angle)
 						
-				
-				frame.rotation_mode = "XYZ"
-				frame.rotation_euler = q.to_euler()
-				#Apply additional local rotation to X axis, this is kind of an ugly solution but easier than messing with the matrices						
-				frame.rotation_euler.rotate_axis("X", radians(90))
-				frame.matrix_basis = nodeObj.matrix_world.inverted() @ frame.matrix_basis
-				frame.location = nodeObj.location
-				frame.scale = nodeObj.scale
-				#Add angle limit cone
-				light_data = bpy.data.lights.new(name=nodeObj.name+"_ANGLE_LIMIT_HELPER", type="SPOT")
-				light_data.energy = 0.0
-				light_data.use_shadow = False
-				light_data.spot_blend = 0.0
-				light_data.use_custom_distance = True
-				light_data.cutoff_distance = 0.05
-				#light_data.shadow_soft_size = nodeObj.parent.re_chain_chainnode.collisionRadius
-				light_data.shadow_soft_size = 0.0
-				light_data.spot_size = nodeObj.re_chain_chainnode.angleLimitRad
-				# Create new object, pass the light data 
-				lightObj = bpy.data.objects.new(name=nodeObj.name+"_ANGLE_LIMIT_HELPER", object_data=light_data)
-				lightObj["TYPE"] = "RE_CHAIN_NODE_FRAME_HELPER"
-				rotationMat = Matrix.Rotation(radians(-90.0),4,"Y")
-				lightObj.parent = frame
-				lightObj.matrix_world = frame.matrix_world
-				lightObj.matrix_local = lightObj.matrix_local @ rotationMat
-				lightObj.hide_select = True#Disable ability to select to avoid it getting in the way
-				
-				lightObj.show_in_front = bpy.context.scene.re_chain_toolpanel.drawConesThroughObjects
-				lightObj.hide_viewport = not bpy.context.scene.re_chain_toolpanel.showAngleLimitCones
-
-				#Determine cone scale
-				xScaleModifier = 1.0
-				yScaleModifier = 1.0
-				zScaleModifier = 1.0
-				if nodeObj.re_chain_chainnode.angleMode == "2":#Hinge angle mode
-					yScaleModifier = .01
-				elif nodeObj.re_chain_chainnode.angleMode == "4":#Limit oval angle mode
-					xScaleModifier = .5
-				elif nodeObj.re_chain_chainnode.angleMode == "5":#Limit elliptic angle mode
-					yScaleModifier = .5
-				lightObj.scale = (bpy.context.scene.re_chain_toolpanel.coneDisplaySize*xScaleModifier,bpy.context.scene.re_chain_toolpanel.coneDisplaySize*yScaleModifier,bpy.context.scene.re_chain_toolpanel.coneDisplaySize*zScaleModifier)
-				
-				bpy.data.collections["chainData"].objects.link(lightObj)
-			alignChains()
-		self.report({"INFO"},"Created chain group from bone.")
+						q = Quaternion(axis, angle)			
+					
+						
+					else:
+						if boneIndex != lastBoneIndex:
+							#Point frame towards next bone head
+							targetBone = chainList[boneIndex+1]
+							a = armature.matrix_world @ armature.data.bones[bone.name].head_local
+							b = armature.matrix_world @ armature.data.bones[targetBone.name].head_local
+							direction  = (b - a).normalized()
+							axis_align = Vector((1.0, 0.0, 0.0))
+							
+							angle = axis_align.angle(direction)
+							axis  = axis_align.cross(direction)
+							
+							q = Quaternion(axis, angle)
+							
+					
+					frame.rotation_mode = "XYZ"
+					frame.rotation_euler = q.to_euler()
+					#Apply additional local rotation to X axis, this is kind of an ugly solution but easier than messing with the matrices						
+					frame.rotation_euler.rotate_axis("X", radians(90))
+					frame.matrix_basis = nodeObj.matrix_world.inverted() @ frame.matrix_basis
+					frame.location = nodeObj.location
+					frame.scale = nodeObj.scale
+					#Add angle limit cone
+					light_data = bpy.data.lights.new(name=nodeObj.name+"_ANGLE_LIMIT_HELPER", type="SPOT")
+					light_data.energy = 0.0
+					light_data.use_shadow = False
+					light_data.spot_blend = 0.0
+					light_data.use_custom_distance = True
+					light_data.cutoff_distance = 0.05
+					#light_data.shadow_soft_size = nodeObj.parent.re_chain_chainnode.collisionRadius
+					light_data.shadow_soft_size = 0.0
+					light_data.spot_size = nodeObj.re_chain_chainnode.angleLimitRad
+					# Create new object, pass the light data 
+					lightObj = bpy.data.objects.new(name=nodeObj.name+"_ANGLE_LIMIT_HELPER", object_data=light_data)
+					lightObj["TYPE"] = "RE_CHAIN_NODE_FRAME_HELPER"
+					rotationMat = Matrix.Rotation(radians(-90.0),4,"Y")
+					lightObj.parent = frame
+					lightObj.matrix_world = frame.matrix_world
+					lightObj.matrix_local = lightObj.matrix_local @ rotationMat
+					lightObj.hide_select = True#Disable ability to select to avoid it getting in the way
+					
+					lightObj.show_in_front = bpy.context.scene.re_chain_toolpanel.drawConesThroughObjects
+					lightObj.hide_viewport = not bpy.context.scene.re_chain_toolpanel.showAngleLimitCones
+	
+					#Determine cone scale
+					xScaleModifier = 1.0
+					yScaleModifier = 1.0
+					zScaleModifier = 1.0
+					if nodeObj.re_chain_chainnode.angleMode == "2":#Hinge angle mode
+						yScaleModifier = .01
+					elif nodeObj.re_chain_chainnode.angleMode == "4":#Limit oval angle mode
+						xScaleModifier = .5
+					elif nodeObj.re_chain_chainnode.angleMode == "5":#Limit elliptic angle mode
+						yScaleModifier = .5
+					lightObj.scale = (bpy.context.scene.re_chain_toolpanel.coneDisplaySize*xScaleModifier,bpy.context.scene.re_chain_toolpanel.coneDisplaySize*yScaleModifier,bpy.context.scene.re_chain_toolpanel.coneDisplaySize*zScaleModifier)
+					
+					chainCollection.objects.link(lightObj)
+				alignChains()
+			self.report({"INFO"},"Created chain group from bone.")
+		else:
+			self.report({"ERROR"},"No chain group was created because the active chain collection is not set.")
 		return {'FINISHED'}
 
 class WM_OT_CollisionFromBones(Operator):
@@ -207,109 +218,140 @@ class WM_OT_CollisionFromBones(Operator):
 		experimentalFeatures = bpy.context.scene.re_chain_toolpanel.experimentalPoseModeOptions
 		
 		selected = bpy.context.selected_pose_bones
+		chainCollection = bpy.data.collections.get(bpy.context.scene.re_chain_toolpanel.chainCollection,None)
 		headerObj = findHeaderObj()
-		if len(selected) == 1:
-			startBone = selected[0]
-			valid = True
-			shape = str(bpy.context.scene.re_chain_toolpanel.collisionShape)
-			if shape == "CAPSULE":#Two bones need to be selected to make a capsule
-				if experimentalFeatures:
-					startBone = selected[0]
-					endBone = selected[0]
-					valid = True
-				else:
-					valid = False
-			#print(chainList)
-		elif len(selected) == 2:#Force capsule if two bones are selected
-			startBone = selected[0]
-			endBone = selected[1]
-			valid = True
-			shape = "CAPSULE"#capsule
-		else:
-			valid = False
-		
-		
-		if not valid:
-			showErrorMessageBox("Select one bone to make a sphere or two to make a capsule.")
-		else:
-			currentCollisionIndex = 0
-			subName = "COLLISION_"+str(currentCollisionIndex).zfill(2)
-			while(checkNameUsage(subName,checkSubString=True)):
-				currentCollisionIndex +=1
+		if chainCollection != None and headerObj != None:
+			if len(selected) == 1:
+				startBone = selected[0]
+				valid = True
+				shape = str(bpy.context.scene.re_chain_toolpanel.collisionShape)
+				if shape == "CAPSULE":#Two bones need to be selected to make a capsule
+					if experimentalFeatures:
+						startBone = selected[0]
+						endBone = selected[0]
+						valid = True
+					else:
+						valid = False
+				#print(chainList)
+			elif len(selected) == 2:#Force capsule if two bones are selected
+				startBone = selected[0]
+				endBone = selected[1]
+				valid = True
+				shape = "CAPSULE"#capsule
+			else:
+				valid = False
+			
+			
+			if not valid:
+				showErrorMessageBox("Select one bone to make a sphere or two to make a capsule.")
+			else:
+				currentCollisionIndex = 0
 				subName = "COLLISION_"+str(currentCollisionIndex).zfill(2)
-			name = subName+"_"+shape
-			armature = startBone.id_data
-			#print(armature)
-			singleObjectColList = ["SPHERE","OBB","PLANE","LINESPHERE","LERPSPHERE"]
-			enumItemDict ={"SPHERE":"1","CAPSULE":"2","OBB":"3","PLANE":"4","LINESPHERE":"5","LERPSPHERE":"6"}#For setting shape enum value
-			if shape in singleObjectColList:
-				name = "COLLISION_" +str(currentCollisionIndex).zfill(2)+ "_"+shape +" " + startBone.name
-				colSphereObj = createEmpty(name, [("TYPE","RE_CHAIN_COLLISION_SINGLE")],headerObj,"chainData")
-				chainCollision = ChainCollisionData()
-				getChainCollision(chainCollision,colSphereObj)
-				colSphereObj.re_chain_chaincollision.chainCollisionShape = enumItemDict[shape]
-				colSphereObj.re_chain_chaincollision.collisionOffset = (chainCollision.posX,chainCollision.posY,chainCollision.posZ)
-				colSphereObj.rotation_mode = "QUATERNION" 
-				colSphereObj.rotation_quaternion = (chainCollision.rotOffsetX,chainCollision.rotOffsetY,chainCollision.rotOffsetZ,chainCollision.rotOffsetW)
-				
-				colSphereObj.empty_display_type = "SPHERE"
-				colSphereObj.empty_display_size = 1
-				constraint = colSphereObj.constraints.new(type = "CHILD_OF")
-				constraint.target = armature
-				constraint.subtarget = startBone.name
-				constraint.name = "BoneName"
-				#colSphereObj.show_name = True
-				colSphereObj.show_name = bpy.context.scene.re_chain_toolpanel.showCollisionNames
-				colSphereObj.show_in_front = bpy.context.scene.re_chain_toolpanel.drawCollisionsThroughObjects
-			elif shape == "CAPSULE":#CAPSULE
-				name = subName+ "_CAPSULE"
-				colCapsuleRootObj = createEmpty(name, [("TYPE","RE_CHAIN_COLLISION_CAPSULE_ROOT")],headerObj,"chainData")
-				colCapsuleRootObj.empty_display_size = .1
-				chainCollision = ChainCollisionData()
-				getChainCollision(chainCollision,colCapsuleRootObj)
-				name = subName+ "_CAPSULE_START" + " " + startBone.name
-				colCapsuleStartObj = createEmpty(name, [("TYPE","RE_CHAIN_COLLISION_CAPSULE_START")],colCapsuleRootObj,"chainData")
-				
-				colCapsuleRootObj.re_chain_chaincollision.chainCollisionShape = enumItemDict[shape]
-				colCapsuleStartObj.re_chain_chaincollision.collisionOffset = (chainCollision.posX,chainCollision.posY,chainCollision.posZ)
-				colCapsuleStartObj.rotation_mode = "QUATERNION" 
-				colCapsuleStartObj.rotation_quaternion = (chainCollision.rotOffsetX,chainCollision.rotOffsetY,chainCollision.rotOffsetZ,chainCollision.rotOffsetW)
-				
-				colCapsuleStartObj.empty_display_type = "SPHERE"
-				colCapsuleStartObj.empty_display_size = 1
-				constraint = colCapsuleStartObj.constraints.new(type = "CHILD_OF")
-				constraint.target = armature
-				constraint.subtarget = startBone.name
-				constraint.name = "BoneName"
-				#colCapsuleStartObj.show_name = True
-				colCapsuleStartObj.show_name = bpy.context.scene.re_chain_toolpanel.showCollisionNames
-				colCapsuleStartObj.show_in_front = bpy.context.scene.re_chain_toolpanel.drawCollisionsThroughObjects
-				
-				name = subName+ "_CAPSULE_END" + " " + endBone.name
-				colCapsuleEndObj = createEmpty(name, [("TYPE","RE_CHAIN_COLLISION_CAPSULE_END")],colCapsuleRootObj,"chainData")
-				colCapsuleEndObj.re_chain_chaincollision.endCollisionOffset = (chainCollision.pairPosX,chainCollision.pairPosY,chainCollision.pairPosZ)
-				colCapsuleEndObj.empty_display_type = "SPHERE"
-				colCapsuleEndObj.empty_display_size = 1
-				constraint = colCapsuleEndObj.constraints.new(type = "CHILD_OF")
-				constraint.target = armature
-				constraint.subtarget = endBone.name
-				constraint.name = "BoneName"
-				#colCapsuleEndObj.show_name = True
-				colCapsuleEndObj.show_name = bpy.context.scene.re_chain_toolpanel.showCollisionNames
-				colCapsuleEndObj.show_in_front = bpy.context.scene.re_chain_toolpanel.drawCollisionsThroughObjects
-			alignCollisions()
-			self.report({"INFO"},"Created collision from bone.")
+				while(checkNameUsage(subName,checkSubString=True)):
+					currentCollisionIndex +=1
+					subName = "COLLISION_"+str(currentCollisionIndex).zfill(2)
+				name = subName+"_"+shape
+				armature = startBone.id_data
+				#print(armature)
+				singleObjectColList = ["SPHERE","OBB","PLANE","LINESPHERE","LERPSPHERE"]
+				enumItemDict ={"SPHERE":"1","CAPSULE":"2","OBB":"3","PLANE":"4","LINESPHERE":"5","LERPSPHERE":"6"}#For setting shape enum value
+				if shape in singleObjectColList:
+					name = "COLLISION_" +str(currentCollisionIndex).zfill(2)+ "_"+shape +" " + startBone.name
+					colSphereObj = createEmpty(name, [("TYPE","RE_CHAIN_COLLISION_SINGLE")],headerObj,chainCollection)
+					chainCollision = ChainCollisionData()
+					getChainCollision(chainCollision,colSphereObj)
+					colSphereObj.re_chain_chaincollision.chainCollisionShape = enumItemDict[shape]
+					colSphereObj.re_chain_chaincollision.collisionOffset = (chainCollision.posX,chainCollision.posY,chainCollision.posZ)
+					colSphereObj.rotation_mode = "QUATERNION" 
+					colSphereObj.rotation_quaternion = (chainCollision.rotOffsetX,chainCollision.rotOffsetY,chainCollision.rotOffsetZ,chainCollision.rotOffsetW)
+					
+					colSphereObj.empty_display_type = "SPHERE"
+					colSphereObj.empty_display_size = 1
+					constraint = colSphereObj.constraints.new(type = "CHILD_OF")
+					constraint.target = armature
+					constraint.subtarget = startBone.name
+					constraint.name = "BoneName"
+					
+					constraint.use_scale_x = False
+					constraint.use_scale_y = False
+					constraint.use_scale_z = False
+					#colSphereObj.show_name = True
+					colSphereObj.show_name = bpy.context.scene.re_chain_toolpanel.showCollisionNames
+					colSphereObj.show_in_front = bpy.context.scene.re_chain_toolpanel.drawCollisionsThroughObjects
+				elif shape == "CAPSULE":#CAPSULE
+					name = subName+ "_CAPSULE"
+					colCapsuleRootObj = createEmpty(name, [("TYPE","RE_CHAIN_COLLISION_CAPSULE_ROOT")],headerObj,chainCollection)
+					colCapsuleRootObj.empty_display_size = .1
+					chainCollision = ChainCollisionData()
+					getChainCollision(chainCollision,colCapsuleRootObj)
+					name = subName+ "_CAPSULE_BEGIN" + " " + startBone.name
+					colCapsuleStartObj = createEmpty(name, [("TYPE","RE_CHAIN_COLLISION_CAPSULE_START")],colCapsuleRootObj,chainCollection)
+					
+					colCapsuleRootObj.re_chain_chaincollision.chainCollisionShape = enumItemDict[shape]
+					colCapsuleStartObj.re_chain_chaincollision.collisionOffset = (chainCollision.posX,chainCollision.posY,chainCollision.posZ)
+					colCapsuleStartObj.rotation_mode = "QUATERNION" 
+					colCapsuleStartObj.rotation_quaternion = (chainCollision.rotOffsetX,chainCollision.rotOffsetY,chainCollision.rotOffsetZ,chainCollision.rotOffsetW)
+					
+					colCapsuleStartObj.empty_display_type = "SPHERE"
+					colCapsuleStartObj.empty_display_size = 1
+					constraint = colCapsuleStartObj.constraints.new(type = "CHILD_OF")
+					constraint.target = armature
+					constraint.subtarget = startBone.name
+					constraint.name = "BoneName"
+					
+					constraint.use_scale_x = False
+					constraint.use_scale_y = False
+					constraint.use_scale_z = False
+					#colCapsuleStartObj.show_name = True
+					colCapsuleStartObj.show_name = bpy.context.scene.re_chain_toolpanel.showCollisionNames
+					colCapsuleStartObj.show_in_front = bpy.context.scene.re_chain_toolpanel.drawCollisionsThroughObjects
+					
+					name = subName+ "_CAPSULE_END" + " " + endBone.name
+					colCapsuleEndObj = createEmpty(name, [("TYPE","RE_CHAIN_COLLISION_CAPSULE_END")],colCapsuleRootObj,chainCollection)
+					colCapsuleEndObj.re_chain_chaincollision.endCollisionOffset = (chainCollision.pairPosX,chainCollision.pairPosY,chainCollision.pairPosZ)
+					colCapsuleEndObj.empty_display_type = "SPHERE"
+					colCapsuleEndObj.empty_display_size = 1
+					constraint = colCapsuleEndObj.constraints.new(type = "CHILD_OF")
+					constraint.target = armature
+					constraint.subtarget = endBone.name
+					constraint.name = "BoneName"
+					
+					constraint.use_scale_x = False
+					constraint.use_scale_y = False
+					constraint.use_scale_z = False
+					#colCapsuleEndObj.show_name = True
+					colCapsuleEndObj.show_name = bpy.context.scene.re_chain_toolpanel.showCollisionNames
+					colCapsuleEndObj.show_in_front = bpy.context.scene.re_chain_toolpanel.drawCollisionsThroughObjects
+					
+					constraint = colCapsuleEndObj.constraints.new(type = "COPY_SCALE")
+					constraint.target = colCapsuleStartObj
+					constraint.name = "CopyRadius"
+					
+				alignCollisions()
+				self.report({"INFO"},"Created collision from bone.")
+		else:
+			self.report({"ERROR"},"No collision was created because the active chain collection is not set.")
 		return {'FINISHED'}
 
 class WM_OT_NewChainHeader(Operator):
 	bl_label = "Create Chain Header"
 	bl_idname = "re_chain.create_chain_header"
 	bl_options = {'UNDO'}
-	bl_description = "Create a chain header object. All chain objects must be parented to this. There can only be one chain header in a scene upon export"
+	bl_description = "Create a chain header object. All chain objects must be parented to this. A new chain collection will be created"
 	def execute(self, context):
-		chainHeaderObj = createEmpty("CHAIN_HEADER", [("TYPE","RE_CHAIN_HEADER")],None,"chainData")
+		currentIndex = 0
+		name = "Chain Collection " + str(currentIndex)
+		while(checkNameUsage(name,checkSubString=True,objList = bpy.data.collections)):
+			currentIndex +=1
+			name = "Chain Collection " + str(currentIndex)
+		chainCollection = createChainCollection(name)
+		chainHeaderObj = createEmpty("CHAIN_HEADER", [("TYPE","RE_CHAIN_HEADER")],None,chainCollection)
+		
 		chainHeader = ChainHeaderData()
 		getChainHeader(chainHeader,chainHeaderObj)
+		
+		bpy.context.view_layer.objects.active = chainHeaderObj
+		#outlinerShowObject(chainHeaderObj.name)
 		return {'FINISHED'}
 
 class WM_OT_NewChainSettings(Operator):
@@ -318,21 +360,27 @@ class WM_OT_NewChainSettings(Operator):
 	bl_options = {'UNDO'}
 	bl_description = "Create a chain settings object. Contains parameters to determine how chain groups should behave. Must be parented to either a chain header or wind settings object"
 	def execute(self, context):
+		chainCollection = bpy.data.collections.get(bpy.context.scene.re_chain_toolpanel.chainCollection,None)
 		headerObj = findHeaderObj()
-		currentIndex = 0
-		name = "CHAIN_SETTINGS_" + str(currentIndex).zfill(2)
-		while(checkNameUsage(name,checkSubString=True)):
-			currentIndex +=1
+		if chainCollection != None and headerObj != None:
+			currentIndex = 0
 			name = "CHAIN_SETTINGS_" + str(currentIndex).zfill(2)
-		
-		currentSettingID = 0
-		while checkChainSettingsIDUsage(currentSettingID):
-			currentSettingID += 1
-		
-		chainSettings = ChainSettingsData()
-		chainSettingsObj = createEmpty(name, [("TYPE","RE_CHAIN_CHAINSETTINGS")],headerObj,"chainData")
-		getChainSettings(chainSettings,chainSettingsObj)
-		chainSettingsObj.re_chain_chainsettings.id = currentSettingID
+			while(checkNameUsage(name,checkSubString=True)):
+				currentIndex +=1
+				name = "CHAIN_SETTINGS_" + str(currentIndex).zfill(2)
+			
+			currentSettingID = 0
+			while checkChainSettingsIDUsage(currentSettingID):
+				currentSettingID += 1
+			
+			chainSettings = ChainSettingsData()
+			chainSettingsObj = createEmpty(name, [("TYPE","RE_CHAIN_CHAINSETTINGS")],headerObj,chainCollection)
+			getChainSettings(chainSettings,chainSettingsObj)
+			chainSettingsObj.re_chain_chainsettings.id = currentSettingID
+			self.report({"INFO"},"Created chain settings object.")
+			bpy.context.view_layer.objects.active = chainSettingsObj
+		else:
+			self.report({"ERROR"},"No chain settings object was created because the active chain collection is not set.")
 		return {'FINISHED'}
 
 class WM_OT_NewWindSettings(Operator):
@@ -341,21 +389,27 @@ class WM_OT_NewWindSettings(Operator):
 	bl_options = {'UNDO'}
 	bl_description = "Create a wind settings object. Allows for wind effects on chain groups. For wind to take effect, chain settings objects must be parented to this. Must be parented to a chain header"
 	def execute(self, context):
+		chainCollection = bpy.data.collections.get(bpy.context.scene.re_chain_toolpanel.chainCollection,None)
 		headerObj = findHeaderObj()
-		currentIndex = 0
-		name = "WIND_SETTINGS_" + str(currentIndex).zfill(2)
-		while(checkNameUsage(name,checkSubString=True)):
-			currentIndex +=1
+		if chainCollection != None and headerObj != None:
+			currentIndex = 0
 			name = "WIND_SETTINGS_" + str(currentIndex).zfill(2)
-		
-		currentSettingID = 0
-		while checkWindSettingsIDUsage(currentSettingID):
-			currentSettingID += 1
+			while(checkNameUsage(name,checkSubString=True)):
+				currentIndex +=1
+				name = "WIND_SETTINGS_" + str(currentIndex).zfill(2)
 			
-		windSettings = WindSettingsData()
-		windSettingsObj = createEmpty(name, [("TYPE","RE_CHAIN_WINDSETTINGS")],headerObj,"chainData")
-		getWindSettings(windSettings,windSettingsObj)
-		windSettingsObj.re_chain_windsettings.id = currentSettingID
+			currentSettingID = 0
+			while checkWindSettingsIDUsage(currentSettingID):
+				currentSettingID += 1
+				
+			windSettings = WindSettingsData()
+			windSettingsObj = createEmpty(name, [("TYPE","RE_CHAIN_WINDSETTINGS")],headerObj,chainCollection)
+			getWindSettings(windSettings,windSettingsObj)
+			windSettingsObj.re_chain_windsettings.id = currentSettingID
+			self.report({"INFO"},"Created wind settings object.")
+			bpy.context.view_layer.objects.active = windSettingsObj
+		else:
+			self.report({"ERROR"},"No wind settings object was created because the active chain collection is not set.")
 		return {'FINISHED'}
 
 class WM_OT_NewChainJiggle(Operator):
@@ -364,17 +418,23 @@ class WM_OT_NewChainJiggle(Operator):
 	bl_options = {'UNDO'}
 	bl_description = "Create a chain jiggle object. Adds special jiggle simulation to its chain node parent. Can be used on chain versions 35+. If a chain node is selected, the chain jiggle object will be parented to it automatically"
 	def execute(self, context):
-		parent = None
-		name = "CHAIN_JIGGLE"
-		if bpy.context.active_object != None:
-			if bpy.context.active_object.get("TYPE",None) == "RE_CHAIN_NODE":
-				parent = bpy.context.active_object
-				name = str(parent.constraints["BoneName"].subtarget)+"_JIGGLE"
-				
-		chainJiggleObj = createEmpty(name, [("TYPE","RE_CHAIN_JIGGLE")],parent,"chainData")
-		chainJiggle = ChainJiggleData()
-		getChainJiggle(chainJiggle,chainJiggleObj)
-		chainJiggleObj.rotation_mode = "QUATERNION"
+		chainCollection = bpy.data.collections.get(bpy.context.scene.re_chain_toolpanel.chainCollection,None)
+		if chainCollection != None:
+			parent = None
+			name = "CHAIN_JIGGLE"
+			if bpy.context.active_object != None:
+				if bpy.context.active_object.get("TYPE",None) == "RE_CHAIN_NODE":
+					parent = bpy.context.active_object
+					name = str(parent.constraints["BoneName"].subtarget)+"_JIGGLE"
+					
+			chainJiggleObj = createEmpty(name, [("TYPE","RE_CHAIN_JIGGLE")],parent,chainCollection)
+			chainJiggle = ChainJiggleData()
+			getChainJiggle(chainJiggle,chainJiggleObj)
+			chainJiggleObj.rotation_mode = "QUATERNION"
+			self.report({"INFO"},"Created chain jiggle object.")
+			bpy.context.view_layer.objects.active = chainJiggleObj
+		else:
+			self.report({"ERROR"},"No chain jiggle object was created because the active chain collection is not set.")
 		return {'FINISHED'}
 
 class WM_OT_NewChainLink(Operator):
@@ -383,20 +443,26 @@ class WM_OT_NewChainLink(Operator):
 	bl_description = "Create a chain link object to make two chain groups move together. Must be parented to a chain header"
 	bl_options = {'UNDO'}
 	def execute(self, context):
+		chainCollection = bpy.data.collections.get(bpy.context.scene.re_chain_toolpanel.chainCollection,None)
 		headerObj = findHeaderObj()
-		currentIndex = 0
-		name = "CHAIN_LINK_" + str(currentIndex).zfill(2)
-		while(checkNameUsage(name,checkSubString=True)):
-			currentIndex +=1
+		if chainCollection != None and headerObj != None:
+			currentIndex = 0
 			name = "CHAIN_LINK_" + str(currentIndex).zfill(2)
-		
-		chainLink = ChainLinkData()
-		chainLinkObj = createEmpty(name, [("TYPE","RE_CHAIN_LINK")],headerObj,"chainData")
-		getChainLink(chainLink,chainLinkObj)
-		if len(bpy.context.selected_objects) == 2:
-			if bpy.context.selected_objects[0].get("TYPE",None) == "RE_CHAIN_CHAINGROUP" and bpy.context.selected_objects[1].get("TYPE",None) == "RE_CHAIN_CHAINGROUP":
-				chainLinkObj.re_chain_chainlink.chainGroupAObject = bpy.context.selected_objects[0].name
-				chainLinkObj.re_chain_chainlink.chainGroupBObject = bpy.context.selected_objects[1].name
+			while(checkNameUsage(name,checkSubString=True)):
+				currentIndex +=1
+				name = "CHAIN_LINK_" + str(currentIndex).zfill(2)
+			
+			chainLink = ChainLinkData()
+			chainLinkObj = createEmpty(name, [("TYPE","RE_CHAIN_LINK")],headerObj,chainCollection)
+			getChainLink(chainLink,chainLinkObj)
+			if len(bpy.context.selected_objects) == 2:
+				if bpy.context.selected_objects[0].get("TYPE",None) == "RE_CHAIN_CHAINGROUP" and bpy.context.selected_objects[1].get("TYPE",None) == "RE_CHAIN_CHAINGROUP":
+					chainLinkObj.re_chain_chainlink.chainGroupAObject = bpy.context.selected_objects[0].name
+					chainLinkObj.re_chain_chainlink.chainGroupBObject = bpy.context.selected_objects[1].name
+			self.report({"INFO"},"Created chain link object.")
+			bpy.context.view_layer.objects.active = chainLinkObj
+		else:
+			self.report({"ERROR"},"No chain link object was created because the active chain collection is not set.")
 		return {'FINISHED'}
 
 class WM_OT_CopyChainProperties(Operator):
@@ -613,18 +679,20 @@ class WM_OT_AlignFrames(Operator):
 							chainGroupList.append(currentNodeObjList)
 		
 		if chainGroupList == []:#No chain group objects selected
-			for selectedObject in bpy.context.scene.objects:
-				if selectedObject.get("TYPE",None) == "RE_CHAIN_CHAINGROUP":
-					for childObject in selectedObject.children:
-						if childObject.get("TYPE",None) == "RE_CHAIN_NODE":		
-							currentNode = childObject
-							currentNodeObjList = [childObject]
-							while len(currentNode.children) > 1:
-								for child in currentNode.children:
-									if child.get("TYPE",None) == "RE_CHAIN_NODE":
-										currentNodeObjList.append(child)
-										currentNode = child
-							chainGroupList.append(currentNodeObjList)
+			chainCollection = bpy.data.collections.get(bpy.context.scene.re_chain_toolpanel.chainCollection,None)
+			if chainCollection != None:
+				for selectedObject in chainCollection.all_objects:
+					if selectedObject.get("TYPE",None) == "RE_CHAIN_CHAINGROUP":
+						for childObject in selectedObject.children:
+							if childObject.get("TYPE",None) == "RE_CHAIN_NODE":		
+								currentNode = childObject
+								currentNodeObjList = [childObject]
+								while len(currentNode.children) > 1:
+									for child in currentNode.children:
+										if child.get("TYPE",None) == "RE_CHAIN_NODE":
+											currentNodeObjList.append(child)
+											currentNode = child
+								chainGroupList.append(currentNodeObjList)
 		if chainGroupList != []:
 			for chainGroup in chainGroupList:
 				lastNodeIndex = len(chainGroup) -1
@@ -639,7 +707,7 @@ class WM_OT_AlignFrames(Operator):
 					boneName = str(chainNode.constraints["BoneName"].subtarget)
 					
 					
-					if nodeIndex == 0:
+					if nodeIndex == 0 and nodeIndex == lastNodeIndex:
 						#Get armature bone, not pose bone
 						#Point X axis away from bone tail
 						
@@ -679,7 +747,7 @@ class WM_OT_AlignFrames(Operator):
 			self.report({"INFO"},"Aligned angle limit directions.")
 			return {'FINISHED'}
 		else:
-			showErrorMessageBox("No chains found in scene.")
+			showErrorMessageBox("No chains found in selection or collection.")
 			return {'CANCELLED'}
 class WM_OT_PointFrame(Operator):
 	bl_label = "Point Frame to Selected"
@@ -853,19 +921,22 @@ class WM_OT_SwitchToPoseMode(Operator):#Made a button for this to make it clear 
 	bl_idname = "re_chain.switch_to_pose"
 
 	def execute(self, context):
-		armature = None
-		if bpy.context.active_object != None and bpy.context.active_object.type == "ARMATURE":
-			armature = bpy.context.active_object
-		else:
-			for obj in bpy.context.scene.objects:
-				if obj.type == "ARMATURE":
-					armature = obj
-					break
-		if armature != None:
-			bpy.ops.object.select_all(action='DESELECT')
-			bpy.context.view_layer.objects.active = armature
-				
-			bpy.ops.object.mode_set(mode='POSE')
+		try:
+			armature = None
+			if bpy.context.active_object != None and bpy.context.active_object.type == "ARMATURE":
+				armature = bpy.context.active_object
+			else:
+				for obj in bpy.context.scene.objects:
+					if obj.type == "ARMATURE":
+						armature = obj
+						break
+			if armature != None:
+				bpy.ops.object.select_all(action='DESELECT')
+				bpy.context.view_layer.objects.active = armature
+					
+				bpy.ops.object.mode_set(mode='POSE')
+		except:
+			pass
 		return {'FINISHED'}
 	
 class WM_OT_SwitchToObjectMode(Operator):#Made a button for this to make it clear that chains have to be configured in object mode
@@ -874,7 +945,10 @@ class WM_OT_SwitchToObjectMode(Operator):#Made a button for this to make it clea
 	bl_idname = "re_chain.switch_to_object"
 
 	def execute(self, context):
-		bpy.ops.object.mode_set(mode='OBJECT')
+		try:
+			bpy.ops.object.mode_set(mode='OBJECT')
+		except:
+			pass
 		return {'FINISHED'}
 	
 class WM_OT_HideNonNodes(Operator):
@@ -889,6 +963,22 @@ class WM_OT_HideNonNodes(Operator):
 			else:
 				obj.hide_viewport = False
 		self.report({"INFO"},"Hid all non chain node objects.")
+		return {'FINISHED'}
+
+class WM_OT_HideNonCollisions(Operator):
+	bl_label = "Hide Non Collisions"
+	bl_description = "Hide all objects that aren't collision spheres or capsules to make selecting and configuring them easier. Press the \"Unhide All\" button to unhide or check the Viewports box in the Object tab under Visibility"
+	bl_idname = "re_chain.hide_non_collisions"
+	bl_options = {'UNDO'}
+	def execute(self, context):
+		
+		for obj in bpy.context.scene.objects:
+			objType = obj.get("TYPE",None)
+			if objType == "RE_CHAIN_COLLISION_SINGLE" or objType == "RE_CHAIN_COLLISION_CAPSULE_ROOT" or objType == "RE_CHAIN_COLLISION_CAPSULE_START" or objType == "RE_CHAIN_COLLISION_CAPSULE_END" :
+				obj.hide_viewport = False
+			else:
+				obj.hide_viewport = True
+		self.report({"INFO"},"Hid all non collision objects.")
 		return {'FINISHED'}
 class WM_OT_HideNonAngleLimits(Operator):
 	bl_label = "Hide Non Angle Limits"

@@ -27,11 +27,15 @@ class OBJECT_PT_ChainObjectModePanel(Panel):
 
 	@classmethod
 	def poll(self,context):
-		return context is not None
+		return context is not None and "HIDE_RE_CHAIN_EDITOR_TAB" not in context.scene
 
 	def draw(self, context):
+		scene = context.scene
+		re_chain_toolpanel = scene.re_chain_toolpanel
 		layout = self.layout
 		layout.operator("re_chain.create_chain_header")
+		layout.label(text = "Active Chain Collection")
+		layout.prop_search(re_chain_toolpanel, "chainCollection",bpy.data,"collections",icon = "COLLECTION_COLOR_02")
 		layout.operator("re_chain.create_chain_settings")
 		layout.operator("re_chain.create_wind_settings")
 		layout.operator("re_chain.create_chain_jiggle")
@@ -54,7 +58,7 @@ class OBJECT_PT_ChainClipboardPanel(Panel):
 
 	@classmethod
 	def poll(self,context):
-		return context is not None
+		return context is not None and "HIDE_RE_CHAIN_EDITOR_TAB" not in context.scene
 
 	def draw(self, context):
 		layout = self.layout
@@ -75,13 +79,15 @@ class OBJECT_PT_ChainPoseModePanel(Panel):
 
 	@classmethod
 	def poll(self,context):
-		return context.active_object is not None
+		return context.active_object is not None and "HIDE_RE_CHAIN_EDITOR_TAB" not in context.scene
 
 	def draw(self, context):
 		layout = self.layout
 		scene = context.scene
 		re_chain_toolpanel = scene.re_chain_toolpanel
 		layout.label(text="Chain Tools")
+		layout.label(text = "Active Chain Collection")
+		layout.prop_search(re_chain_toolpanel, "chainCollection",bpy.data,"collections",icon = "COLLECTION_COLOR_02")
 		layout.operator("re_chain.chain_from_bone",text=re_chain_toolpanel.chainFromBoneLabelName)
 		layout.label(text="Collision Tools")
 		layout.prop(re_chain_toolpanel, "collisionShape")
@@ -104,7 +110,7 @@ class OBJECT_PT_ChainPresetPanel(Panel):
 
 	@classmethod
 	def poll(self,context):
-		return context is not None
+		return context is not None and "HIDE_RE_CHAIN_EDITOR_TAB" not in context.scene
 
 	def draw(self, context):
 		layout = self.layout
@@ -182,14 +188,13 @@ class OBJECT_PT_ChainHeaderPanel(Panel):
 		layout = self.layout
 		object = context.active_object
 		re_chain_header = object.re_chain_header
-		global version; version = int(re_chain_header.version)
 
 		split = layout.split(factor=0.01)
 		col1 = split.column()
 		col2 = split.column()
 		col2.alignment='RIGHT'
 		col2.use_property_split = True
-		col2.prop(re_chain_header, "version")
+		#col2.prop(re_chain_header, "version")#Set by export
 		col2.prop(re_chain_header, "errFlags") 
 		col2.prop(re_chain_header, "masterSize")
 		col2.prop(re_chain_header, "rotationOrder")
@@ -394,6 +399,7 @@ class OBJECT_PT_ChainGroupPanel(Panel):
 		col2.prop(re_chain_chaingroup, "unknGroupValue2")
 		#if version >= 52:
 		col2.prop(re_chain_chaingroup, "unknGroupValue3")
+		col2.prop(re_chain_chaingroup, "unknGroupValue4")
 		col2.prop(re_chain_chaingroup, "extraNodeLocalPos")
 		#if version >= 48:
 		col2.prop(re_chain_chaingroup, "unknBoneHash")
@@ -600,7 +606,7 @@ class OBJECT_PT_ChainVisibilityPanel(Panel):
 
 	@classmethod
 	def poll(self,context):
-		return context is not None
+		return context is not None and "HIDE_RE_CHAIN_EDITOR_TAB" not in context.scene
 
 	def draw(self, context):
 		re_chain_toolpanel = context.scene.re_chain_toolpanel
@@ -615,4 +621,5 @@ class OBJECT_PT_ChainVisibilityPanel(Panel):
 		layout.prop(re_chain_toolpanel, "coneDisplaySize")
 		layout.operator("re_chain.hide_non_nodes")
 		layout.operator("re_chain.hide_non_angle_limits")
+		layout.operator("re_chain.hide_non_collisions")
 		layout.operator("re_chain.unhide_all")

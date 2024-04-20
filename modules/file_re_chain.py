@@ -711,6 +711,7 @@ class ChainGroupData():
 		self.chainGroupSubDataCount = 0#VERSION 48
 		self.unknGroupValue2 = 0#VERSION 48
 		self.unknGroupValue3 = 0#VERSION 52
+		self.unknGroupValue4 = 0#VERSION 52
 		self.nextChainNameOffset = 0#VERSION 48
 		self.nodeList = []
 
@@ -751,7 +752,8 @@ class ChainGroupData():
 			self.chainGroupSubDataCount = read_ushort(file)#VERSION 48
 			self.unknGroupValue2 = read_uint64(file)#VERSION 48
 		if version >= 52:
-			self.unknGroupValue3 = read_int64(file)#VERSION 52
+			self.unknGroupValue3 = read_int(file)#VERSION 52
+			self.unknGroupValue4 = read_int(file)#VERSION 52
 		if version >= 44:
 			self.nextChainName = read_uint64(file)#VERSION 46
 		self.nodeList = []
@@ -800,7 +802,8 @@ class ChainGroupData():
 			write_ushort(file, self.chainGroupSubDataCount)#VERSION 48
 			write_uint64(file, self.unknGroupValue2)#VERSION 48
 		if version >= 52:
-			write_int64(file, self.unknGroupValue3)#VERSION 52
+			write_int(file, self.unknGroupValue3)#VERSION 52
+			write_int(file, self.unknGroupValue4)#VERSION 52
 		if version >= 44:
 			write_uint64(file, self.nextChainNameOffset)#VERSION 46
 		
