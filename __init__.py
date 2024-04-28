@@ -1,13 +1,13 @@
 bl_info = {
 	"name": "RE Chain Editor",
 	"author": "NSA Cloud, alphaZomega",
-	"version": (6, 2),
+	"version": (7, 0),
 	"blender": (3, 1, 2),
 	"location": "File > Import-Export",
 	"description": "Import and export RE Engine chain files.",
 	"warning": "",
 	"wiki_url": "https://github.com/NSACloud/RE-Chain-Editor",
-	"tracker_url": "",
+	"tracker_url": "https://github.com/NSACloud/RE-Chain-Editor/issues",
 	"category": "Import-Export"}
 
 #Modified by alphaZomega to support RE2R, RE3R, RE8, RE2-3-7 RT, DMC5 and SF6 
@@ -65,7 +65,11 @@ class REChainPreferences(AddonPreferences):
 	)
 	def draw(self, context):
 		layout = self.layout
-		op = self.layout.operator(
+		split = layout.split(factor = .3)
+		col1 = split.column()
+		col2 = split.column()
+		col3 = split.column()
+		op = col2.operator(
         'wm.url_open',
         text='Donate on Ko-fi',
         icon='FUND'
@@ -133,7 +137,7 @@ class ImportREChain(bpy.types.Operator, ImportHelper):
 			return {"CANCELLED"}
 
 
-supportedChainVersions = set([53,48,52,39,46,24,44,21])		
+supportedChainVersions = set([54,53,48,52,39,46,24,44,21])		
 class ExportREChain(bpy.types.Operator, ExportHelper):
 	'''Export RE Engine Chain File'''
 	bl_idname = "re_chain.exportfile"
@@ -157,7 +161,7 @@ class ExportREChain(bpy.types.Operator, ExportHelper):
 		)
 	targetCollection : StringProperty(
 	   name = "",
-	   description = "Merges the imported chain with an existing chain collection.\nNote that the chain bones used by the imported file must be merged with the target armature.\nUse the Merge With Armature import option in RE Mesh Editor first.\n Leave blank if not merging a chain file",
+	   description = "Set the chain collection to be exported",
 	   default = "")
 	filter_glob: StringProperty(default="*.chain*", options={'HIDDEN'})
 	def invoke(self, context, event):
@@ -190,6 +194,14 @@ class ExportREChain(bpy.types.Operator, ExportHelper):
 		success = exportChainFile(self.filepath,options, chainVersion)
 		if success:
 			self.report({"INFO"},"Exported RE Chain successfully.")
+			#Add batch export entry to RE Toolbox if it doesn't already have one
+			if hasattr(bpy.types, "OBJECT_PT_re_tools_quick_export_panel"):
+				if not any(item.path == self.filepath for item in bpy.context.scene.re_toolbox_toolpanel.batchExportList_items):
+					newExportItem = bpy.context.scene.re_toolbox_toolpanel.batchExportList_items.add()
+					newExportItem.fileType = "CHAIN"
+					newExportItem.path = self.filepath
+					newExportItem.chainCollection = self.targetCollection
+					print("Added path to RE Toolbox Batch Export list.")
 		else:
 			self.report({"INFO"},"RE Chain export failed. See Window > Toggle System Console for details.")
 		return {"FINISHED"}
@@ -286,6 +298,7 @@ def register():
 	bpy.types.Scene.re_chain_clipboard = bpy.props.PointerProperty(type=chainClipboardPropertyGroup)
 	
 def unregister():
+	addon_updater_ops.unregister()
 	for classEntry in classes:
 		bpy.utils.unregister_class(classEntry)
 		

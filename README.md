@@ -12,6 +12,14 @@ This addon allows for importing and exporting of RE Engine chain (physics bone) 
  
 ## Change Log
 
+### V7 - 4/28/2024
+
+* Added RE Toolbox integration. Any chain files exported will be added to RE Toolbox's batch export list.
+* Fixed bug with getting the armature object to attach chains to.
+
+<details>
+  <summary>Older Version Change Logs</summary>
+
 ### V6 - 4/20/2024
 
 If you are updating to V6, uncheck RE Chain Editor in the addons menu and restart Blender before installing the new version.
@@ -28,8 +36,6 @@ If you are updating to V6, uncheck RE Chain Editor in the addons menu and restar
 * The default angle limit orientation for newly created chains has been altered so that the first angle limit points towards the next bone.
 * Added Dragon's Dogma 2 support (untested)
 * Various bug fixes
-<details>
-  <summary>Older Version Change Logs</summary>
 
 ### V5 - 9/11/2023
 

@@ -15,6 +15,14 @@ from .file_re_chain import ChainFile, SIZE_DATA, ChainHeaderData, ChainSettingsD
 
 #TODO Add checking for chain groups with -1 chain settings ID
 
+def findArmatureObjFromData(armatureData):
+	armatureObj = None
+	for obj in bpy.context.scene.objects:
+		if obj.type == "ARMATURE" and obj.data == armatureData:
+			armatureObj = obj
+			break
+	return armatureObj
+			
 def findHeaderObj(chainCollection = None):
 	if chainCollection == None:
 		if bpy.data.collections.get(bpy.context.scene.re_chain_toolpanel.chainCollection,None) != None:
@@ -186,8 +194,9 @@ def getArmatureHashList(armature):
 def importChainFile(filepath,options):
 	
 	armature = None
-	if bpy.data.armatures.get(options["targetArmature"]) != None and bpy.data.objects.get(options["targetArmature"]) != None:
-		armature = bpy.data.objects[options["targetArmature"]]
+	if bpy.data.armatures.get(options["targetArmature"]) != None:
+		
+		armature = findArmatureObjFromData(bpy.data.armatures[options["targetArmature"]])
 	try:
 		if armature == None and bpy.context.active_object != None and bpy.context.active_object.type == "ARMATURE":
 			armature = bpy.context.active_object
