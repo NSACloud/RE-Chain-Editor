@@ -5,6 +5,8 @@ This addon allows for importing and exporting of RE Engine chain (physics bone) 
 
 ![Blender Preview](https://github.com/NSACloud/RE-Chain-Editor/assets/46909075/82f76e5a-cddb-4c09-92e2-2a7cbca97599)
 
+### [Download RE Chain Editor](https://github.com/NSACloud/RE-Chain-Editor/archive/refs/heads/main.zip)
+
 ## Features
  - Allows for importing and exporting of RE Engine chain files.
  - Can create new chain files entirely within Blender.

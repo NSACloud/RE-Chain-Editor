@@ -709,13 +709,15 @@ def chainErrorCheck(chainCollectionName):
 				if bpy.context.scene.objects[obj.re_chain_chainlink.chainGroupAObject].get("TYPE",None) != "RE_CHAIN_CHAINGROUP":
 					errorList.append(obj.name + ": Chain Group A must be set to a Chain Group object")
 			elif obj.re_chain_chainlink.chainGroupAObject != "":
-				errorList.append(obj.name + ": Chain Group A is set to an object that doesn't exist")
+				raiseWarning(obj.name + ": Chain Group A is set to an object that doesn't exist")
+				#errorList.append(obj.name + ": Chain Group A is set to an object that doesn't exist")
 				
 			if bpy.context.scene.objects.get(obj.re_chain_chainlink.chainGroupBObject,None) != None:
 				if bpy.context.scene.objects[obj.re_chain_chainlink.chainGroupBObject].get("TYPE",None) != "RE_CHAIN_CHAINGROUP":
 					errorList.append(obj.name + ": Chain Group B must be set to a Chain Group object")
 			elif obj.re_chain_chainlink.chainGroupBObject != "":
-				errorList.append(obj.name + ": Chain Group B is set to an object that doesn't exist")
+				#errorList.append(obj.name + ": Chain Group B is set to an object that doesn't exist")
+				raiseWarning(obj.name + ": Chain Group B is set to an object that doesn't exist")
 	if headerCount == 0:
 		errorList.append("No chain header object in collection.")
 		
@@ -848,8 +850,8 @@ def exportChainFile(filepath,options, version):
 			setChainLinkData(chainLink, chainLinkObj)
 			newChainFile.ChainLinkList.append(chainLink)
 			
-			chainLink.terminateNodeNameHashA = chainGroupTerminateNodeHashDict[chainLinkObj.re_chain_chainlink.chainGroupAObject] if chainLinkObj.re_chain_chainlink.chainGroupAObject in chainGroupTerminateNodeHashDict else 0#int(chainLinkObj.re_chain_chainlink.chainGroupAObject)
-			chainLink.terminateNodeNameHashB = chainGroupTerminateNodeHashDict[chainLinkObj.re_chain_chainlink.chainGroupBObject] if chainLinkObj.re_chain_chainlink.chainGroupBObject in chainGroupTerminateNodeHashDict else 0#int(chainLinkObj.re_chain_chainlink.chainGroupBObject)
+			chainLink.terminateNodeNameHashA = chainGroupTerminateNodeHashDict[chainLinkObj.re_chain_chainlink.chainGroupAObject] if chainLinkObj.re_chain_chainlink.chainGroupAObject in chainGroupTerminateNodeHashDict else int(chainLinkObj.re_chain_chainlink.chainGroupAObject) if chainLinkObj.re_chain_chainlink.chainGroupAObject.isdigit() else 0
+			chainLink.terminateNodeNameHashB = chainGroupTerminateNodeHashDict[chainLinkObj.re_chain_chainlink.chainGroupBObject] if chainLinkObj.re_chain_chainlink.chainGroupBObject in chainGroupTerminateNodeHashDict else int(chainLinkObj.re_chain_chainlink.chainGroupBObject) if chainLinkObj.re_chain_chainlink.chainGroupBObject.isdigit() else 0
 			#print(nodeObjList)
 		#Sort chain settings by ID, otherwise the chain groups will be assigned to the wrong chain settings in game
 		newChainFile.ChainSettingsList.sort(key = lambda x: x.id)
