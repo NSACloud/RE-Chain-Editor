@@ -1,7 +1,7 @@
 bl_info = {
 	"name": "RE Chain Editor",
 	"author": "NSA Cloud, alphaZomega",
-	"version": (7, 1),
+	"version": (8, 0),
 	"blender": (3, 1, 2),
 	"location": "File > Import-Export",
 	"description": "Import and export RE Engine chain files.",
@@ -24,12 +24,13 @@ from bpy.types import Operator, OperatorFileListElement,AddonPreferences
 
 from .modules.gen_functions import textColors
 from .modules.blender_re_chain import importChainFile,exportChainFile
-from .modules.re_chain_propertyGroups import chainToolPanelPropertyGroup,chainHeaderPropertyGroup,chainWindSettingsPropertyGroup,chainSettingsPropertyGroup,chainGroupPropertyGroup,chainNodePropertyGroup,chainJigglePropertyGroup,chainCollisionPropertyGroup,chainClipboardPropertyGroup,chainLinkPropertyGroup,collisionSubDataPropertyGroup
-from .modules.ui_re_chain_panels import OBJECT_PT_ChainObjectModePanel,OBJECT_PT_ChainPoseModePanel,OBJECT_PT_ChainPresetPanel,OBJECT_PT_ChainHeaderPanel,OBJECT_PT_WindSettingsPanel,OBJECT_PT_ChainSettingsPanel,OBJECT_PT_ChainGroupPanel,OBJECT_PT_ChainNodePanel,OBJECT_PT_ChainJigglePanel,OBJECT_PT_ChainCollisionPanel,OBJECT_PT_ChainClipboardPanel,OBJECT_PT_ChainLinkPanel,OBJECT_PT_ChainVisibilityPanel,OBJECT_PT_ChainCollisionSubDataPanel
-from .modules.re_chain_operators import WM_OT_ChainFromBone,WM_OT_CollisionFromBones,WM_OT_AlignChainsToBones,WM_OT_AlignFrames,WM_OT_PointFrame,WM_OT_CopyChainProperties,WM_OT_PasteChainProperties,WM_OT_NewChainHeader,WM_OT_ApplyChainSettingsPreset,WM_OT_NewChainSettings,WM_OT_NewWindSettings,WM_OT_NewChainJiggle,WM_OT_ApplyChainGroupPreset,WM_OT_ApplyChainNodePreset,WM_OT_ApplyWindSettingsPreset,WM_OT_SavePreset,WM_OT_OpenPresetFolder,WM_OT_NewChainLink,WM_OT_CreateChainBoneGroup,WM_OT_SwitchToPoseMode,WM_OT_SwitchToObjectMode,WM_OT_HideNonNodes,WM_OT_HideNonAngleLimits,WM_OT_HideNonCollisions,WM_OT_UnhideAll,WM_OT_RenameBoneChain,WM_OT_ApplyAngleLimitRamp,WM_OT_AlignBoneTailsToAxis,WM_OT_SetAttrFlags
+from .modules.re_chain_propertyGroups import chainToolPanelPropertyGroup,chainHeaderPropertyGroup,chainWindSettingsPropertyGroup,chainSettingsPropertyGroup,chainGroupPropertyGroup,chainNodePropertyGroup,chainJigglePropertyGroup,chainCollisionPropertyGroup,chainClipboardPropertyGroup,chainLinkPropertyGroup,collisionSubDataPropertyGroup,chainLinkCollisionNodePropertyGroup
+from .modules.ui_re_chain_panels import OBJECT_PT_ChainObjectModePanel,OBJECT_PT_ChainPoseModePanel,OBJECT_PT_ChainPresetPanel,OBJECT_PT_ChainHeaderPanel,OBJECT_PT_WindSettingsPanel,OBJECT_PT_ChainSettingsPanel,OBJECT_PT_ChainGroupPanel,OBJECT_PT_ChainNodePanel,OBJECT_PT_ChainJigglePanel,OBJECT_PT_ChainCollisionPanel,OBJECT_PT_ChainClipboardPanel,OBJECT_PT_ChainLinkPanel,OBJECT_PT_ChainVisibilityPanel,OBJECT_PT_ChainCollisionSubDataPanel,OBJECT_PT_ChainLinkCollisionPanel,OBJECT_PT_NodeVisPanel,OBJECT_PT_CollisionVisPanel,OBJECT_PT_AngleLimitVisPanel,OBJECT_PT_ColorVisPanel
+from .modules.re_chain_operators import WM_OT_ChainFromBone,WM_OT_CollisionFromBones,WM_OT_AlignChainsToBones,WM_OT_AlignFrames,WM_OT_PointFrame,WM_OT_CopyChainProperties,WM_OT_PasteChainProperties,WM_OT_NewChainHeader,WM_OT_ApplyChainSettingsPreset,WM_OT_NewChainSettings,WM_OT_NewWindSettings,WM_OT_NewChainJiggle,WM_OT_ApplyChainGroupPreset,WM_OT_ApplyChainNodePreset,WM_OT_ApplyWindSettingsPreset,WM_OT_SavePreset,WM_OT_OpenPresetFolder,WM_OT_NewChainLink,WM_OT_CreateChainBoneGroup,WM_OT_SwitchToPoseMode,WM_OT_SwitchToObjectMode,WM_OT_HideNonNodes,WM_OT_HideNonAngleLimits,WM_OT_HideNonCollisions,WM_OT_UnhideAll,WM_OT_RenameBoneChain,WM_OT_ApplyAngleLimitRamp,WM_OT_AlignBoneTailsToAxis,WM_OT_SetAttrFlags,WM_OT_CreateChainLinkCollision
 
 class REChainPreferences(AddonPreferences):
 	bl_idname = __name__
+	
 	# addon updater preferences
 	auto_check_update: bpy.props.BoolProperty(
 	    name = "Auto-check for Update",
@@ -165,9 +166,13 @@ class ExportREChain(bpy.types.Operator, ExportHelper):
 	   default = "")
 	filter_glob: StringProperty(default="*.chain*", options={'HIDDEN'})
 	def invoke(self, context, event):
+		
 		if bpy.data.collections.get(self.targetCollection,None) == None:
 			if bpy.data.collections.get(bpy.context.scene.re_chain_toolpanel.chainCollection):
 				self.targetCollection = bpy.context.scene.re_chain_toolpanel.chainCollection
+				if ".chain" in self.targetCollection:#Remove blender suffix after .mesh if it exists
+					self.filepath = self.targetCollection.split(".chain")[0]+".chain" + self.filename_ext
+					
 				
 		if context.scene.get("REChainLastImportedChainVersion",0) in supportedChainVersions:
 			self.filename_ext = "."+str(context.scene["REChainLastImportedChainVersion"])
@@ -220,6 +225,7 @@ classes = [
 	chainJigglePropertyGroup,
 	chainCollisionPropertyGroup,
 	chainLinkPropertyGroup,
+	chainLinkCollisionNodePropertyGroup,
 	collisionSubDataPropertyGroup,
 	chainClipboardPropertyGroup,
 	OBJECT_PT_ChainObjectModePanel,
@@ -236,16 +242,22 @@ classes = [
 	OBJECT_PT_ChainLinkPanel,
 	OBJECT_PT_ChainVisibilityPanel,
 	OBJECT_PT_ChainCollisionSubDataPanel,
+	OBJECT_PT_ChainLinkCollisionPanel,
+	OBJECT_PT_NodeVisPanel,
+	OBJECT_PT_CollisionVisPanel,
+	OBJECT_PT_AngleLimitVisPanel,
+	OBJECT_PT_ColorVisPanel,
 	WM_OT_ChainFromBone,
 	WM_OT_CollisionFromBones,
-	WM_OT_AlignChainsToBones,
+	#WM_OT_AlignChainsToBones,
 	WM_OT_AlignFrames,
-	WM_OT_PointFrame,
+	#WM_OT_PointFrame,
 	WM_OT_NewChainHeader,
 	WM_OT_NewChainSettings,
 	WM_OT_NewWindSettings,
 	WM_OT_NewChainJiggle,
 	WM_OT_NewChainLink,
+	WM_OT_CreateChainLinkCollision,
 	WM_OT_CopyChainProperties,
 	WM_OT_PasteChainProperties,
 	WM_OT_ApplyChainSettingsPreset,
@@ -294,6 +306,7 @@ def register():
 	bpy.types.Object.re_chain_collision_subdata = bpy.props.PointerProperty(type=collisionSubDataPropertyGroup)
 	bpy.types.Object.re_chain_chaincollision = bpy.props.PointerProperty(type=chainCollisionPropertyGroup)
 	bpy.types.Object.re_chain_chainlink = bpy.props.PointerProperty(type=chainLinkPropertyGroup)
+	bpy.types.Object.re_chain_chainlink_collision = bpy.props.PointerProperty(type=chainLinkCollisionNodePropertyGroup)
 	
 	bpy.types.Scene.re_chain_clipboard = bpy.props.PointerProperty(type=chainClipboardPropertyGroup)
 	

@@ -29,8 +29,36 @@ def update_angleLimitSize(self, context):
 
 def update_angleLimitConeVis(self, context):
 	for obj in bpy.data.objects:
-		if obj.get("TYPE",None) == "RE_CHAIN_NODE_FRAME_HELPER":
+		if obj.get("TYPE",None) == "RE_CHAIN_NODE_FRAME_HELPER" and not obj.get("isLastNode"):
 			obj.hide_viewport = not self.showAngleLimitCones
+
+def update_collisionColor(self, context):
+	if "ChainCollisionMat" in bpy.data.materials:
+		mat = bpy.data.materials["ChainCollisionMat"]
+		mat.diffuse_color = self.collisionColor
+		mat.node_tree.nodes[0].inputs["Base Color"].default_value = bpy.context.scene.re_chain_toolpanel.collisionColor
+		mat.node_tree.nodes[0].inputs["Alpha"].default_value = bpy.context.scene.re_chain_toolpanel.collisionColor[3]
+def update_chainLinkColor(self, context):
+	if "ChainLinkMat" in bpy.data.materials:
+		mat = bpy.data.materials["ChainLinkMat"]
+		mat.diffuse_color = self.chainLinkColor
+		mat.node_tree.nodes[0].inputs["Base Color"].default_value = bpy.context.scene.re_chain_toolpanel.chainLinkColor
+		mat.node_tree.nodes[0].inputs["Alpha"].default_value = bpy.context.scene.re_chain_toolpanel.chainLinkColor[3]
+def update_chainLinkCollisionColor(self, context):
+	if "ChainLinkColMat" in bpy.data.materials:
+		mat = bpy.data.materials["ChainLinkColMat"]
+		mat.diffuse_color = self.chainLinkCollisionColor
+		mat.node_tree.nodes[0].inputs["Base Color"].default_value = bpy.context.scene.re_chain_toolpanel.chainLinkCollisionColor
+		mat.node_tree.nodes[0].inputs["Alpha"].default_value = bpy.context.scene.re_chain_toolpanel.chainLinkCollisionColor[3]
+def update_coneColor(self, context):
+	if "ChainConeMat" in bpy.data.materials:
+		mat = bpy.data.materials["ChainConeMat"]
+		mat.diffuse_color = self.coneColor
+		mat.node_tree.nodes[0].inputs["Base Color"].default_value = bpy.context.scene.re_chain_toolpanel.coneColor
+		mat.node_tree.nodes[0].inputs["Alpha"].default_value = bpy.context.scene.re_chain_toolpanel.coneColor[3]
+def update_RelationLinesVis(self, context):
+	bpy.context.space_data.overlay.show_relationship_lines = self.showRelationLines
+
 
 def update_coneSize(self, context):
 	for obj in bpy.data.objects:
@@ -46,7 +74,7 @@ def update_coneSize(self, context):
 				if nodeObj.re_chain_chainnode.angleMode == "2":#Hinge angle mode
 					yScaleModifier = .01
 				elif nodeObj.re_chain_chainnode.angleMode == "4":#Limit oval angle mode
-					xScaleModifier = .5
+					zScaleModifier = .5
 				elif nodeObj.re_chain_chainnode.angleMode == "5":#Limit elliptic angle mode
 					yScaleModifier = .5
 			obj.scale = (self.coneDisplaySize*xScaleModifier,self.coneDisplaySize*yScaleModifier,self.coneDisplaySize*zScaleModifier)
@@ -81,8 +109,17 @@ def update_AngleLimitRad(self, context):
 			for child in obj.children:
 				if child.get("TYPE",None) == "RE_CHAIN_NODE_FRAME":
 					for frameChild in child.children:
-						if frameChild.get("TYPE",None) == "RE_CHAIN_NODE_FRAME_HELPER":					
-							frameChild.data.spot_size = obj.re_chain_chainnode.angleLimitRad
+						if frameChild.get("TYPE",None) == "RE_CHAIN_NODE_FRAME_HELPER":
+							
+							if "REChainGeometryNodes" in frameChild.modifiers:
+								modifier = frameChild.modifiers["REChainGeometryNodes"]
+								if bpy.app.version < (4,0,0):
+									modifier["Input_0"] = obj.re_chain_chainnode.angleLimitRad
+								else:
+									modifier["Socket_0"] = obj.re_chain_chainnode.angleLimitRad
+								modifier.node_group.interface_update(context)
+								#print("Set modifier value")
+							#frameChild.data.spot_size = obj.re_chain_chainnode.angleLimitRad
 
 def update_NodeRadius(self, context):
 	obj = self.id_data
@@ -90,25 +127,38 @@ def update_NodeRadius(self, context):
 		if obj.re_chain_chainnode.collisionRadius != 0:
 			obj.empty_display_size = obj.re_chain_chainnode.collisionRadius# * 100
 		else:
-			obj.empty_display_size = 1
+			obj.empty_display_size = 0.01
 
 
 def update_CollisionRadius(self, context):
 	obj = self.id_data
 	if type(obj).__name__ == "Object":#Check if it's an object to prevent issues with clipboard 
 		if obj.get("TYPE",None) != "RE_CHAIN_COLLISION_CAPSULE_ROOT":
-			if obj.re_chain_chaincollision.radius != 0:
-				obj.empty_display_size = obj.re_chain_chaincollision.radius# * 100
-			else:
-				obj.empty_display_size = 0.01
+			#if obj.re_chain_chaincollision.radius != 0:
+				#obj.empty_display_size = obj.re_chain_chaincollision.radius# * 100
+			#else:
+				#obj.empty_display_size = 0.01
+			obj.scale = [obj.re_chain_chaincollision.radius]*3
 		else:
 			for child in obj.children:
 				if child.get("TYPE",None) == "RE_CHAIN_COLLISION_CAPSULE_START" or child.get("TYPE",None) == "RE_CHAIN_COLLISION_CAPSULE_END":
-					if obj.re_chain_chaincollision.radius != 0:
-						child.empty_display_size = obj.re_chain_chaincollision.radius# * 100
+					#if obj.re_chain_chaincollision.radius != 0:
+						#child.empty_display_size = obj.re_chain_chaincollision.radius# * 100
+					#else:
+						#child.empty_display_size = 0.01
+					if obj.re_chain_chaincollision.chainCollisionShape != "5":
+						child.scale = [obj.re_chain_chaincollision.radius]*3#If tapered capsule, don't scale end bone
 					else:
-						child.empty_display_size = 0.01
-						
+						if child.get("TYPE") == "RE_CHAIN_COLLISION_CAPSULE_START":
+							child.scale = [obj.re_chain_chaincollision.radius]*3
+						 
+def update_EndCollisionRadius(self, context):
+	obj = self.id_data
+	if type(obj).__name__ == "Object":#Check if it's an object to prevent issues with clipboard 
+		if obj.get("TYPE",None) == "RE_CHAIN_COLLISION_CAPSULE_ROOT":
+			for child in obj.children:
+				if child.get("TYPE",None) == "RE_CHAIN_COLLISION_CAPSULE_END" and obj.re_chain_chaincollision.chainCollisionShape == "5":
+					child.scale = [obj.re_chain_chaincollision.endRadius]*3#If tapered capsule, don't scale end bone
 def update_NodeNameVis(self, context):
 	for obj in bpy.data.objects:
 		if obj.get("TYPE",None) == "RE_CHAIN_NODE":
@@ -122,8 +172,6 @@ def update_CollisionNameVis(self, context):
 	for obj in bpy.data.objects:
 		if obj.get("TYPE",None) in collisionTypes:
 			obj.show_name = self.showCollisionNames
-
-
 def update_DrawNodesThroughObjects(self, context):
 	for obj in bpy.data.objects:
 		if obj.get("TYPE",None) == "RE_CHAIN_NODE" or obj.get("TYPE",None) == "RE_CHAIN_NODE_FRAME":
@@ -137,12 +185,22 @@ def update_DrawConesThroughObjects(self, context):
 def update_DrawCollisionsThroughObjects(self, context):
 	collisionTypes = [
 		"RE_CHAIN_COLLISION_SINGLE",
-		"RE_CHAIN_COLLISION_CAPSULE_START",
-		"RE_CHAIN_COLLISION_CAPSULE_END"]
+		#"RE_CHAIN_COLLISION_CAPSULE_START",
+		#"RE_CHAIN_COLLISION_CAPSULE_END",
+		"RE_CHAIN_COLLISION_CAPSULE_ROOT",
+		]
 	for obj in bpy.data.objects:
 		if obj.get("TYPE",None) in collisionTypes:
 			obj.show_in_front = self.drawCollisionsThroughObjects
 
+def update_DrawCapsuleHandlesThroughObjects(self, context):
+	for obj in bpy.data.objects:
+		if obj.get("TYPE",None) == "RE_CHAIN_COLLISION_CAPSULE_START" or obj.get("TYPE",None) == "RE_CHAIN_COLLISION_CAPSULE_END":
+			obj.show_in_front = self.drawCapsuleHandlesThroughObjects
+def update_DrawLinkCollisionsThroughObjects(self, context):
+	for obj in bpy.data.objects:
+		if obj.get("TYPE",None) == "RE_CHAIN_LINK_COLLISION":
+			obj.show_in_front = self.drawLinkCollisionsThroughObjects
 def update_CollisionOffset(self, context):
 	obj = self.id_data
 	if obj.get("TYPE",None) != "RE_CHAIN_COLLISION_CAPSULE_ROOT":
@@ -154,13 +212,92 @@ def update_CollisionOffset(self, context):
 
 def update_EndCollisionOffset(self, context):
 	obj = self.id_data
-	if obj.get("TYPE",None) != "RE_CHAIN_COLLISION_CAPSULE_ROOT":
+	if obj.get("TYPE",None) != "RE_CHAIN_COLLISION_CAPSULE_ROOT" and obj.get("TYPE",None) != "RE_CHAIN_COLLISION_SINGLE":
 		obj.location = obj.re_chain_chaincollision.endCollisionOffset# * 100
 	else:
 		for child in obj.children:
 			if child.get("TYPE",None) == "RE_CHAIN_COLLISION_CAPSULE_END":
 				child.location = obj.re_chain_chaincollision.endCollisionOffset# * 100
+
+def update_ChainGroupA(self, context):
+	obj = self.id_data
+	if type(obj).__name__ == "Object":#Check if it's an object to prevent issues with clipboard 
+		if obj.get("TYPE",None) == "RE_CHAIN_LINK":
+			oldName = obj.name
+			linkIndex = 0
+			if "LINK_" in oldName:
+				num = oldName.split("LINK_")[1].split(" -",1)[0]
+				if num.isdigit():
+					linkIndex = int(num)
+			shortNameA = "INVALID"
+			shortNameB = "INVALID"
+			if obj.re_chain_chainlink.chainGroupBObject in bpy.data.objects and bpy.data.objects[obj.re_chain_chainlink.chainGroupBObject].get("TYPE") == "RE_CHAIN_CHAINGROUP":
+				groupBObj = bpy.data.objects[obj.re_chain_chainlink.chainGroupBObject]
+				shortNameB = groupBObj.name.replace("CHAIN_GROUP_","")
+			if obj.re_chain_chainlink.chainGroupAObject in bpy.data.objects and bpy.data.objects[obj.re_chain_chainlink.chainGroupAObject].get("TYPE") == "RE_CHAIN_CHAINGROUP":
+				groupAObj = bpy.data.objects[obj.re_chain_chainlink.chainGroupAObject]
+				shortNameA = groupAObj.name.replace("CHAIN_GROUP_","")
+				nodeObj = None
+				for childObj in groupAObj.children:
+					if childObj.get("TYPE") == "RE_CHAIN_NODE":
+						nodeObj = childObj
+						break
+				if nodeObj != None:
+					if "REChainGeometryNodes" in obj.modifiers:
+						if bpy.app.version < (4,0,0):
+							obj.modifiers["REChainGeometryNodes"]["Input_0"] = nodeObj
+						else:
+							obj.modifiers["REChainGeometryNodes"]["Socket_0"] = nodeObj
+						obj.modifiers["REChainGeometryNodes"].node_group.interface_update(context)
+			obj.name = f"LINK_{str(linkIndex).zfill(2)} - {shortNameA} > {shortNameB}"
+def update_ChainGroupB(self, context):
+	obj = self.id_data
+	if type(obj).__name__ == "Object":#Check if it's an object to prevent issues with clipboard 
+		if obj.get("TYPE",None) == "RE_CHAIN_LINK":
+			oldName = obj.name
+			linkIndex = 0
+			if "LINK_" in oldName:
+				num = oldName.split("LINK_")[1].split(" -",1)[0]
+				if num.isdigit():
+					linkIndex = int(num)
+			shortNameA = "INVALID"
+			shortNameB = "INVALID"
+			if obj.re_chain_chainlink.chainGroupBObject in bpy.data.objects and bpy.data.objects[obj.re_chain_chainlink.chainGroupBObject].get("TYPE") == "RE_CHAIN_CHAINGROUP":
+				groupBObj = bpy.data.objects[obj.re_chain_chainlink.chainGroupBObject]
+				shortNameB = groupBObj.name.replace("CHAIN_GROUP_","")
+				nodeObj = None
+				for childObj in groupBObj.children:
+					if childObj.get("TYPE") == "RE_CHAIN_NODE":
+						nodeObj = childObj
+						break
+				if nodeObj != None:
+					if "REChainGeometryNodes" in obj.modifiers:
+						if bpy.app.version < (4,0,0):
+							obj.modifiers["REChainGeometryNodes"]["Input_1"] = nodeObj
+						else:
+							obj.modifiers["REChainGeometryNodes"]["Socket_1"] = nodeObj
+						obj.modifiers["REChainGeometryNodes"].node_group.interface_update(context)
+			if obj.re_chain_chainlink.chainGroupAObject in bpy.data.objects and bpy.data.objects[obj.re_chain_chainlink.chainGroupAObject].get("TYPE") == "RE_CHAIN_CHAINGROUP":
+				groupAObj = bpy.data.objects[obj.re_chain_chainlink.chainGroupAObject]
+				shortNameA = groupAObj.name.replace("CHAIN_GROUP_","")
+				
+			obj.name = f"LINK_{str(linkIndex).zfill(2)} - {shortNameA} > {shortNameB}"
 			
+def update_ChainLinkCollisionRadius(self, context):
+	obj = self.id_data
+	if type(obj).__name__ == "Object":#Check if it's an object to prevent issues with clipboard 
+		if obj.get("TYPE",None) == "RE_CHAIN_LINK_COLLISION":
+			if "REChainGeometryNodes" in obj.modifiers:
+				if bpy.app.version < (4,0,0):
+					obj.modifiers["REChainGeometryNodes"]["Input_2"] = obj.re_chain_chainlink_collision.collisionRadius
+				else:
+					obj.modifiers["REChainGeometryNodes"]["Socket_2"] = obj.re_chain_chainlink_collision.collisionRadius
+				obj.modifiers["REChainGeometryNodes"].node_group.interface_update(context)
+
+def update_hideLastNodeAngleLimit(self, context):
+	for obj in bpy.data.objects:
+		if obj.get("TYPE",None) == "RE_CHAIN_NODE_FRAME_HELPER" and obj.get("isLastNode"):
+			obj.hide_viewport = self.hideLastNodeAngleLimit
 class chainToolPanelPropertyGroup(bpy.types.PropertyGroup):
 	
 	def getChainGroupPresets(self,context):
@@ -180,10 +317,11 @@ class chainToolPanelPropertyGroup(bpy.types.PropertyGroup):
 		description="Set collision shape to be used by Create Collision From Bone button",
 		items=[("SPHERE", "Sphere", ""),
 			   ("CAPSULE", "Capsule", ""),
+			   ("TCAPSULE", "Tapered Capsule", ""),
 			   ("OBB", "OBB", ""),
 			   ("PLANE", "Plane", ""),
-			   ("LINESPHERE", "LineSphere", ""),
-			   ("LERPSPHERE", "LerpSphere", ""),
+			   ("LINESPHERE", "Line Sphere", ""),
+			   ("LERPSPHERE", "Lerp Sphere", ""),
 			   ]
 		)
 	
@@ -236,6 +374,18 @@ class chainToolPanelPropertyGroup(bpy.types.PropertyGroup):
 		default = False,
 		update = update_DrawCollisionsThroughObjects
 		)
+	drawLinkCollisionsThroughObjects: BoolProperty(
+		name="Draw Link Collisions Through Objects",
+		description="Make all chain link collisions render through any objects in front of them",
+		default = True,
+		update = update_DrawLinkCollisionsThroughObjects
+		)
+	drawCapsuleHandlesThroughObjects: BoolProperty(
+		name="Draw Handles Through Objects",
+		description="Make all capsule handle objects render through any objects in front of them",
+		default = True,
+		update = update_DrawCapsuleHandlesThroughObjects
+		)
 	showAngleLimitCones: BoolProperty(
 		name="Show Cones",
 		description="Show Angle Limit Cones in 3D View",
@@ -245,7 +395,7 @@ class chainToolPanelPropertyGroup(bpy.types.PropertyGroup):
 	drawConesThroughObjects: BoolProperty(
 		name="Draw Cones Through Objects",
 		description="Make all angle limit cones render through any objects in front of them",
-		default = False,
+		default = True,
 		update = update_DrawConesThroughObjects
 		)
 	angleLimitDisplaySize: FloatProperty(
@@ -262,7 +412,7 @@ class chainToolPanelPropertyGroup(bpy.types.PropertyGroup):
 	coneDisplaySize: FloatProperty(
 		name="Cone Size",
 		description="Set the display size of node angle limit cones",
-		default = 0.006,
+		default = 0.005,
 		soft_min = 0.0,
 		soft_max = .2,
 		precision = 3,
@@ -285,6 +435,54 @@ class chainToolPanelPropertyGroup(bpy.types.PropertyGroup):
 		description = "Set the collection containing the chain file to edit.\nHint: Chain collections are orange.\nYou can create a new chain collection by pressing the \"Create Chain Header\" button",
 		
 		)
+	collisionColor: bpy.props.FloatVectorProperty(
+        name="Collision Color",
+        subtype='COLOR',
+        size=4,
+        min=0.0,
+        max=1.0,
+		default = (0.003,0.426,0.8,0.3),
+		update = update_collisionColor
+    )
+	chainLinkColor: bpy.props.FloatVectorProperty(
+        name="Chain Link Color",
+        subtype='COLOR',
+        size=4,
+        min=0.0,
+        max=1.0,
+		default = (0.0,0.8,0.02,0.40),
+		update = update_chainLinkColor
+    )
+	chainLinkCollisionColor: bpy.props.FloatVectorProperty(
+        name="Link Collision Color",
+        subtype='COLOR',
+        size=4,
+        min=0.0,
+        max=1.0,
+		default = (0.8,0.0,0.02,0.40),
+		update = update_chainLinkCollisionColor
+    )
+	coneColor: bpy.props.FloatVectorProperty(
+        name="Angle Limit Color",
+        subtype='COLOR',
+        size=4,
+        min=0.0,
+        max=1.0,
+		default = (0.8,0.6,0.0,0.4),
+		update = update_coneColor
+    )
+	showRelationLines: BoolProperty(
+		name="Show Relation Lines",
+		description="Show dotted lines indicating object parents. Recommended to disable since they can be very obtrusive with many objects.\nNote that this affects all objects, not just chain objects",
+		default = True,
+		update = update_RelationLinesVis,
+	)
+	hideLastNodeAngleLimit: BoolProperty(
+		name="Hide Last Node Cone",
+		description="Hides the last chain node's angle limit cone. This is because the last node is typically unused and has a dummy rotation value",
+		default = True,
+		update = update_hideLastNodeAngleLimit,
+	)
 class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
 
 	'''version: IntProperty(
@@ -1743,14 +1941,17 @@ class chainCollisionPropertyGroup(bpy.types.PropertyGroup):
 		step = .1,
 		soft_min = 0.00
 		)
+	endRadius: FloatProperty(
+		name = "End Radius",
+		description = "Radius of end of capsule. Collision shape must be set to tapered capsule for this to do anything\nVersion 46 and above only",#TODO Add description
+		default = 0.00,
+		update = update_EndCollisionRadius,
+		step = .1,
+		soft_min = 0.00
+		)
 	lerp: FloatProperty(
 		name = "Lerp",
 		description = "Lerp",#TODO Add description
-		default = 0.00,
-		)
-	unknCollisionValue: FloatProperty(
-		name = "Unknown Collision Value",
-		description = "Unknown Collision Value\nVersion 48 and above only",#TODO Add description
 		default = 0.00,
 		)
 	chainCollisionShape: EnumProperty(
@@ -1767,9 +1968,11 @@ class chainCollisionPropertyGroup(bpy.types.PropertyGroup):
 			   ]
 		)
 	subDataCount: IntProperty(
-		name = "Unknown Count",
-		description = "SubData Count?",#TODO Add description
+		name = "Sub Data Count",
+		description = "Sub Data Count",#TODO Add description
 		default = 0,
+		min = 0,
+		max = 1,#Max shouldn't be 1 but I would have to rewrite the way subdata works otherwise. Barely anything has a subdata count of more than 1 so I don't think it matters
 		)
 	collisionFilterFlags: EnumProperty(
 		name="Collision Filter Flags",
@@ -1785,6 +1988,7 @@ class chainCollisionPropertyGroup(bpy.types.PropertyGroup):
 				("7", "ChainCollisionType_UNKNOWN7", ""),
 			   ]
 		)
+	"""
 	subDataFlag: IntProperty(
 		name = "Use Sub Data Flag",
 		description = "Set to 1 to enable subdata",
@@ -1792,19 +1996,19 @@ class chainCollisionPropertyGroup(bpy.types.PropertyGroup):
 		min = -1,
 		max = 1,
 		)
+	"""
 
 def getChainCollision(ChainCollisionData,targetObject):
 	#Done manually to be able to account for chain version differences eventually
 	targetObject.re_chain_chaincollision.rotationOrder = str(ChainCollisionData.rotationOrder)
 	targetObject.re_chain_chaincollision.radius = ChainCollisionData.radius
+	targetObject.re_chain_chaincollision.endRadius = ChainCollisionData.endRadius
 	targetObject.re_chain_chaincollision.lerp = ChainCollisionData.lerp
-	targetObject.re_chain_chaincollision.unknCollisionValue = ChainCollisionData.unknCollisionValue
 	targetObject.re_chain_chaincollision.chainCollisionShape = str(ChainCollisionData.chainCollisionShape)
 	targetObject.re_chain_chaincollision.subDataCount = ChainCollisionData.subDataCount
 	targetObject.re_chain_chaincollision.collisionFilterFlags = str(ChainCollisionData.collisionFilterFlags)
-	targetObject.re_chain_chaincollision.subDataFlag = ChainCollisionData.subDataFlag
 	
-	if ChainCollisionData.subDataFlag >= 1:
+	if ChainCollisionData.subDataCount >= 1:
 		targetObject.re_chain_collision_subdata.pos = (ChainCollisionData.subData.posX,ChainCollisionData.subData.posY,ChainCollisionData.subData.posZ)
 		targetObject.re_chain_collision_subdata.pairPos = (ChainCollisionData.subData.pairPosX,ChainCollisionData.subData.pairPosY,ChainCollisionData.subData.pairPosZ)
 		targetObject.re_chain_collision_subdata.rotOffset = (ChainCollisionData.subData.rotOffsetW,ChainCollisionData.subData.rotOffsetX,ChainCollisionData.subData.rotOffsetY,ChainCollisionData.subData.rotOffsetZ)
@@ -1817,9 +2021,9 @@ def getChainCollision(ChainCollisionData,targetObject):
 
 def setChainCollisionData(ChainCollisionData,targetObject):
 	ChainCollisionData.rotationOrder = int(targetObject.re_chain_chaincollision.rotationOrder)
-	ChainCollisionData.radius = targetObject.re_chain_chaincollision.radius * targetObject.scale[0]
+	ChainCollisionData.radius = targetObject.scale[0]
+	ChainCollisionData.endRadius = targetObject.re_chain_chaincollision.endRadius
 	ChainCollisionData.lerp = targetObject.re_chain_chaincollision.lerp
-	ChainCollisionData.unknCollisionValue = targetObject.re_chain_chaincollision.unknCollisionValue
 	ChainCollisionData.chainCollisionShape = int(targetObject.re_chain_chaincollision.chainCollisionShape)
 	ChainCollisionData.subDataCount = targetObject.re_chain_chaincollision.subDataCount 
 	ChainCollisionData.collisionFilterFlags = int(targetObject.re_chain_chaincollision.collisionFilterFlags)
@@ -1843,6 +2047,7 @@ def setChainCollisionData(ChainCollisionData,targetObject):
 		ChainCollisionData.rotOffsetZ = targetObject.rotation_quaternion[3]
 		ChainCollisionData.rotOffsetW = targetObject.rotation_quaternion[0]
 		targetObject.re_chain_chaincollision.collisionOffset = targetObject.location
+		targetObject.re_chain_chaincollision.radius = targetObject.scale[0]
 	else:
 		startCapsule = None
 		endCapsule = None
@@ -1853,8 +2058,11 @@ def setChainCollisionData(ChainCollisionData,targetObject):
 				endCapsule = child
 				
 		if startCapsule != None:
-			ChainCollisionData.radius = targetObject.re_chain_chaincollision.radius * startCapsule.scale[0]
-			ChainCollisionData.jointNameHash = hash_wide(startCapsule.constraints["BoneName"].subtarget)		
+			ChainCollisionData.radius = startCapsule.scale[0]
+			boneName = startCapsule.constraints["BoneName"].subtarget
+			if boneName.startswith("b") and ":" in boneName:
+				boneName = boneName.split(":",1)[1]
+			ChainCollisionData.jointNameHash = hash_wide(boneName)		
 			ChainCollisionData.rotOffsetX = startCapsule.rotation_quaternion[1]
 			ChainCollisionData.rotOffsetY = startCapsule.rotation_quaternion[2]
 			ChainCollisionData.rotOffsetZ = startCapsule.rotation_quaternion[3]
@@ -1864,8 +2072,15 @@ def setChainCollisionData(ChainCollisionData,targetObject):
 			ChainCollisionData.posZ = startCapsule.location[2]
 			#Update UI value if the user moved the collision via the grab tool
 			targetObject.re_chain_chaincollision.collisionOffset = startCapsule.location
+			targetObject.re_chain_chaincollision.radius = startCapsule.scale[0]
 		if endCapsule != None:
-			ChainCollisionData.pairJointNameHash = hash_wide(endCapsule.constraints["BoneName"].subtarget)
+			if ChainCollisionData.chainCollisionShape == 5:
+				ChainCollisionData.endRadius = endCapsule.scale[0]
+				targetObject.re_chain_chaincollision.endRadius = endCapsule.scale[0]
+			boneName = endCapsule.constraints["BoneName"].subtarget
+			if boneName.startswith("b") and ":" in boneName:
+				boneName = boneName.split(":",1)[1]
+			ChainCollisionData.pairJointNameHash = hash_wide(boneName)
 			ChainCollisionData.pairPosX = endCapsule.location[0]
 			ChainCollisionData.pairPosY = endCapsule.location[1]
 			ChainCollisionData.pairPosZ = endCapsule.location[2]
@@ -1877,8 +2092,8 @@ def setChainCollisionData(ChainCollisionData,targetObject):
 			ChainCollisionData.pairPosZ = 0.0
 			ChainCollisionData.pairJointNameHash = 0
 	
-	ChainCollisionData.subDataFlag = targetObject.re_chain_chaincollision.subDataFlag
-	if targetObject.re_chain_chaincollision.subDataFlag:
+	ChainCollisionData.subDataCount = targetObject.re_chain_chaincollision.subDataCount
+	if targetObject.re_chain_chaincollision.subDataCount:
 		ChainCollisionData.subData.posX = targetObject.re_chain_collision_subdata.pos[0]
 		ChainCollisionData.subData.posY = targetObject.re_chain_collision_subdata.pos[1]
 		ChainCollisionData.subData.posZ = targetObject.re_chain_collision_subdata.pos[2]
@@ -1896,17 +2111,46 @@ def setChainCollisionData(ChainCollisionData,targetObject):
 		ChainCollisionData.subData.unknSubCollisionData2 = targetObject.re_chain_collision_subdata.unknSubCollisionData2
 		ChainCollisionData.subData.unknSubCollisionData3 = targetObject.re_chain_collision_subdata.unknSubCollisionData3
 
+class chainLinkCollisionNodePropertyGroup(bpy.types.PropertyGroup):
+	collisionRadius: FloatProperty(
+		name = "Collision Radius",
+		description = "Collision Radius",#TODO Add description
+		default = 0.01,
+		min=0.000,
+		step = 0.01,
+		update = update_ChainLinkCollisionRadius
+		)
+	collisionFilterFlags: IntProperty(
+		name="Collision Filter Flags",
+		description="Controls how collisions will interact with surroundings",
+		default = 4,
+		)
+
+def getChainLinkCollisionNode(ChainLinkNodeData,targetObject):
+	#Done manually to be able to account for chain version differences eventually
+	targetObject.re_chain_chainlink.collisionRadius = ChainLinkNodeData.collisionRadius
+	targetObject.re_chain_chainlink.collisionFilterFlags = ChainLinkNodeData.collisionFilterFlags
+	
+
+def setChainLinkCollisionNodeData(ChainLinkNodeData,targetObject):
+	#TODO get chain group links
+	ChainLinkNodeData.collisionRadius = targetObject.re_chain_chainlink_collision.collisionRadius 
+	ChainLinkNodeData.collisionFilterFlags = targetObject.re_chain_chainlink_collision.collisionFilterFlags 
+
 class chainLinkPropertyGroup(bpy.types.PropertyGroup):
 	chainGroupAObject: StringProperty(
 		name = "Chain Group A",
 		description = "Chain Group A",#TODO Add description
 		default = "",
+		update = update_ChainGroupA
 		)
 	chainGroupBObject: StringProperty(
 		name = "Chain Group B",
 		description = "Chain Group B",#TODO Add description
 		default = "",
+		update = update_ChainGroupB
 		)
+	
 	distanceShrinkLimitCoef: FloatProperty(
 		name = "Distance Shrink Limit Coefficient",
 		description = "Distance Shrink Limit Coefficient",#TODO Add description
@@ -1984,7 +2228,8 @@ def setChainLinkData(ChainLinkData,targetObject):
 	ChainLinkData.skipGroupA = targetObject.re_chain_chainlink.skipGroupA 
 	ChainLinkData.skipGroupB = targetObject.re_chain_chainlink.skipGroupB 
 	ChainLinkData.linkOrder = int(targetObject.re_chain_chainlink.linkOrder)
-
+	
+		
 class chainClipboardPropertyGroup(bpy.types.PropertyGroup):
 	re_chain_type : StringProperty(default="NONE", options={'HIDDEN'})
 	re_chain_type_name : StringProperty(default="None", options={'HIDDEN'})
@@ -1997,6 +2242,7 @@ class chainClipboardPropertyGroup(bpy.types.PropertyGroup):
 	re_chain_collision_subdata : PointerProperty(type=collisionSubDataPropertyGroup)
 	re_chain_chaincollision : PointerProperty(type=chainCollisionPropertyGroup)
 	re_chain_chainlink : PointerProperty(type=chainLinkPropertyGroup)
+	re_chain_chainlink_collision : PointerProperty(type=chainLinkCollisionNodePropertyGroup)
 	frameOrientation: FloatVectorProperty(
 		name = "Frame Orientation",
 		size = 3,

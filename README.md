@@ -1,9 +1,8 @@
-
 ![REChainEditorTitle](https://github.com/NSACloud/RE-Chain-Editor/assets/46909075/e74f6ac0-e7c7-4f26-94af-0cf1ff9e95ee)
 
 This addon allows for importing and exporting of RE Engine chain (physics bone) files from Blender.
 
-![Blender Preview](https://github.com/NSACloud/RE-Chain-Editor/assets/46909075/82f76e5a-cddb-4c09-92e2-2a7cbca97599)
+![Blender Preview](https://github.com/NSACloud/RE-Chain-Editor/assets/46909075/f7f27463-2690-4978-893d-72f4647e0a6d)
 
 ### [Download RE Chain Editor](https://github.com/NSACloud/RE-Chain-Editor/archive/refs/heads/main.zip)
 
@@ -14,13 +13,30 @@ This addon allows for importing and exporting of RE Engine chain (physics bone) 
  
 ## Change Log
 
+### V8 - 5/20/2024
+
+NOTE: If you're updating from a previous version, you have to delete any chains saved to a blend file and reimport the chain file for them to work properly.
+
+* Visuals have been overhauled. Chain objects now have colors and more accurately represent their functionality visually.
+* Chain link collisions have been added. This adds collision between linked chains and can greatly reduce clipping.
+* Chain links can have collisions assigned to them by using the "Create Chain Link Collision" button with a chain link selected.
+* Chain links now draw a line between the chain groups they are attached to.
+* Added support for tapered capsules. This allows for collision capsules to have a different radius on each end. This is only supported on chain version 46 and above. If exporting an older version, the end radius will be corrected to match the start radius. 
+* Chain objects are now organized into collections to make managing them easier.
+* The naming scheme of chain collisions and chain links have been changed to visually show what bones they attach to.
+* Bones assigned to chains are now colored green.
+* The RE Chain Visiblity panel has been organized into sub menus with several new options added.
+* The last angle limit cone of a chain is now hidden by default. This is because the last chain node typically isn't used. This can be changed under Visibility > Angle Limit Settings > Hide Last Node Cone.
+* Fixed issue where collisions were not imported correctly in RE2/RE3 RT.
+* Minor bug fixes
+<details>
+  <summary>Older Version Change Logs</summary>
+
 ### V7 - 4/28/2024
 
 * Added RE Toolbox integration. Any chain files exported will be added to RE Toolbox's batch export list.
 * Fixed bug with getting the armature object to attach chains to.
 
-<details>
-  <summary>Older Version Change Logs</summary>
 
 ### V6 - 4/20/2024
 
@@ -90,7 +106,7 @@ This is because certain settings have been stored differently compared to the pr
 Support for more games may be added in the future.
 
 ## Requirements
-* [Blender 2.8 or higher](https://www.blender.org/download/)
+* [Blender 2.93 or higher](https://www.blender.org/download/)
 * [RE Mesh Editor](https://github.com/NSACloud/RE-Mesh-Editor)
 
 OR

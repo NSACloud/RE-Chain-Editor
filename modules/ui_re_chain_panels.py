@@ -40,6 +40,7 @@ class OBJECT_PT_ChainObjectModePanel(Panel):
 		layout.operator("re_chain.create_wind_settings")
 		layout.operator("re_chain.create_chain_jiggle")
 		layout.operator("re_chain.create_chain_link")
+		layout.operator("re_chain.create_chain_link_collision")
 		#layout.operator("re_chain.align_chains_to_bone")# Not needed anymore
 		layout.operator("re_chain.align_frames")
 		layout.operator("re_chain.apply_angle_limit_ramp")
@@ -519,13 +520,13 @@ class OBJECT_PT_ChainCollisionPanel(Panel):
 		col2.prop(re_chain_chaincollision, "radius")
 		col2.prop(re_chain_chaincollision, "collisionOffset")
 		col2.prop(re_chain_chaincollision, "endCollisionOffset")	
-		col2.prop(re_chain_chaincollision, "lerp")
+		col2.prop(re_chain_chaincollision, "endRadius")
 		#if version >= 48:
-		col2.prop(re_chain_chaincollision, "unknCollisionValue") 
+		col2.prop(re_chain_chaincollision, "lerp") 
 		col2.prop(re_chain_chaincollision, "chainCollisionShape")
 		col2.prop(re_chain_chaincollision, "subDataCount")
 		col2.prop(re_chain_chaincollision, "collisionFilterFlags")
-		col2.prop(re_chain_chaincollision, "subDataFlag")
+		#col2.prop(re_chain_chaincollision, "subDataFlag")
 		
 class OBJECT_PT_ChainCollisionSubDataPanel(Panel):
 	bl_label = "RE Chain Collision Subdata Settings"
@@ -539,7 +540,7 @@ class OBJECT_PT_ChainCollisionSubDataPanel(Panel):
 	@classmethod
 	def poll(self,context):
 		
-		return context and context.object.mode == "OBJECT" and ((context.active_object.get("TYPE",None) == "RE_CHAIN_COLLISION_SINGLE" or context.active_object.get("TYPE",None) == "RE_CHAIN_COLLISION_CAPSULE_ROOT") and context.active_object.re_chain_chaincollision.subDataFlag == 1)
+		return context and context.object.mode == "OBJECT" and ((context.active_object.get("TYPE",None) == "RE_CHAIN_COLLISION_SINGLE" or context.active_object.get("TYPE",None) == "RE_CHAIN_COLLISION_CAPSULE_ROOT") and context.active_object.re_chain_chaincollision.subDataCount == 1)
 
 	def draw(self, context):
 		layout = self.layout
@@ -595,7 +596,34 @@ class OBJECT_PT_ChainLinkPanel(Panel):
 		col2.prop(re_chain_chainlink, "skipGroupA")
 		col2.prop(re_chain_chainlink, "skipGroupB")
 		col2.prop(re_chain_chainlink, "linkOrder")
+
+class OBJECT_PT_ChainLinkCollisionPanel(Panel):
+	bl_label = "RE Chain Link Collision Settings"
+	bl_idname = "OBJECT_PT_chain_link_collision_panel"
+	bl_space_type = "PROPERTIES"   
+	bl_region_type = "WINDOW"
+	bl_category = "RE Chain Link Collision Settings"
+	bl_context = "object"
+
+
+	@classmethod
+	def poll(self,context):
 		
+		return context and context.object.mode == "OBJECT" and context.active_object.get("TYPE",None) == "RE_CHAIN_LINK_COLLISION"
+
+	def draw(self, context):
+		layout = self.layout
+		object = context.active_object
+		re_chain_chainlink = object.re_chain_chainlink_collision
+		
+		split = layout.split(factor=0.01)
+		col1 = split.column()
+		col2 = split.column()
+		col2.alignment='RIGHT'
+		col2.use_property_split = True
+		col2.prop(re_chain_chainlink, "collisionRadius")
+		col2.prop(re_chain_chainlink, "collisionFilterFlags") 
+
 class OBJECT_PT_ChainVisibilityPanel(Panel):
 	bl_label = "RE Chain: Visibility"
 	bl_idname = "OBJECT_PT_chain_visibility_panel"
@@ -611,15 +639,74 @@ class OBJECT_PT_ChainVisibilityPanel(Panel):
 	def draw(self, context):
 		re_chain_toolpanel = context.scene.re_chain_toolpanel
 		layout = self.layout
-		layout.prop(re_chain_toolpanel, "showNodeNames")
-		layout.prop(re_chain_toolpanel, "drawNodesThroughObjects")
-		layout.prop(re_chain_toolpanel, "showCollisionNames")
-		layout.prop(re_chain_toolpanel, "drawCollisionsThroughObjects")
-		layout.prop(re_chain_toolpanel, "showAngleLimitCones")
-		layout.prop(re_chain_toolpanel, "drawConesThroughObjects")
-		layout.prop(re_chain_toolpanel, "angleLimitDisplaySize")
-		layout.prop(re_chain_toolpanel, "coneDisplaySize")
 		layout.operator("re_chain.hide_non_nodes")
 		layout.operator("re_chain.hide_non_angle_limits")
 		layout.operator("re_chain.hide_non_collisions")
 		layout.operator("re_chain.unhide_all")
+		
+		
+class OBJECT_PT_NodeVisPanel(Panel):
+	bl_label = "Chain Node Settings"
+	bl_idname = "OBJECT_PT_chain_node_vis_panel"
+	bl_parent_id = "OBJECT_PT_chain_visibility_panel"
+	bl_space_type = 'VIEW_3D'
+	bl_region_type = 'UI'
+	bl_options = {'DEFAULT_CLOSED'}
+	def draw(self, context):
+		layout = self.layout
+		obj = context.active_object
+		re_chain_toolpanel = context.scene.re_chain_toolpanel
+		layout.prop(re_chain_toolpanel, "showRelationLines")
+		layout.prop(re_chain_toolpanel, "showNodeNames")
+		layout.prop(re_chain_toolpanel, "drawNodesThroughObjects")
+		
+class OBJECT_PT_CollisionVisPanel(Panel):
+	bl_label = "Collision Settings"
+	bl_idname = "OBJECT_PT_chain_collision_vis_panel"
+	bl_parent_id = "OBJECT_PT_chain_visibility_panel"
+	bl_space_type = 'VIEW_3D'
+	bl_region_type = 'UI'
+	bl_options = {'DEFAULT_CLOSED'}
+	def draw(self, context):
+		layout = self.layout
+		obj = context.active_object
+		re_chain_toolpanel = context.scene.re_chain_toolpanel
+		
+		layout.prop(re_chain_toolpanel, "showCollisionNames")
+		layout.prop(re_chain_toolpanel, "drawCollisionsThroughObjects")
+		layout.prop(re_chain_toolpanel, "drawCapsuleHandlesThroughObjects")
+		layout.prop(re_chain_toolpanel, "drawLinkCollisionsThroughObjects")
+		
+class OBJECT_PT_AngleLimitVisPanel(Panel):
+	bl_label = "Angle Limit Settings"
+	bl_idname = "OBJECT_PT_chain_angle_limit_vis_panel"
+	bl_parent_id = "OBJECT_PT_chain_visibility_panel"
+	bl_space_type = 'VIEW_3D'
+	bl_region_type = 'UI'
+	bl_options = {'DEFAULT_CLOSED'}
+	def draw(self, context):
+		layout = self.layout
+		obj = context.active_object
+		re_chain_toolpanel = context.scene.re_chain_toolpanel
+		layout.prop(re_chain_toolpanel, "showAngleLimitCones")
+		layout.prop(re_chain_toolpanel, "drawConesThroughObjects")
+		layout.prop(re_chain_toolpanel, "hideLastNodeAngleLimit")
+		layout.prop(re_chain_toolpanel, "angleLimitDisplaySize")
+		layout.prop(re_chain_toolpanel, "coneDisplaySize")
+		
+class OBJECT_PT_ColorVisPanel(Panel):
+	bl_label = "Color Settings"
+	bl_idname = "OBJECT_PT_chain_color_vis_panel"
+	bl_parent_id = "OBJECT_PT_chain_visibility_panel"
+	bl_space_type = 'VIEW_3D'
+	bl_region_type = 'UI'
+	bl_options = {'DEFAULT_CLOSED'}
+	def draw(self, context):
+		layout = self.layout
+		obj = context.active_object
+		re_chain_toolpanel = context.scene.re_chain_toolpanel
+		
+		layout.prop(re_chain_toolpanel, "collisionColor")
+		layout.prop(re_chain_toolpanel, "chainLinkColor")
+		layout.prop(re_chain_toolpanel, "chainLinkCollisionColor")
+		layout.prop(re_chain_toolpanel, "coneColor")
