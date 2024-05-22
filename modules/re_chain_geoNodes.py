@@ -141,8 +141,10 @@ def getColCapsuleGeoNodeTree():
 		currentXLoc += 300
 		outNode = nodes.new('NodeGroupOutput')
 		outNode.location = (currentXLoc,currentYLoc)
-		if bpy.app.version < (4,0,0):
+		if bpy.app.version < (3,4,0):
 			outNode.inputs.new('NodeSocketGeometry', 'Geometry')
+		elif bpy.app.version < (4,0,0):
+			node_group.outputs.new('NodeSocketGeometry', 'Geometry')
 		else:
 			node_group.interface.new_socket(name="Geometry",description="",in_out ="OUTPUT", socket_type="NodeSocketGeometry")
 		links.new(setSmoothShadeNode.outputs["Geometry"],outNode.inputs["Geometry"])
@@ -373,8 +375,10 @@ def getColCapsuleGeoNodeTree():
 		currentXLoc += 300
 		outNode = nodes.new('NodeGroupOutput')
 		outNode.location = (currentXLoc,currentYLoc)
-		if bpy.app.version < (4,0,0):
+		if bpy.app.version < (3,4,0):
 			outNode.inputs.new('NodeSocketGeometry', 'Geometry')
+		elif bpy.app.version < (4,0,0):
+			node_group.outputs.new('NodeSocketGeometry', 'Geometry')
 		else:
 			node_group.interface.new_socket(name="Geometry",description="",in_out ="OUTPUT", socket_type="NodeSocketGeometry")
 		links.new(setSmoothShadeNode.outputs["Geometry"],outNode.inputs["Geometry"])
@@ -446,8 +450,10 @@ def getColSphereGeoNodeTree():
 		currentXLoc += 300
 		outNode = nodes.new('NodeGroupOutput')
 		outNode.location = (currentXLoc,currentYLoc)
-		if bpy.app.version < (4,0,0):
+		if bpy.app.version < (3,4,0):
 			outNode.inputs.new('NodeSocketGeometry', 'Geometry')
+		elif bpy.app.version < (4,0,0):
+			node_group.outputs.new('NodeSocketGeometry', 'Geometry')
 		else:
 			node_group.interface.new_socket(name="Geometry",description="",in_out ="OUTPUT", socket_type="NodeSocketGeometry")
 		links.new(setSmoothShadeNode.outputs["Geometry"],outNode.inputs["Geometry"])
@@ -528,8 +534,10 @@ def getChainLinkGeoNodeTree():
 		outNode = nodes.new('NodeGroupOutput')
 		outNode.location = (currentXLoc,currentYLoc)
 		
-		if bpy.app.version < (4,0,0):
+		if bpy.app.version < (3,4,0):
 			outNode.inputs.new('NodeSocketGeometry', 'Geometry')
+		elif bpy.app.version < (4,0,0):
+			node_group.outputs.new('NodeSocketGeometry', 'Geometry')
 		else:
 			node_group.interface.new_socket(name="Geometry",description="",in_out ="OUTPUT", socket_type="NodeSocketGeometry")
 		
@@ -643,8 +651,10 @@ def getLinkColGeoNodeTree():
 		currentXLoc += 300
 		outNode = nodes.new('NodeGroupOutput')
 		outNode.location = (currentXLoc,currentYLoc)
-		if bpy.app.version < (4,0,0):
+		if bpy.app.version < (3,4,0):
 			outNode.inputs.new('NodeSocketGeometry', 'Geometry')
+		elif bpy.app.version < (4,0,0):
+			node_group.outputs.new('NodeSocketGeometry', 'Geometry')
 		else:
 			node_group.interface.new_socket(name="Geometry",description="",in_out ="OUTPUT", socket_type="NodeSocketGeometry")
 		links.new(setSmoothShadeNode.outputs["Geometry"],outNode.inputs["Geometry"])
@@ -720,8 +730,10 @@ def getConeGeoNodeTree():
 		currentXLoc += 300
 		outNode = nodes.new('NodeGroupOutput')
 		outNode.location = (currentXLoc,currentYLoc)
-		if bpy.app.version < (4,0,0):
+		if bpy.app.version < (3,4,0):
 			outNode.inputs.new('NodeSocketGeometry', 'Geometry')
+		elif bpy.app.version < (4,0,0):
+			node_group.outputs.new('NodeSocketGeometry', 'Geometry')
 		else:
 			node_group.interface.new_socket(name="Geometry",description="",in_out ="OUTPUT", socket_type="NodeSocketGeometry")
 		links.new(setMaterialNode.outputs["Geometry"],outNode.inputs["Geometry"])

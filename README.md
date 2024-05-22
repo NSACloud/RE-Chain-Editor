@@ -13,6 +13,10 @@ This addon allows for importing and exporting of RE Engine chain (physics bone) 
  
 ## Change Log
 
+### V8.1 - 5/22/2024
+
+* Fixed incompatibility with Blender 3.4 - 3.6
+
 ### V8 - 5/20/2024
 
 NOTE: If you're updating from a previous version, you have to delete any chains saved to a blend file and reimport the chain file for them to work properly.
