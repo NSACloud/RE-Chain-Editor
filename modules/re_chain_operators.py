@@ -35,6 +35,8 @@ attrFlagsItems = [
 	("33971","MHRise_COLLLISION_ENABLED_FLAG_33971",""),
 	("33807","RE2_RT_COLLLISION_ENABLED_FLAG_33807",""),
 	("33803","RE4_COLLLISION_ENABLED_FLAG_33803",""),
+	("164899","DD2_COLLLISION_ENABLED_FLAG_164899",""),
+	
 	]
 
 
@@ -242,8 +244,12 @@ class WM_OT_CollisionFromBones(Operator):
 		experimentalFeatures = bpy.context.scene.re_chain_toolpanel.experimentalPoseModeOptions
 		selected = bpy.context.selected_pose_bones
 		chainCollection = bpy.data.collections.get(bpy.context.scene.re_chain_toolpanel.chainCollection,None)
-		headerObj = findHeaderObj()
-		if chainCollection != None and headerObj != None:
+		if chainCollection != None and chainCollection.name.endswith(".clsp"):
+			isCLSP = True
+		else:
+			isCLSP = False
+		headerObj = findHeaderObj(chainCollection)
+		if chainCollection != None and (headerObj != None or isCLSP):
 			shape = str(bpy.context.scene.re_chain_toolpanel.collisionShape)
 			if len(selected) == 1:
 				startBone = selected[0]
@@ -267,7 +273,10 @@ class WM_OT_CollisionFromBones(Operator):
 			if not valid:
 				showErrorMessageBox("Select one bone to make a sphere or two to make a capsule.")
 			else:
-				collisionCollection = getCollection(f"Chain Collisions - {chainCollection.name}",chainCollection,makeNew = False)
+				if not isCLSP:
+					collisionCollection = getCollection(f"Chain Collisions - {chainCollection.name}",chainCollection,makeNew = False)
+				else:
+					collisionCollection = chainCollection
 				currentCollisionIndex = 0
 				subName = "COL_"+str(currentCollisionIndex).zfill(2)
 				while(checkNameUsage(subName,checkSubString=True)):

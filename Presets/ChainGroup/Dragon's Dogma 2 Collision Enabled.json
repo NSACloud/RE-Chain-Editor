@@ -1,0 +1,29 @@
+{
+    "presetVersion": 4,
+    "presetType": "RE_CHAIN_CHAINGROUP",
+    "rotationOrder": 0,
+    "autoBlendCheckNodeNo": 0,
+    "attrFlags": 164899,
+    "collisionFilterFlags": 0,
+    "extraNodeLocalPos": [
+        0.0,
+        0.0,
+        0.0
+    ],
+    "tag0": 0,
+    "tag1": 0,
+    "tag2": 0,
+    "tag3": 0,
+    "dampingNoise0": 0.0,
+    "dampingNoise1": 0.0,
+    "endRotConstMax": 0.0,
+    "tagCount": 0,
+    "angleLimitDirectionMode": 0,
+    "unknGroupValue0": 0.0,
+    "unknGroupValue0B": 0.0,
+    "unknBoneHash": 1095307227,
+    "unknGroupValue1": 0,
+    "unknGroupValue2": 0,
+    "unknGroupValue3": -1,
+    "unknGroupValue4": -1
+}

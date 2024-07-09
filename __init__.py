@@ -1,7 +1,7 @@
 bl_info = {
 	"name": "RE Chain Editor",
 	"author": "NSA Cloud, alphaZomega",
-	"version": (8, 1),
+	"version": (9, 0),
 	"blender": (3, 1, 2),
 	"location": "File > Import-Export",
 	"description": "Import and export RE Engine chain files.",
@@ -27,6 +27,8 @@ from .modules.blender_re_chain import importChainFile,exportChainFile
 from .modules.re_chain_propertyGroups import chainToolPanelPropertyGroup,chainHeaderPropertyGroup,chainWindSettingsPropertyGroup,chainSettingsPropertyGroup,chainGroupPropertyGroup,chainNodePropertyGroup,chainJigglePropertyGroup,chainCollisionPropertyGroup,chainClipboardPropertyGroup,chainLinkPropertyGroup,collisionSubDataPropertyGroup,chainLinkCollisionNodePropertyGroup
 from .modules.ui_re_chain_panels import OBJECT_PT_ChainObjectModePanel,OBJECT_PT_ChainPoseModePanel,OBJECT_PT_ChainPresetPanel,OBJECT_PT_ChainHeaderPanel,OBJECT_PT_WindSettingsPanel,OBJECT_PT_ChainSettingsPanel,OBJECT_PT_ChainGroupPanel,OBJECT_PT_ChainNodePanel,OBJECT_PT_ChainJigglePanel,OBJECT_PT_ChainCollisionPanel,OBJECT_PT_ChainClipboardPanel,OBJECT_PT_ChainLinkPanel,OBJECT_PT_ChainVisibilityPanel,OBJECT_PT_ChainCollisionSubDataPanel,OBJECT_PT_ChainLinkCollisionPanel,OBJECT_PT_NodeVisPanel,OBJECT_PT_CollisionVisPanel,OBJECT_PT_AngleLimitVisPanel,OBJECT_PT_ColorVisPanel
 from .modules.re_chain_operators import WM_OT_ChainFromBone,WM_OT_CollisionFromBones,WM_OT_AlignChainsToBones,WM_OT_AlignFrames,WM_OT_PointFrame,WM_OT_CopyChainProperties,WM_OT_PasteChainProperties,WM_OT_NewChainHeader,WM_OT_ApplyChainSettingsPreset,WM_OT_NewChainSettings,WM_OT_NewWindSettings,WM_OT_NewChainJiggle,WM_OT_ApplyChainGroupPreset,WM_OT_ApplyChainNodePreset,WM_OT_ApplyWindSettingsPreset,WM_OT_SavePreset,WM_OT_OpenPresetFolder,WM_OT_NewChainLink,WM_OT_CreateChainBoneGroup,WM_OT_SwitchToPoseMode,WM_OT_SwitchToObjectMode,WM_OT_HideNonNodes,WM_OT_HideNonAngleLimits,WM_OT_HideNonCollisions,WM_OT_UnhideAll,WM_OT_RenameBoneChain,WM_OT_ApplyAngleLimitRamp,WM_OT_AlignBoneTailsToAxis,WM_OT_SetAttrFlags,WM_OT_CreateChainLinkCollision
+
+from .modules.blender_re_clsp import importCLSPFile,exportCLSPFile
 
 class REChainPreferences(AddonPreferences):
 	bl_idname = __name__
@@ -211,11 +213,135 @@ class ExportREChain(bpy.types.Operator, ExportHelper):
 			self.report({"INFO"},"RE Chain export failed. See Window > Toggle System Console for details.")
 		return {"FINISHED"}
 
+
+class ImportRECLSP(bpy.types.Operator, ImportHelper):
+	'''Import RE Engine Collision Shape Preset File'''
+	bl_idname = "re_clsp.importfile"
+	bl_label = "Import RE CLSP"
+	bl_options = {'PRESET', "REGISTER", "UNDO"}
+	files : CollectionProperty(
+			name="File Path",
+			type=OperatorFileListElement,
+			)
+	directory : StringProperty(
+			subtype='DIR_PATH',
+			)
+	filename_ext = ".chain.*"
+	filter_glob: StringProperty(default="*.clsp.*", options={'HIDDEN'})
+	targetArmature : StringProperty(
+	   name = "",
+	   description = "The armature to attach chain objects to.\nNOTE: If bones that are used by the chain file are missing on the armature, any chain groups or collisions using those bones won't be imported",
+	   default = "")
+	def invoke(self, context, event):
+		armature = None
+		if bpy.data.armatures.get(self.targetArmature,None) == None:
+			try:#Pick selected armature if one is selected
+				if armature == None and bpy.context.active_object != None and bpy.context.active_object.type == "ARMATURE":
+					armature = bpy.context.active_object
+			except:
+				pass
+			if armature == None:
+				for obj in bpy.context.scene.objects:
+					if obj.type == "ARMATURE":
+						armature = obj
+			
+			if armature != None:
+				self.targetArmature = armature.data.name
+			
+		context.window_manager.fileselect_add(self)
+		return {'RUNNING_MODAL'}
+	
+	def draw(self, context):
+		layout = self.layout
+		layout.label(text = "Target Armature:")
+		layout.prop_search(self, "targetArmature",bpy.data,"armatures")
+	def execute(self, context):
+		options = {"targetArmature":self.targetArmature}
+		editorVersion = str(bl_info["version"][0])+"."+str(bl_info["version"][1])
+		print(f"\n{textColors.BOLD}RE Chain Editor V{editorVersion}{textColors.ENDC}")
+		print(f"Blender Version {bpy.app.version[0]}.{bpy.app.version[1]}.{bpy.app.version[2]}")
+		print("https://github.com/NSACloud/RE-Chain-Editor")
+		success = importCLSPFile(self.filepath,options)
+		if success:
+			return {"FINISHED"}
+		else:
+			self.report({"INFO"},"Failed to import RE CLSP. Make sure the armature for the mesh is imported.")
+			return {"CANCELLED"}
+
+supportedCLSPVersions = set([3])	
+class ExportRECLSP(bpy.types.Operator, ExportHelper):
+	'''Export RE Engine Collsion Shape Preset File'''
+	bl_idname = "re_clsp.exportfile"
+	bl_label = "Export RE CLSP"
+	bl_options = {'PRESET'}
+	
+	filename_ext: EnumProperty(
+		name="",
+		description="Set which game to export the chain for",
+		items=[ (".3", "(.3) Dragon's Dogma 2", "Dragon's Dogma 2"),
+			   ],
+		default = ".3"
+		)
+	targetCollection : StringProperty(
+	   name = "",
+	   description = "Set the CLSP collection to be exported",
+	   default = "")
+	filter_glob: StringProperty(default="*.clsp*", options={'HIDDEN'})
+	def invoke(self, context, event):
+		
+		if bpy.data.collections.get(self.targetCollection,None) == None:
+			if bpy.data.collections.get(bpy.context.scene.re_chain_toolpanel.chainCollection):
+				self.targetCollection = bpy.context.scene.re_chain_toolpanel.chainCollection
+				if ".clsp" in self.targetCollection:#Remove blender suffix after .mesh if it exists
+					self.filepath = self.targetCollection.split(".clsp")[0]+".clsp" + self.filename_ext
+					
+				
+		if context.scene.get("REChainLastImportedCLSPVersion",0) in supportedCLSPVersions:
+			self.filename_ext = "."+str(context.scene["REChainLastImportedCLSPVersion"])
+		context.window_manager.fileselect_add(self)
+		return {'RUNNING_MODAL'}
+	def draw(self, context):
+		layout = self.layout
+		layout.label(text = "CLSP Version:")
+		layout.prop(self,"filename_ext")
+		layout.label(text = "CLSP Collection:")
+		layout.prop_search(self, "targetCollection",bpy.data,"collections",icon = "COLLECTION_COLOR_02")
+		
+	def execute(self, context):
+		options = {"targetCollection":self.targetCollection}
+		try:
+			clspVersion = int(os.path.splitext(self.filepath)[1].replace(".",""))
+		except:
+			self.report({"INFO"},"CLSP file path is missing number extension. Cannot export.")
+			return{"CANCELLED"}
+		editorVersion = str(bl_info["version"][0])+"."+str(bl_info["version"][1])
+		print(f"\n{textColors.BOLD}RE Chain Editor V{editorVersion}{textColors.ENDC}")
+		print(f"Blender Version {bpy.app.version[0]}.{bpy.app.version[1]}.{bpy.app.version[2]}")
+		print("https://github.com/NSACloud/RE-Chain-Editor")
+		success = exportCLSPFile(self.filepath,options, clspVersion)
+		if success:
+			self.report({"INFO"},"Exported RE CLSP successfully.")
+			#Add batch export entry to RE Toolbox if it doesn't already have one
+			if hasattr(bpy.types, "OBJECT_PT_re_tools_quick_export_panel"):
+				try:
+					if not any(item.path == self.filepath for item in bpy.context.scene.re_toolbox_toolpanel.batchExportList_items):
+						newExportItem = bpy.context.scene.re_toolbox_toolpanel.batchExportList_items.add()
+						newExportItem.fileType = "CLSP"
+						newExportItem.path = self.filepath
+						newExportItem.chainCollection = self.targetCollection
+						print("Added path to RE Toolbox Batch Export list.")
+				except:
+					print("Failed to add path to RE Toolbox. RE Toolbox is likely outdated and needs an update.")
+		else:
+			self.report({"INFO"},"RE CLSP export failed. See Window > Toggle System Console for details.")
+		return {"FINISHED"}
 # Registration
 classes = [
 	REChainPreferences,
 	ImportREChain,
 	ExportREChain,
+	ImportRECLSP,
+	ExportRECLSP,
 	chainToolPanelPropertyGroup,
 	chainHeaderPropertyGroup,
 	chainWindSettingsPropertyGroup,
@@ -286,6 +412,12 @@ def re_chain_import(self, context):
 def re_chain_export(self, context):
 	self.layout.operator(ExportREChain.bl_idname, text="RE Chain (.chain.x)")
 
+def re_clsp_import(self, context):
+	self.layout.operator(ImportRECLSP.bl_idname, text="RE CLSP (.clsp.x)")
+	
+def re_clsp_export(self, context):
+	self.layout.operator(ExportRECLSP.bl_idname, text="RE CLSP (.clsp.x)")
+
 def register():
 	addon_updater_ops.register(bl_info)
 	for classEntry in classes:
@@ -293,6 +425,9 @@ def register():
 		
 	bpy.types.TOPBAR_MT_file_import.append(re_chain_import)
 	bpy.types.TOPBAR_MT_file_export.append(re_chain_export)
+	
+	bpy.types.TOPBAR_MT_file_import.append(re_clsp_import)
+	bpy.types.TOPBAR_MT_file_export.append(re_clsp_export)
 	
 	bpy.types.Scene.re_chain_toolpanel = PointerProperty(type=chainToolPanelPropertyGroup)
 	#bpy.context.scene.re_chain_toolpanel.clipboardType = "None"
@@ -317,6 +452,9 @@ def unregister():
 		
 	bpy.types.TOPBAR_MT_file_import.remove(re_chain_import)
 	bpy.types.TOPBAR_MT_file_export.remove(re_chain_export)
+	
+	bpy.types.TOPBAR_MT_file_import.remove(re_clsp_import)
+	bpy.types.TOPBAR_MT_file_export.remove(re_clsp_export)
 	
 	#UNREGISTER PROPERTY GROUP PROPERTIES
 	#del bpy.types.Object.re_chain_header

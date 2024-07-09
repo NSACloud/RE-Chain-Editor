@@ -713,8 +713,8 @@ class ChainGroupData():
 		self.unknGroupValue1 = 0#VERSION 48
 		self.chainGroupSubDataCount = 0#VERSION 48
 		self.unknGroupValue2 = 0#VERSION 48
-		self.unknGroupValue3 = 0#VERSION 52
-		self.unknGroupValue4 = 0#VERSION 52
+		self.unknGroupValue3 = -1#VERSION 52
+		self.unknGroupValue4 = -1#VERSION 52
 		self.nextChainNameOffset = 0#VERSION 48
 		self.nodeList = []
 

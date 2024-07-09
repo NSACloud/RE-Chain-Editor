@@ -171,7 +171,12 @@ def findBone(boneName,armature = None):
 		bones = armature.data.bones
 		searchBone = bones.get(boneName,None)
 		if searchBone == None:
-			raiseWarning(str(boneName) + " is not a part of armature: " + armature.name)
+			
+			for bone in armature.data.bones:#If the armature has bone numbers, loop through every bone with bone numbers removed
+				if bone.name.startswith("b") and ":" in bone.name and bone.name.split(":")[1] == boneName:
+					searchBone = bone
+			if searchBone == None:
+				raiseWarning(str(boneName) + " is not a part of armature: " + armature.name)
 		return searchBone
 	else:#No armature in scene
 		return None
@@ -233,7 +238,7 @@ def alignCollisions():#TODO Fix matrices
 		"RE_CHAIN_COLLISION_SINGLE",
 		"RE_CHAIN_COLLISION_CAPSULE_ROOT",
 		]
-	for collisionObj in [obj for obj in bpy.context.scene.objects if (obj.get("TYPE",None) in collisionTypeList) and obj.parent != None] :
+	for collisionObj in [obj for obj in bpy.context.scene.objects if (obj.get("TYPE",None) in collisionTypeList)] :
 		if collisionObj.get("TYPE",None) == "RE_CHAIN_COLLISION_SINGLE":
 			collisionObj.constraints["BoneName"].inverse_matrix = collisionObj.parent.matrix_world.inverted()
 			#collisionObj.re_chain_chaincollision.radius = collisionObj.scale = [collisionObj.re_chain_chaincollision.radius]*3
@@ -422,8 +427,11 @@ def importChainFile(filepath,options):
 		chainEntryCollection["TYPE"] = "RE_CHAIN_ENTRY_COLLECTION"
 	else:
 		chainEntryCollection = chainCollection
+	print(f"Group Count: {len(chainFile.ChainGroupList)}")
+	unusedGroups = set(range(0,len(chainFile.ChainGroupList)))
 	#WIND SETTINGS IMPORT
 	currentWindSettingsNameIndex = 0
+	windSettingsObjList = []
 	for index, windSettings in enumerate(chainFile.WindSettingsList):
 		name = "WIND_SETTINGS_"+str(currentWindSettingsNameIndex).zfill(2)
 		if mergedChain:
@@ -435,17 +443,26 @@ def importChainFile(filepath,options):
 		windSettingsObj = createEmpty(name,[("TYPE","RE_CHAIN_WINDSETTINGS"),("tempID",windSettings.id)],headerObj,chainEntryCollection)
 		getWindSettings(windSettings,windSettingsObj)
 		lockObjTransforms(windSettingsObj)
+		windSettingsObjList.append(windSettingsObj)
 	#CHAIN SETTINGS IMPORT
+	chainSettingsObjList = []
 	currentChainSettingsNameIndex = 0
-	for index, chainSettings in enumerate(chainFile.ChainSettingsList):
-		matchingWindSettingList = []
-		matchingWindSettingList = [x for x in headerObj.children if x.get("TYPE") == "RE_CHAIN_WINDSETTINGS" and x.get("tempID") == chainSettings.windID]
-		if matchingWindSettingList == []:
-			chainSettingsParent = headerObj
+	for settingsIndex, chainSettings in enumerate(chainFile.ChainSettingsList):
+		
+		if chainSettings.windID >= len(windSettingsObjList):#Handle old incorrect chain exports that used the wind ID rather than index
+			matchingWindSettingList = []
+			matchingWindSettingList = [x for x in headerObj.children if x.get("TYPE") == "RE_CHAIN_WINDSETTINGS" and x.get("tempID") == chainSettings.windID]
+			if matchingWindSettingList == []:
+				chainSettingsParent = headerObj
+			else:
+				if len(matchingWindSettingList) > 1:
+					raiseWarning("More than one wind settings object was found with an ID of " + str(chainSettings.windID))
+				chainSettingsParent = matchingWindSettingList[0]
 		else:
-			if len(matchingWindSettingList) > 1:
-				raiseWarning("More than one wind settings object was found with an ID of " + str(chainSettings.windID))
-			chainSettingsParent = matchingWindSettingList[0]
+			if chainSettings.windID != -1 and chainSettings.windID < len(windSettingsObjList):
+				chainSettingsParent = windSettingsObjList[chainSettings.windID]
+			else:
+				chainSettingsParent = headerObj
 		
 		name = "CHAIN_SETTINGS_"+str(currentChainSettingsNameIndex).zfill(2)
 		if mergedChain:
@@ -457,13 +474,14 @@ def importChainFile(filepath,options):
 		chainSettingsObj = createEmpty(name, [("TYPE","RE_CHAIN_CHAINSETTINGS")],chainSettingsParent,chainEntryCollection)
 		getChainSettings(chainSettings,chainSettingsObj)
 		lockObjTransforms(chainSettingsObj)
+		chainSettingsObjList.append(chainSettings)
 	#CHAIN GROUPS IMPORT
-	
 		currentChainGroupNameIndex = 0
+		
 		for groupIndex, chainGroup in enumerate(chainFile.ChainGroupList):
 			#print(chainGroup)
-			if chainGroup.settingID == chainSettings.id:
-				
+			if chainGroup.settingID == settingsIndex:
+				unusedGroups.remove(groupIndex)
 				subName = "CHAIN_GROUP_"+str(currentChainGroupNameIndex).zfill(2)
 				if mergedChain:
 					while(checkNameUsage(subName,checkSubString=True)):
@@ -471,7 +489,10 @@ def importChainFile(filepath,options):
 						subName = "CHAIN_GROUP_"+str(currentChainGroupNameIndex).zfill(2)
 				else:
 					currentChainGroupNameIndex += 1
-				name = subName + "_" + str(chainGroup.terminateNodeName.rsplit("_",1)[0])
+				if chainGroup.terminateNodeName.count("_") > 1:
+					name = subName + "_" + str(chainGroup.terminateNodeName.rsplit("_",1)[0])
+				else:
+					name = subName + "_" + str(chainGroup.terminateNodeName)
 				chainGroupObj = createEmpty(name, [("TYPE","RE_CHAIN_CHAINGROUP")],chainSettingsObj,chainEntryCollection)
 				getChainGroup(chainGroup,chainGroupObj)
 				lockObjTransforms(chainGroupObj)
@@ -854,6 +875,10 @@ def importChainFile(filepath,options):
 				linkCollisionObj.show_in_front = bpy.context.scene.re_chain_toolpanel.drawLinkCollisionsThroughObjects
 	
 	setChainBoneColor(armature)
+	if unusedGroups != set():
+		raiseWarning(f"Some chain groups were not imported due to not being assigned chain settings. Groups: {str(unusedGroups)}")
+	windSettingsObjList.clear()
+	chainSettingsObjList.clear()
 	return True
 def chainErrorCheck(chainCollectionName):
 	print("\nChecking for problems with chain structure...")
@@ -1071,14 +1096,14 @@ def fixTaperedCapsules(chainCollisionObjList,version):
 						startCapsule.name = startCapsule.name.replace("_CAPSULE","_TCAPSULE")
 						endCapsule.name = endCapsule.name.replace("_CAPSULE","_TCAPSULE")
 					else:
-						print("Tapered capsules are not supported on versions lower than 46, {chainCollisionObj.name} changed to normal capsule")
+						print(f"Tapered capsules are not supported on versions lower than 46, {chainCollisionObj.name} changed to normal capsule")
 						chainCollisionObj.re_chain_chaincollision.chainCollisionShape = "2"
 						chainCollisionObj.name = chainCollisionObj.name.replace("_TCAPSULE","_CAPSULE")
 						startCapsule.name = startCapsule.name.replace("_TCAPSULE","_CAPSULE")
 						endCapsule.name = endCapsule.name.replace("_TCAPSULE","_CAPSULE")
 						endCapsule.scale = startCapsule.scale
 				elif version < 46 and chainCollisionObj.re_chain_chaincollision.chainCollisionShape == "5":
-					print("Tapered capsules are not supported on versions lower than 46, {chainCollisionObj.name} changed to normal capsule")
+					print(f"Tapered capsules are not supported on versions lower than 46, {chainCollisionObj.name} changed to normal capsule")
 					chainCollisionObj.re_chain_chaincollision.chainCollisionShape = "2"
 					chainCollisionObj.name = chainCollisionObj.name.replace("_TCAPSULE","_CAPSULE")
 					startCapsule.name = startCapsule.name.replace("_TCAPSULE","_CAPSULE")
@@ -1153,6 +1178,23 @@ def exportChainFile(filepath,options, version):
 		
 		for chainGroupObj in chainGroupObjList:
 			chainGroup = ChainGroupData()
+			try:
+				chainGroup.settingID = chainSettingsObjList.index(chainGroupObj.parent)
+			except:
+				chainGroup.settingID = -1
+			
+				
+			windSettingsParentObj = None
+			if chainGroupObj.parent != None and chainGroupObj.parent.parent != None and chainGroupObj.parent.parent.get("TYPE") == "RE_CHAIN_WINDSETTINGS":
+				windSettingsParentObj = chainGroupObj.parent.parent
+			
+			if windSettingsParentObj != None:
+				try:
+					chainGroup.windID = windSettingsObjList.index(windSettingsParentObj)
+				except:
+					chainGroup.windID = -1
+			else:
+				chainGroup.windID = -1
 			setChainGroupData(chainGroup, chainGroupObj)
 			#Get nodes
 			nodeObjList = []

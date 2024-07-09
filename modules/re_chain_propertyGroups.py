@@ -96,7 +96,7 @@ def update_AngleLimitMode(self, context):
 							if obj.re_chain_chainnode.angleMode == "2":#Hinge angle mode
 								yScaleModifier = .01
 							elif obj.re_chain_chainnode.angleMode == "4":#Limit oval angle mode
-								xScaleModifier = .5
+								zScaleModifier = .5
 							elif obj.re_chain_chainnode.angleMode == "5":#Limit elliptic angle mode
 								yScaleModifier = .5
 							frameChild.scale = (bpy.context.scene.re_chain_toolpanel.coneDisplaySize*xScaleModifier,bpy.context.scene.re_chain_toolpanel.coneDisplaySize*yScaleModifier,bpy.context.scene.re_chain_toolpanel.coneDisplaySize*zScaleModifier)
@@ -432,7 +432,7 @@ class chainToolPanelPropertyGroup(bpy.types.PropertyGroup):
 		)
 	chainCollection: bpy.props.StringProperty(
 		name="",
-		description = "Set the collection containing the chain file to edit.\nHint: Chain collections are orange.\nYou can create a new chain collection by pressing the \"Create Chain Header\" button",
+		description = "Set the collection containing the chain file to edit.\nHint: Chain collections are orange.\nYou can create a new chain collection by pressing the \"Create Chain Header\" button.\nThis can also be set to a .clsp collection to create collisions for .clsp files",
 		
 		)
 	collisionColor: bpy.props.FloatVectorProperty(
@@ -1524,13 +1524,13 @@ class chainGroupPropertyGroup(bpy.types.PropertyGroup):
 		default = 0,
 		)
 	unknGroupValue3: IntProperty(
-		name = "Unknown 3",
-		description="Unknown 3\nVersion 52 and above only",#TODO Add description
+		name = "CLSP Flags A",
+		description="Bitflag that determines what CLSP Tag Groups to collide with. -1 on files that don't use CLSP.\nVersion 52 and above only",#TODO Add description
 		default = 0,
 		)
 	unknGroupValue4: IntProperty(
-		name = "Unknown 4",
-		description="Unknown 4\nVersion 52 and above only",#TODO Add description
+		name = "CLSP Flags B",
+		description="Bitflag that determines what CLSP Tag Groups to collide with. -1 on files that don't use CLSP.\nVersion 52 and above only",#TODO Add description
 		default = 0,
 		)
 
@@ -1584,7 +1584,8 @@ def setChainGroupData(ChainGroupData,targetObject):
 	ChainGroupData.unknGroupValue2 = targetObject.re_chain_chaingroup.unknGroupValue2 
 	ChainGroupData.unknGroupValue3 = targetObject.re_chain_chaingroup.unknGroupValue3
 	ChainGroupData.unknGroupValue4 = targetObject.re_chain_chaingroup.unknGroupValue4
-
+	
+	"""
 	if targetObject.parent.get("TYPE",None) == "RE_CHAIN_WINDSETTINGS":
 		ChainGroupData.windID = targetObject.parent.re_chain_windsettings.id
 		
@@ -1598,7 +1599,7 @@ def setChainGroupData(ChainGroupData,targetObject):
 		ChainGroupData.settingID = targetObject.parent.re_chain_chainsettings.id
 	else:
 		ChainGroupData.settingID = -1
-	
+	"""
 class chainNodePropertyGroup(bpy.types.PropertyGroup):
 	angleLimitRad: FloatProperty(
 		name = "Angle Limit Radius",
@@ -1997,6 +1998,18 @@ class chainCollisionPropertyGroup(bpy.types.PropertyGroup):
 		max = 1,
 		)
 	"""
+	
+	#CLSP
+	clspBitFlag0: IntProperty(
+		name = "CLSP BitFlag A",
+		description = "Flags for exported .clsp files, has no effect on chain files",#TODO Add description
+		default = 0,
+		)
+	clspBitFlag1: IntProperty(
+		name = "CLSP BitFlag B",
+		description = "Flags for exported .clsp files, has no effect on chain files",#TODO Add description
+		default = 0,
+		)
 
 def getChainCollision(ChainCollisionData,targetObject):
 	#Done manually to be able to account for chain version differences eventually

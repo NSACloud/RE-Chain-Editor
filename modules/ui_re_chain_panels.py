@@ -528,6 +528,9 @@ class OBJECT_PT_ChainCollisionPanel(Panel):
 		col2.prop(re_chain_chaincollision, "collisionFilterFlags")
 		#col2.prop(re_chain_chaincollision, "subDataFlag")
 		
+		col2.prop(re_chain_chaincollision, "clspBitFlag0")
+		col2.prop(re_chain_chaincollision, "clspBitFlag1")
+		
 class OBJECT_PT_ChainCollisionSubDataPanel(Panel):
 	bl_label = "RE Chain Collision Subdata Settings"
 	bl_idname = "OBJECT_PT_chain_collision_subdata_panel"

@@ -2,6 +2,8 @@
 
 This addon allows for importing and exporting of RE Engine chain (physics bone) files from Blender.
 
+Also supports collision shape (.clsp) files.
+
 ![Blender Preview](https://github.com/NSACloud/RE-Chain-Editor/assets/46909075/f7f27463-2690-4978-893d-72f4647e0a6d)
 
 ### [Download RE Chain Editor](https://github.com/NSACloud/RE-Chain-Editor/archive/refs/heads/main.zip)
@@ -10,8 +12,25 @@ This addon allows for importing and exporting of RE Engine chain (physics bone) 
  - Allows for importing and exporting of RE Engine chain files.
  - Can create new chain files entirely within Blender.
  - Presets of chain configurations can be saved and shared.
- 
+
+
+
 ## Change Log
+
+### V9.0 - 7/9/2024
+
+* Added Collision Shape Preset (.clsp) import and export support.
+
+This is Capcom's new file format used for storing chain (and gpuc) collisions.
+
+For an explanation on how the CLSP collision system works, see this video from Capcom R&D: 
+
+https://www.youtube.com/watch?v=RPx6HPxqosE
+
+* Fixed issue where exported chain and wind settings were referenced by their ID instead of index.
+
+<details>
+  <summary>Older Version Change Logs</summary>
 
 ### V8.1 - 5/22/2024
 
@@ -33,8 +52,6 @@ NOTE: If you're updating from a previous version, you have to delete any chains 
 * The last angle limit cone of a chain is now hidden by default. This is because the last chain node typically isn't used. This can be changed under Visibility > Angle Limit Settings > Hide Last Node Cone.
 * Fixed issue where collisions were not imported correctly in RE2/RE3 RT.
 * Minor bug fixes
-<details>
-  <summary>Older Version Change Logs</summary>
 
 ### V7 - 4/28/2024
 
