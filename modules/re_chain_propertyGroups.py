@@ -1585,7 +1585,7 @@ def setChainGroupData(ChainGroupData,targetObject):
 	ChainGroupData.unknGroupValue3 = targetObject.re_chain_chaingroup.unknGroupValue3
 	ChainGroupData.unknGroupValue4 = targetObject.re_chain_chaingroup.unknGroupValue4
 	
-	"""
+
 	if targetObject.parent.get("TYPE",None) == "RE_CHAIN_WINDSETTINGS":
 		ChainGroupData.windID = targetObject.parent.re_chain_windsettings.id
 		
@@ -1599,7 +1599,6 @@ def setChainGroupData(ChainGroupData,targetObject):
 		ChainGroupData.settingID = targetObject.parent.re_chain_chainsettings.id
 	else:
 		ChainGroupData.settingID = -1
-	"""
 class chainNodePropertyGroup(bpy.types.PropertyGroup):
 	angleLimitRad: FloatProperty(
 		name = "Angle Limit Radius",

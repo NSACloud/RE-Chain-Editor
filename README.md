@@ -17,6 +17,10 @@ Also supports collision shape (.clsp) files.
 
 ## Change Log
 
+### V9.1 - 7/25/2024
+
+* Reverted changes made to chain settings indices in the previous version as it causes issues with exported chains in certain situations.
+
 ### V9.0 - 7/9/2024
 
 * Added Collision Shape Preset (.clsp) import and export support.

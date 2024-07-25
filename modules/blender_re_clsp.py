@@ -631,7 +631,7 @@ def exportCLSPFile(filepath,options, version):
 				
 		chainCollisionObjList.sort(key = lambda item: item.name)
 		
-		newCLSPFile.header.entryCount = len(chainCollisionObjList)
+		#newCLSPFile.header.entryCount = len(chainCollisionObjList)
 		
 		
 		#print(windSettingsObjList)
@@ -693,7 +693,7 @@ def exportCLSPFile(filepath,options, version):
 				raiseWarning(f"Skipped {chainCollisionObj.name} because it contains an unsupported collision shape type for CLSP")
 				
 			
-			
+		newCLSPFile.header.entryCount = len(newCLSPFile.clspEntryList)
 		print("Writing CLSP...")
 		writeRECLSP(newCLSPFile, filepath)
 		if showWarningMessage:

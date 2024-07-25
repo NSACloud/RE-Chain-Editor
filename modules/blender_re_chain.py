@@ -449,21 +449,22 @@ def importChainFile(filepath,options):
 	currentChainSettingsNameIndex = 0
 	for settingsIndex, chainSettings in enumerate(chainFile.ChainSettingsList):
 		
-		if chainSettings.windID >= len(windSettingsObjList):#Handle old incorrect chain exports that used the wind ID rather than index
-			matchingWindSettingList = []
-			matchingWindSettingList = [x for x in headerObj.children if x.get("TYPE") == "RE_CHAIN_WINDSETTINGS" and x.get("tempID") == chainSettings.windID]
-			if matchingWindSettingList == []:
-				chainSettingsParent = headerObj
-			else:
-				if len(matchingWindSettingList) > 1:
-					raiseWarning("More than one wind settings object was found with an ID of " + str(chainSettings.windID))
-				chainSettingsParent = matchingWindSettingList[0]
+		#if chainSettings.windID >= len(windSettingsObjList):#Handle old incorrect chain exports that used the wind ID rather than index
+		matchingWindSettingList = []
+		matchingWindSettingList = [x for x in headerObj.children if x.get("TYPE") == "RE_CHAIN_WINDSETTINGS" and x.get("tempID") == chainSettings.windID]
+		if matchingWindSettingList == []:
+			chainSettingsParent = headerObj
+		else:
+			if len(matchingWindSettingList) > 1:
+				raiseWarning("More than one wind settings object was found with an ID of " + str(chainSettings.windID))
+			chainSettingsParent = matchingWindSettingList[0]
+		"""
 		else:
 			if chainSettings.windID != -1 and chainSettings.windID < len(windSettingsObjList):
 				chainSettingsParent = windSettingsObjList[chainSettings.windID]
 			else:
 				chainSettingsParent = headerObj
-		
+		"""
 		name = "CHAIN_SETTINGS_"+str(currentChainSettingsNameIndex).zfill(2)
 		if mergedChain:
 			while(checkNameUsage(name,checkSubString=True)):
@@ -480,7 +481,9 @@ def importChainFile(filepath,options):
 		
 		for groupIndex, chainGroup in enumerate(chainFile.ChainGroupList):
 			#print(chainGroup)
-			if chainGroup.settingID == settingsIndex:
+			#if chainGroup.settingID == settingsIndex:
+			#Temp workaround for DMC5, need to investigate whether chain setting indices are used further
+			if chainGroup.settingID == chainSettings.id or (chainVersion == 21 and chainGroup.settingID == settingsIndex ):
 				unusedGroups.remove(groupIndex)
 				subName = "CHAIN_GROUP_"+str(currentChainGroupNameIndex).zfill(2)
 				if mergedChain:
@@ -1178,12 +1181,13 @@ def exportChainFile(filepath,options, version):
 		
 		for chainGroupObj in chainGroupObjList:
 			chainGroup = ChainGroupData()
+			"""
 			try:
 				chainGroup.settingID = chainSettingsObjList.index(chainGroupObj.parent)
 			except:
 				chainGroup.settingID = -1
 			
-				
+			
 			windSettingsParentObj = None
 			if chainGroupObj.parent != None and chainGroupObj.parent.parent != None and chainGroupObj.parent.parent.get("TYPE") == "RE_CHAIN_WINDSETTINGS":
 				windSettingsParentObj = chainGroupObj.parent.parent
@@ -1195,6 +1199,7 @@ def exportChainFile(filepath,options, version):
 					chainGroup.windID = -1
 			else:
 				chainGroup.windID = -1
+			"""
 			setChainGroupData(chainGroup, chainGroupObj)
 			#Get nodes
 			nodeObjList = []
