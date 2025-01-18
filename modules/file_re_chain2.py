@@ -1253,7 +1253,7 @@ class Chain2File():
 			windSettings.write(file)
 		file.seek(self.Header.chainLinkOffset)
 		for chainLink in self.ChainLinkList:
-			chainLink.write(file)
+			chainLink.write(file,version)
 		
 		#Loop again to write link nodes
 		for chainLink in self.ChainLinkList:

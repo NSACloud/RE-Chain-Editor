@@ -21,6 +21,9 @@ Also supports collision shape (.clsp) files.
 
 ## Change Log
 
+### V10.1 - 1/18/2025
+* Fixed chain2 chain link export issue.
+
 ### V10.0 - 1/18/2025
 
 * Added chain2 import/export support.
