@@ -6,38 +6,14 @@ from mathutils import Matrix,Vector,Quaternion
 
 from bpy.types import Operator
 
-from .blender_re_chain import createEmpty,alignChains,alignCollisions,checkNameUsage,checkChainSettingsIDUsage,checkWindSettingsIDUsage,findHeaderObj,syncCollisionOffsets,createChainCollection,getCollection,createCurveEmpty,createFakeEmptySphere,lockObjTransforms,setChainBoneColor
+from .blender_re_chain import createEmpty,createCurve,alignChains,alignCollisions,checkNameUsage,checkChainSettingsIDUsage,checkWindSettingsIDUsage,findHeaderObj,syncCollisionOffsets,createChainCollection,getCollection,createCurveEmpty,createFakeEmptySphere,lockObjTransforms,setChainBoneColor
 from .file_re_chain import ChainHeaderData,ChainSettingsData,WindSettingsData,ChainGroupData,ChainNodeData,ChainJiggleData,ChainCollisionData,ChainLinkData,ChainLinkNode
+from .file_re_chain2 import Chain2HeaderData,Chain2SettingsData,Chain2WindSettingsData,Chain2GroupData,Chain2NodeData,Chain2JiggleData,Chain2CollisionData,Chain2LinkData,Chain2LinkNode
 from .re_chain_propertyGroups import getChainHeader,getWindSettings,getChainSettings,getChainGroup,getChainNode,getChainJiggle,getChainLink,getChainCollision,getChainLinkCollisionNode
 from .ui_re_chain_panels import tag_redraw
 from .blender_utils import showErrorMessageBox,outlinerShowObject
 from .re_chain_presets import saveAsPreset,readPresetJSON
-from .re_chain_geoNodes import getColCapsuleGeoNodeTree,getColSphereGeoNodeTree,getChainLinkGeoNodeTree,getConeGeoNodeTree,getLinkColGeoNodeTree
-
-#Known AttrFlags values for chain groups, nodes and settings
-attrFlagsItems = [ 
-	("0", "AttrFlags_None", ""),
-	("1", "AttrFlags_RootRotation", ""),
-	("2", "AttrFlags_AngleLimit", ""),
-	("4", "AttrFlags_ExtraNode", ""),
-	("8", "AttrFlags_CollisionDefault", ""),
-	("16", "AttrFlags_CollisionSelf", ""),
-	("32", "AttrFlags_CollisionModel", ""),
-	("64", "AttrFlags_CollisionVGround", ""),
-	("128", "AttrFlags_CollisionCollider", ""),
-	("256", "AttrFlags_CollisionGroup", ""),
-	("512", "AttrFlags_EnablePartBlend", ""),
-	("1024", "AttrFlags_WindDefault", ""),
-	("2048", "AttrFlags_TransAnimation", ""),
-	("4096", "AttrFlags_AngleLimitRestitution", ""),
-	("8192", "AttrFlags_StretchBoth", ""),
-	("16384", "AttrFlags_EndRotConstraint", ""),
-	("33971","MHRise_COLLLISION_ENABLED_FLAG_33971",""),
-	("33807","RE2_RT_COLLLISION_ENABLED_FLAG_33807",""),
-	("33803","RE4_COLLLISION_ENABLED_FLAG_33803",""),
-	("164899","DD2_COLLLISION_ENABLED_FLAG_164899",""),
-	
-	]
+from .re_chain_geoNodes import getColCapsuleGeoNodeTree,getColSphereGeoNodeTree,getChainLinkGeoNodeTree,getConeGeoNodeTree,getLinkColGeoNodeTree,getChainGroupMat
 
 
 class WM_OT_ChainFromBone(Operator):
@@ -46,8 +22,8 @@ class WM_OT_ChainFromBone(Operator):
 	bl_options = {'UNDO'}
 	bl_description = "Create new chain group and chain node objects starting from the selected bone and ending at the last child bone. Note that chains cannot be branching. Must be parented to a chain settings object"
 	def execute(self, context):
-		
-		chainCollection = bpy.data.collections.get(bpy.context.scene.re_chain_toolpanel.chainCollection,None)
+		isChain2 = context.scene.re_chain_toolpanel.chainFileType == "chain2"
+		chainCollection = bpy.context.scene.re_chain_toolpanel.chainCollection
 		headerObj = findHeaderObj()
 		if chainCollection != None and headerObj != None:
 			experimentalFeatures = bpy.context.scene.re_chain_toolpanel.experimentalPoseModeOptions
@@ -81,7 +57,8 @@ class WM_OT_ChainFromBone(Operator):
 				showErrorMessageBox("Cannot have branching bones in a chain.")
 				return {'CANCELLED'}
 			else:
-				chainEntryCollection = getCollection(f"Chain Entries - {chainCollection.name}",chainCollection,makeNew = False)
+				#chainEntryCollection = getCollection(f"Chain Entries - {chainCollection.name}",chainCollection,makeNew = False)
+				chainEntryCollection = chainCollection
 				currentChainGroupIndex = 0
 				subName = "CHAIN_GROUP_"+str(currentChainGroupIndex).zfill(2)
 				while(checkNameUsage(subName,checkSubString=True)):
@@ -91,17 +68,43 @@ class WM_OT_ChainFromBone(Operator):
 					
 				armature = chainList[0].id_data
 				#print(armature)
-				chainGroupObj = createEmpty(name, [("TYPE","RE_CHAIN_CHAINGROUP")],headerObj,chainEntryCollection)
-				chainGroup = ChainGroupData()
-				getChainGroup(chainGroup,chainGroupObj)
-				lockObjTransforms(chainGroupObj)
+				chainGroupObj = createCurve(name, [("TYPE","RE_CHAIN_CHAINGROUP")],bpy.context.scene.re_chain_toolpanel.chainSetting if bpy.context.scene.re_chain_toolpanel.chainSetting != None else headerObj,chainEntryCollection)
+				if isChain2:
+					chainGroup = Chain2GroupData()
+				else:
+					chainGroup = ChainGroupData()
+				getChainGroup(chainGroup,chainGroupObj,isChain2)
+				constraint = chainGroupObj.constraints.new("COPY_LOCATION")
+				constraint.target = armature
+				constraint.subtarget = chainList[-1].name
+				chainGroupObj.show_in_front =  bpy.context.scene.re_chain_toolpanel.drawChainGroupsThroughObjects
+				spline = chainGroupObj.data.splines.new("NURBS")
+				spline.use_endpoint_u = True
+				chainGroupObj.data.bevel_depth = bpy.context.scene.re_chain_toolpanel.groupDisplaySize
+				chainGroupObj.data.dimensions = "3D"
+				chainGroupObj.data.use_fill_caps = True
+				chainGroupObj.data.materials.append(getChainGroupMat())
+				spline.points.add(len(chainList) - 1)
+				
+				for i, o in enumerate(chainList):
+					p = spline.points[i]
+					objPos = list((armature.matrix_world @ o.matrix).to_translation())
+					objPos.append(0.5)
+					p.co = objPos
+					h = chainGroupObj.modifiers.new(o.name, 'HOOK')
+					h.object = armature
+					h.subtarget = o.name
+					h.vertex_indices_set([i])
 				
 				nodeParent = chainGroupObj
 				lastBoneIndex = len(chainList) -1
 				for boneIndex,bone in enumerate(chainList):
 					nodeObj = createEmpty(bone.name,[("TYPE","RE_CHAIN_NODE")],nodeParent,chainEntryCollection)
-					node = ChainNodeData()
-					getChainNode(node, nodeObj)
+					if isChain2:
+						node = Chain2NodeData()
+					else:
+						node = ChainNodeData()
+					getChainNode(node, nodeObj,isChain2)
 					nodeParent = nodeObj
 					nodeObj.empty_display_size = .02
 					nodeObj.empty_display_type = "SPHERE"
@@ -233,7 +236,7 @@ class WM_OT_ChainFromBone(Operator):
 		return {'FINISHED'}
 	@classmethod
 	def poll(self,context):
-		return bpy.data.collections.get(bpy.context.scene.re_chain_toolpanel.chainCollection,None) is not None
+		return bpy.context.scene.re_chain_toolpanel.chainCollection is not None
 
 class WM_OT_CollisionFromBones(Operator):
 	bl_label = "Create Collision From Bone"
@@ -241,9 +244,10 @@ class WM_OT_CollisionFromBones(Operator):
 	bl_options = {'UNDO'}
 	bl_description = "Create collision object from selected bone(s). Select one bone to create a sphere and two bones to create a collision capsule"
 	def execute(self, context):
+		isChain2 = context.scene.re_chain_toolpanel.chainFileType == "chain2"
 		experimentalFeatures = bpy.context.scene.re_chain_toolpanel.experimentalPoseModeOptions
 		selected = bpy.context.selected_pose_bones
-		chainCollection = bpy.data.collections.get(bpy.context.scene.re_chain_toolpanel.chainCollection,None)
+		chainCollection = bpy.context.scene.re_chain_toolpanel.chainCollection
 		if chainCollection != None and chainCollection.name.endswith(".clsp"):
 			isCLSP = True
 		else:
@@ -290,8 +294,11 @@ class WM_OT_CollisionFromBones(Operator):
 				if shape in singleObjectColList:
 					name = "COL_" +str(currentCollisionIndex).zfill(2)+ "_"+shape +" " + startBone.name
 					colSphereObj = createCurveEmpty(name, [("TYPE","RE_CHAIN_COLLISION_SINGLE")],headerObj,collisionCollection)
-					chainCollision = ChainCollisionData()
-					getChainCollision(chainCollision,colSphereObj)
+					if isChain2:
+						chainCollision = Chain2CollisionData()
+					else:
+						chainCollision = ChainCollisionData()
+					getChainCollision(chainCollision,colSphereObj,isChain2)
 					colSphereObj.re_chain_chaincollision.chainCollisionShape = enumItemDict[shape]
 					colSphereObj.re_chain_chaincollision.collisionOffset = (chainCollision.posX,chainCollision.posY,chainCollision.posZ)
 					colSphereObj.rotation_mode = "QUATERNION" 
@@ -321,8 +328,11 @@ class WM_OT_CollisionFromBones(Operator):
 					colCapsuleRootObj = createCurveEmpty(name, [("TYPE","RE_CHAIN_COLLISION_CAPSULE_ROOT")],headerObj,collisionCollection)
 					lockObjTransforms(colCapsuleRootObj)
 					#colCapsuleRootObj.empty_display_size = .1
-					chainCollision = ChainCollisionData()
-					getChainCollision(chainCollision,colCapsuleRootObj)
+					if isChain2:
+						chainCollision = Chain2CollisionData()
+					else:
+						chainCollision = ChainCollisionData()
+					getChainCollision(chainCollision,colCapsuleRootObj,isChain2)
 					name = subName+ f"_{shape}_BEGIN" + " " + startBone.name
 					colCapsuleStartObj = createFakeEmptySphere(name, [("TYPE","RE_CHAIN_COLLISION_CAPSULE_START")],colCapsuleRootObj,collisionCollection)
 					
@@ -392,7 +402,7 @@ class WM_OT_CollisionFromBones(Operator):
 		return {'FINISHED'}
 	@classmethod
 	def poll(self,context):
-		return bpy.data.collections.get(bpy.context.scene.re_chain_toolpanel.chainCollection,None) is not None
+		return bpy.context.scene.re_chain_toolpanel.chainCollection is not None
 
 class WM_OT_NewChainHeader(Operator):
 	bl_label = "Create Chain Header"
@@ -402,22 +412,42 @@ class WM_OT_NewChainHeader(Operator):
 	collectionName : bpy.props.StringProperty(name = "Chain Name",
 										 description = "The name of the newly created chain collection.\nUse the same name as the mesh file",
 										 default = "newChain"
-										)
+										 )
+	chainFormat: bpy.props.EnumProperty(
+		name="File Type",
+		description="Apply Data to attribute.",
+		items=[ (".chain", "Chain", "Old chain file format, use for anything older than MH Wilds/Dead Rising"),
+				(".chain2", "Chain2", "New chain file format, use for MH Wilds/Dead Rising and newer"),
+				(".clsp", "CLSP", "Chain collision file format, used in DD2 and MH Wilds.\nFor these games, put all collisions in this collection, otherwise they wont have any effect"),
+			   ]
+		)
 	def execute(self, context):
+		isChain2 = context.scene.re_chain_toolpanel.chainFileType == "chain2"
 		if self.collectionName.strip() != "":
-			chainCollection = createChainCollection(self.collectionName.strip() + ".chain")
-			chainHeaderObj = createEmpty(f"CHAIN_HEADER {self.collectionName}.chain", [("TYPE","RE_CHAIN_HEADER")],None,chainCollection)
-			
-			chainHeader = ChainHeaderData()
-			getChainHeader(chainHeader,chainHeaderObj)
-			lockObjTransforms(chainHeaderObj)
-			bpy.context.view_layer.objects.active = chainHeaderObj
+			if self.collectionName in bpy.data.collections:
+				parentCollection = bpy.data.collections[self.collectionName.strip()]
+			else:
+				parentCollection = None
+			chainCollection = createChainCollection(self.collectionName.strip() + self.chainFormat,parentCollection)
+			if self.chainFormat != ".clsp":
+				chainHeaderObj = createEmpty(f"CHAIN_HEADER {self.collectionName}{self.chainFormat}", [("TYPE","RE_CHAIN_HEADER")],None,chainCollection)
+				if isChain2:
+					chainHeader = Chain2HeaderData()
+				else:
+					chainHeader = ChainHeaderData()
+				
+				getChainHeader(chainHeader,chainHeaderObj,isChain2)
+				lockObjTransforms(chainHeaderObj)
+				bpy.context.view_layer.objects.active = chainHeaderObj
 			self.report({"INFO"},"Created new RE chain collection.")
 			return {'FINISHED'}
 		else:
 			self.report({"ERROR"},"Invalid chain collection name.")
 			return {'CANCELLED'}
 	def invoke(self,context,event):
+		meshCollectionName = context.scene.get("REMeshLastImportedCollection")
+		if meshCollectionName != None and ".mesh" in meshCollectionName:
+			self.collectionName = meshCollectionName.split(".mesh")[0]
 		return context.window_manager.invoke_props_dialog(self)
 class WM_OT_NewChainSettings(Operator):
 	bl_label = "Create Chain Settings"
@@ -425,10 +455,12 @@ class WM_OT_NewChainSettings(Operator):
 	bl_options = {'UNDO'}
 	bl_description = "Create a chain settings object. Contains parameters to determine how chain groups should behave. Must be parented to either a chain header or wind settings object"
 	def execute(self, context):
-		chainCollection = bpy.data.collections.get(bpy.context.scene.re_chain_toolpanel.chainCollection,None)
+		isChain2 = context.scene.re_chain_toolpanel.chainFileType == "chain2"
+		chainCollection = bpy.context.scene.re_chain_toolpanel.chainCollection
 		headerObj = findHeaderObj()
 		if chainCollection != None and headerObj != None:
-			chainEntryCollection = getCollection(f"Chain Entries - {chainCollection.name}",chainCollection,makeNew = False)
+			#chainEntryCollection = getCollection(f"Chain Entries - {chainCollection.name}",chainCollection,makeNew = False)
+			chainEntryCollection = chainCollection
 			currentIndex = 0
 			name = "CHAIN_SETTINGS_" + str(currentIndex).zfill(2)
 			while(checkNameUsage(name,checkSubString=True)):
@@ -438,20 +470,24 @@ class WM_OT_NewChainSettings(Operator):
 			currentSettingID = 0
 			while checkChainSettingsIDUsage(currentSettingID):
 				currentSettingID += 1
-			
-			chainSettings = ChainSettingsData()
+			if isChain2:
+				chainSettings = Chain2SettingsData()
+			else:
+				chainSettings = ChainSettingsData()
 			chainSettingsObj = createEmpty(name, [("TYPE","RE_CHAIN_CHAINSETTINGS")],headerObj,chainEntryCollection)
-			getChainSettings(chainSettings,chainSettingsObj)
-			lockObjTransforms(chainSettingsObj)
+			getChainSettings(chainSettings,chainSettingsObj,isChain2)
+			lockObjTransforms(chainSettingsObj,lockLocation = False,lockRotation = True,lockScale = True)
 			chainSettingsObj.re_chain_chainsettings.id = currentSettingID
 			self.report({"INFO"},"Created chain settings object.")
-			bpy.context.view_layer.objects.active = chainSettingsObj
+			if bpy.context.mode == "OBJECT":	
+				bpy.context.view_layer.objects.active = chainSettingsObj
+			bpy.context.scene.re_chain_toolpanel.chainSetting = chainSettingsObj
 		else:
 			self.report({"ERROR"},"No chain settings object was created because the active chain collection is not set.")
 		return {'FINISHED'}
 	@classmethod
 	def poll(self,context):
-		return bpy.data.collections.get(bpy.context.scene.re_chain_toolpanel.chainCollection,None) is not None
+		return bpy.context.scene.re_chain_toolpanel.chainCollection is not None
 
 class WM_OT_NewWindSettings(Operator):
 	bl_label = "Create Wind Settings"
@@ -459,10 +495,12 @@ class WM_OT_NewWindSettings(Operator):
 	bl_options = {'UNDO'}
 	bl_description = "Create a wind settings object. Allows for wind effects on chain groups. For wind to take effect, chain settings objects must be parented to this. Must be parented to a chain header"
 	def execute(self, context):
-		chainCollection = bpy.data.collections.get(bpy.context.scene.re_chain_toolpanel.chainCollection,None)
+		isChain2 = context.scene.re_chain_toolpanel.chainFileType == "chain2"
+		chainCollection = bpy.context.scene.re_chain_toolpanel.chainCollection
 		headerObj = findHeaderObj()
 		if chainCollection != None and headerObj != None:
-			chainEntryCollection = getCollection(f"Chain Entries - {chainCollection.name}",chainCollection,makeNew = False)
+			#chainEntryCollection = getCollection(f"Chain Entries - {chainCollection.name}",chainCollection,makeNew = False)
+			chainEntryCollection = chainCollection
 			currentIndex = 0
 			name = "WIND_SETTINGS_" + str(currentIndex).zfill(2)
 			while(checkNameUsage(name,checkSubString=True)):
@@ -472,11 +510,13 @@ class WM_OT_NewWindSettings(Operator):
 			currentSettingID = 0
 			while checkWindSettingsIDUsage(currentSettingID):
 				currentSettingID += 1
-				
-			windSettings = WindSettingsData()
+			if isChain2:	
+				windSettings = Chain2WindSettingsData()
+			else:
+				windSettings = WindSettingsData()
 			windSettingsObj = createEmpty(name, [("TYPE","RE_CHAIN_WINDSETTINGS")],headerObj,chainEntryCollection)
 			lockObjTransforms(windSettingsObj)
-			getWindSettings(windSettings,windSettingsObj)
+			getWindSettings(windSettings,windSettingsObj,isChain2)
 			windSettingsObj.re_chain_windsettings.id = currentSettingID
 			self.report({"INFO"},"Created wind settings object.")
 			bpy.context.view_layer.objects.active = windSettingsObj
@@ -485,20 +525,21 @@ class WM_OT_NewWindSettings(Operator):
 		return {'FINISHED'}
 	@classmethod
 	def poll(self,context):
-		return bpy.data.collections.get(bpy.context.scene.re_chain_toolpanel.chainCollection,None) is not None
+		return bpy.context.scene.re_chain_toolpanel.chainCollection is not None
 
 class WM_OT_NewChainJiggle(Operator):
 	bl_label = "Create Chain Jiggle"
 	bl_idname = "re_chain.create_chain_jiggle"
 	bl_options = {'UNDO'}
-	bl_description = "Create a chain jiggle object. Adds special jiggle simulation to its chain node parent. Can be used on chain versions 35+.\nA chain node must be selected"
+	bl_description = "Create a chain jiggle object. Adds special jiggle simulation to its chain node parent.\nJiggle range is controlled by the location and scale of the object.\nCan be used on chain versions 35+.\nA chain node must be selected"
 	
 	@classmethod
 	def poll(self,context):
-		return context.active_object is not None and context.active_object.get("TYPE") == "RE_CHAIN_NODE" and bpy.data.collections.get(bpy.context.scene.re_chain_toolpanel.chainCollection,None) is not None
+		return context.active_object is not None and context.active_object.get("TYPE") == "RE_CHAIN_NODE" and bpy.context.scene.re_chain_toolpanel.chainCollection is not None
 	
 	def execute(self, context):
-		chainCollection = bpy.data.collections.get(bpy.context.scene.re_chain_toolpanel.chainCollection,None)
+		
+		chainCollection = bpy.context.scene.re_chain_toolpanel.chainCollection
 		if chainCollection != None:
 			parent = None
 			name = "CHAIN_JIGGLE"
@@ -510,7 +551,14 @@ class WM_OT_NewChainJiggle(Operator):
 			chainJiggleObj = createEmpty(name, [("TYPE","RE_CHAIN_JIGGLE")],parent,chainCollection)
 			chainJiggle = ChainJiggleData()
 			getChainJiggle(chainJiggle,chainJiggleObj)
-			chainJiggleObj.rotation_mode = "QUATERNION"
+			chainJiggleObj.empty_display_size = .2
+			chainJiggleObj.show_name = bpy.context.scene.re_chain_toolpanel.showNodeNames
+			chainJiggleObj.show_in_front = bpy.context.scene.re_chain_toolpanel.drawNodesThroughObjects
+			chainJiggleObj.rotation_mode = 'QUATERNION'
+			chainJiggleObj.rotation_quaternion = (chainJiggle.rangeAxisW,chainJiggle.rangeAxisX,chainJiggle.rangeAxisY,chainJiggle.rangeAxisZ)
+			chainJiggleObj.scale = (chainJiggle.rangeX, chainJiggle.rangeY, chainJiggle.rangeZ)
+			chainJiggleObj.location = (chainJiggle.rangeOffsetX, chainJiggle.rangeOffsetY, chainJiggle.rangeOffsetZ)
+			
 			self.report({"INFO"},"Created chain jiggle object.")
 			bpy.context.view_layer.objects.active = chainJiggleObj
 		else:
@@ -520,10 +568,11 @@ class WM_OT_NewChainJiggle(Operator):
 class WM_OT_NewChainLink(Operator):
 	bl_label = "Create Chain Link"
 	bl_idname = "re_chain.create_chain_link"
-	bl_description = "Create a chain link object to make two chain groups move together. Must be parented to a chain header.\nIf two chain groups are selected when creating a chain link, the chain group fields in the chain link will be set automatically"
+	bl_description = "Create a chain link object to make two chain groups move together. Must be parented to a chain header.\nTwo chain groups must be selected to create a chain link"
 	bl_options = {'UNDO'}
 	def execute(self, context):
-		chainCollection = bpy.data.collections.get(bpy.context.scene.re_chain_toolpanel.chainCollection,None)
+		isChain2 = context.scene.re_chain_toolpanel.chainFileType == "chain2"
+		chainCollection = bpy.context.scene.re_chain_toolpanel.chainCollection
 		headerObj = findHeaderObj()
 		if chainCollection != None and headerObj != None:
 			linkCollection = getCollection(f"Chain Links - {chainCollection.name}",chainCollection,makeNew = False)
@@ -539,8 +588,10 @@ class WM_OT_NewChainLink(Operator):
 			while(checkNameUsage(name,checkSubString=True)):
 				currentIndex +=1
 				name = "LINK_" + str(currentIndex).zfill(2)
-			
-			chainLink = ChainLinkData()
+			if isChain2:
+				chainLink = Chain2LinkData()
+			else:
+				chainLink = ChainLinkData()
 			if groupAObj != None:
 				shortNameA = groupAObj.name.replace("CHAIN_GROUP_","")
 				shortNameB = groupBObj.name.replace("CHAIN_GROUP_","")
@@ -548,7 +599,7 @@ class WM_OT_NewChainLink(Operator):
 				shortNameA = "NONE"
 				shortNameB = "NONE"
 			chainLinkObj = createCurveEmpty(f"{name} - {shortNameA} > {shortNameB}", [("TYPE","RE_CHAIN_LINK")],headerObj,linkCollection)
-			getChainLink(chainLink,chainLinkObj)
+			getChainLink(chainLink,chainLinkObj,isChain2)
 			lockObjTransforms(chainLinkObj)
 			if groupAObj != None:
 				chainLinkObj.re_chain_chainlink.chainGroupAObject = groupAObj.name
@@ -589,7 +640,7 @@ class WM_OT_NewChainLink(Operator):
 		return {'FINISHED'}
 	@classmethod
 	def poll(self,context):
-		return bpy.data.collections.get(bpy.context.scene.re_chain_toolpanel.chainCollection,None) is not None
+		return context.active_object != None and len(context.selected_objects) == 2 and (context.selected_objects[0].get("TYPE") == "RE_CHAIN_CHAINGROUP" and context.selected_objects[1].get("TYPE") == "RE_CHAIN_CHAINGROUP")
 
 class WM_OT_CreateChainLinkCollision(Operator):
 	bl_label = "Create Chain Link Collision"
@@ -597,7 +648,8 @@ class WM_OT_CreateChainLinkCollision(Operator):
 	bl_description = "Adds collision to the selected chain link(s).\nBoth chain groups must have the same amount of bones and cannot contain branching bones"
 	bl_options = {'UNDO'}
 	def execute(self, context):
-		chainCollection = bpy.data.collections.get(bpy.context.scene.re_chain_toolpanel.chainCollection,None)
+		isChain2 = context.scene.re_chain_toolpanel.chainFileType == "chain2"
+		chainCollection = bpy.context.scene.re_chain_toolpanel.chainCollection
 		chainLinkObjList = []
 		
 		for obj in context.selected_objects:
@@ -689,7 +741,10 @@ class WM_OT_CreateChainLinkCollision(Operator):
 							if objB != None:
 								modifier["Socket_1"] = objB
 						modifier.node_group.interface_update(bpy.context)
-						linkCollision = ChainLinkNode()
+						if isChain2:
+							linkCollision = Chain2LinkNode()
+						else:
+							linkCollision = ChainLinkNode()
 						linkCollisionObj.re_chain_chainlink_collision.collisionRadius = linkCollision.collisionRadius
 						linkCollisionObj.re_chain_chainlink_collision.collisionFilterFlags = linkCollision.collisionFilterFlags
 						linkCollisionObj.show_in_front = bpy.context.scene.re_chain_toolpanel.drawLinkCollisionsThroughObjects
@@ -863,6 +918,7 @@ class WM_OT_PasteChainProperties(Operator):
 					#Force update functions to run
 					activeObj.re_chain_chainnode.angleLimitRad = activeObj.re_chain_chainnode.angleLimitRad
 					activeObj.re_chain_chainnode.angleMode = activeObj.re_chain_chainnode.angleMode
+					activeObj.re_chain_chainnode.collisionRadius = activeObj.re_chain_chainnode.collisionRadius
 
 				elif chainObjType == "RE_CHAIN_JIGGLE":
 					for key, value in clipboard.re_chain_chainjiggle.items():
@@ -934,7 +990,7 @@ class WM_OT_AlignFrames(Operator):
 							chainGroupList.append(currentNodeObjList)
 		
 		if chainGroupList == []:#No chain group objects selected
-			chainCollection = bpy.data.collections.get(bpy.context.scene.re_chain_toolpanel.chainCollection,None)
+			chainCollection = bpy.context.scene.re_chain_toolpanel.chainCollection
 			if chainCollection != None:
 				for selectedObject in chainCollection.all_objects:
 					if selectedObject.get("TYPE",None) == "RE_CHAIN_CHAINGROUP":
@@ -1006,7 +1062,7 @@ class WM_OT_AlignFrames(Operator):
 			return {'CANCELLED'}
 	@classmethod
 	def poll(self,context):
-		return bpy.data.collections.get(bpy.context.scene.re_chain_toolpanel.chainCollection,None) is not None
+		return bpy.context.scene.re_chain_toolpanel.chainCollection is not None
 class WM_OT_PointFrame(Operator):
 	bl_label = "Point Frame to Selected"
 	bl_idname = "re_chain.point_frame"
@@ -1385,11 +1441,11 @@ class WM_OT_ApplyAngleLimitRamp(Operator):
 	
 	@classmethod
 	def poll(self,context):
-		return context.active_object is not None and context.active_object.get("TYPE") == "RE_CHAIN_CHAINGROUP"
+		return context.active_object is not None and (context.active_object.get("TYPE") == "RE_CHAIN_CHAINGROUP" or context.active_object.get("TYPE") == "RE_CHAIN_SUBGROUP")
 	def execute(self, context):
 		chainGroupList = []#List of lists of nodes
 		for selectedObject in bpy.context.selected_objects:
-			if selectedObject.get("TYPE",None) == "RE_CHAIN_CHAINGROUP":
+			if selectedObject.get("TYPE",None) == "RE_CHAIN_CHAINGROUP" or selectedObject.get("TYPE",None) == "RE_CHAIN_SUBGROUP":
 				for childObject in selectedObject.children:
 					if childObject.get("TYPE",None) == "RE_CHAIN_NODE":		
 						currentNode = childObject
@@ -1435,7 +1491,7 @@ class WM_OT_AlignBoneTailsToAxis(Operator):
 				("Z", "Z", ""),
 				("-Z", "-Z", "")
 				],
-		default = "Y")
+		default = "Z")
 		
 	
 	@classmethod
@@ -1486,47 +1542,605 @@ class WM_OT_AlignBoneTailsToAxis(Operator):
 		return {'FINISHED'}
 	def invoke(self,context,event):
 		return context.window_manager.invoke_props_dialog(self)
+
+def getChainSettingObjects(self,context):
+	objectList = []
+	if context.scene.re_chain_toolpanel.chainCollection != None:
+		for obj in context.active_object.users_collection[0].all_objects:
+			if obj.get("TYPE") == "RE_CHAIN_CHAINSETTINGS":
+				objectList.append((obj.name,obj.name,""))
+	return objectList
+class WM_OT_CreateChainSubGroup(Operator):
+	bl_label = "Create Chain Sub Group"
+	bl_description = "Create a sub group from a chain group. Sub groups allow for a chain group to use a different set of chain settings and node parameters dependent on it's Sub Group ID.\nA chain group must be selected"
+	bl_idname = "re_chain.create_sub_group"
+	bl_context = "objectmode"
+	bl_options = {'UNDO'}
+	chainSettingObjectName: bpy.props.EnumProperty(
+		name="",
+		description="Choose which chain setting the newly created subgroup will use",
+		items= getChainSettingObjects
+		)
 	
+	subGroupID : bpy.props.IntProperty(name = "Sub Group ID",
+									  description = "The ID to assign to this sub group. If the chosen ID is already in use, the next unused subgroup ID will be used",
+									  default = 1,
+									  min = 1)
+	multiplyAngleLimit : bpy.props.FloatProperty(name = "Angle Limit Multiplier",
+										 description = "Multiply the angle limit values of the chain group by this value.\nSet to 1.0 to keep angle limits the same",
+										 default = .60,
+										 min=0.0,
+										 soft_max=4.0)
+	
+	def draw(self,context):
+		layout = self.layout
+		layout.label(text="Chain Setting")
+		layout.prop(self,"chainSettingObjectName",icon = "DECORATE_LINKED")
+		layout.prop(self,"subGroupID")
+		layout.prop(self,"multiplyAngleLimit")
+		
+	@classmethod
+	def poll(self,context):
+		return context.active_object is not None and context.active_object.get("TYPE") == "RE_CHAIN_CHAINGROUP"
+	def execute(self, context):
+		chainCollection = context.active_object.users_collection[0]
+		chainSettingsObj = bpy.data.objects.get(self.chainSettingObjectName,None)
+		chainGroupList = []#List of lists of nodes
+		chainGroupObjList = []
+		for selectedObject in bpy.context.selected_objects:
+			if selectedObject.get("TYPE",None) == "RE_CHAIN_CHAINGROUP":
+				chainGroupObjList.append(selectedObject)
+				for childObject in selectedObject.children:
+					if childObject.get("TYPE",None) == "RE_CHAIN_NODE":		
+						currentNode = childObject
+						currentNodeObjList = [childObject]
+						while len(currentNode.children) > 1:
+							for child in currentNode.children:
+								if child.get("TYPE",None) == "RE_CHAIN_NODE":
+									currentNodeObjList.append(child)
+									currentNode = child
+						chainGroupList.append(currentNodeObjList)
+				#print(nodeObjList)
+		if chainGroupList != [] and chainSettingsObj != None:
+			
+			for index, nodeList in enumerate(chainGroupList):
+				
+				chainGroupObj = chainGroupObjList[index]
+				#get group index from chain group obj
+				try:
+					groupIndex = int(chainGroupObj.name.split("CHAIN_GROUP_")[1].split("_")[0])
+				except:
+					groupIndex = 0
+				
+				currentSubGroupID = self.subGroupID
+				#Check if subgroup ID is already used with chain group
+				idList = [chainObj.re_chain_chainsubgroup.subGroupID for chainObj in chainCollection.all_objects if (chainObj.get("TYPE",None) == "RE_CHAIN_SUBGROUP" and chainObj.re_chain_chainsubgroup.parentGroup == chainGroupObj)]
+				idChanged = False
+				while idList.count(currentSubGroupID) >= 1:
+					currentSubGroupID += 1
+					idChanged = True
+				if idChanged:
+					print("ID of "+ str(self.subGroupID) + " changed to " + str(currentSubGroupID) + " to avoid ID conflicts.")
+			
+				
+				chainSubGroupObj = createEmpty(f"CHAIN_GROUP_{str(groupIndex).zfill(2)}_SUBGROUP_{currentSubGroupID}", [("TYPE","RE_CHAIN_SUBGROUP")],chainSettingsObj,chainCollection)
+				chainSubGroupObj.re_chain_chainsubgroup.subGroupID = currentSubGroupID
+				chainSubGroupObj.re_chain_chainsubgroup.parentGroup = chainGroupObj
+				if bpy.context.mode == "OBJECT":	
+					bpy.context.view_layer.objects.active = chainSubGroupObj
+				nodeParent = chainSubGroupObj
+				for node in nodeList:
+					angleLimitObj = None
+					angleLimitHelperObj = None
+					for child in node.children:
+						#find angle limit obj
+						if child.get("TYPE") == "RE_CHAIN_NODE_FRAME":
+							angleLimitObj = child
+							for obj in angleLimitObj.children:
+								if obj.get("TYPE") == "RE_CHAIN_NODE_FRAME_HELPER":
+									angleLimitHelperObj = obj
+									break
+							break
+					
+					#Create copy of node
+					newNode = node.copy()
+					newNode.show_name = False
+					newNode.name = f"SUBGROUP_{currentSubGroupID}_{node.name}"
+					chainCollection.objects.link(newNode)
+					newNode.parent = nodeParent
+					if angleLimitObj != None:
+						#Create copy of angle limit obj
+						newAngleLimitObj = angleLimitObj.copy()
+						newAngleLimitObj.name = f"SUBGROUP_{currentSubGroupID}_{angleLimitObj.name}"
+						chainCollection.objects.link(newAngleLimitObj)
+						if "Copy Location" in newAngleLimitObj.constraints:
+							newAngleLimitObj.constraints["Copy Location"].target = newNode
+						if "Copy Scale" in newAngleLimitObj.constraints:
+							newAngleLimitObj.constraints["Copy Scale"].target = newNode
+						newAngleLimitObj.parent = newNode
+						
+						if angleLimitHelperObj != None:
+							#Create copy of angle limit helper obj
+							newAngleLimitHelperObj = angleLimitHelperObj.copy()
+							newAngleLimitHelperObj.name = f"SUBGROUP_{currentSubGroupID}_{newAngleLimitHelperObj.name}"
+							chainCollection.objects.link(newAngleLimitHelperObj)
+							if "REChainGeometryNodes" in newAngleLimitHelperObj.modifiers:
+								newAngleLimitHelperObj.modifiers["REChainGeometryNodes"].node_group = getConeGeoNodeTree(isSubGroup=True)
+							newAngleLimitHelperObj.parent = newAngleLimitObj
+					
+					newNode.re_chain_chainnode.angleLimitRad *= self.multiplyAngleLimit 
+					nodeParent = newNode
+			self.report({"INFO"},"Created chain subgroup.")
+			return {'FINISHED'}
+		else:
+			showErrorMessageBox("Chain Group object(s) must be selected to create a sub group.")
+			return {'CANCELLED'}
+	
+	def invoke(self,context,event):
+		return context.window_manager.invoke_props_dialog(self)
+
+
+#Flags Setters
+class AndFlags:
+	def __init__(self):
+		self.flagDict = {}
+		
+	def setFlagsFromInt(self,bitFlag):
+		for key in self.flagDict:
+			self.flagDict[key]["enabled"] = bool(bitFlag & self.flagDict[key]["andFlag"])
+			#print(key+" = "+str(self.flagDict[key]["enabled"]))
+	
+	
+	def getIntFromFlags(self):
+		intValue = 0
+		for key in self.flagDict:
+			if self.flagDict[key]["enabled"]:
+				intValue += self.flagDict[key]["andFlag"]
+		return intValue
+	def clearFlags(self,bitFlag):
+		for key in self.flagDict:
+			self.flagDict[key]["enabled"] = False
+class chainGroupAttrFlags(AndFlags):
+	def __init__(self):
+		self.flagDict = {
+			"None":{"enabled":False,"andFlag":0},
+			"RootRotation":{"enabled":False,"andFlag":1},
+			"AngleLimit":{"enabled":False,"andFlag":2},
+			"ExtraNode":{"enabled":False,"andFlag":4},
+			"CollisionDefault":{"enabled":False,"andFlag":8},
+			"CollisionSelf":{"enabled":False,"andFlag":16},
+			"CollisionModel":{"enabled":False,"andFlag":32},
+			"CollisionVGround":{"enabled":False,"andFlag":64},
+			"CollisionCollider":{"enabled":False,"andFlag":128},
+			"CollisionGroup":{"enabled":False,"andFlag":256},
+			"EnablePartBlend":{"enabled":False,"andFlag":512},
+			"WindDefault":{"enabled":False,"andFlag":1024},
+			"TransAnimation":{"enabled":False,"andFlag":2048},
+			"AngleLimitRestitution":{"enabled":False,"andFlag":4096},
+			"StretchBoth":{"enabled":False,"andFlag":8192},
+			"EndRotConstraint":{"enabled":False,"andFlag":16384},
+			"EnableEnvWind":{"enabled":False,"andFlag":32768},
+			"ScaleAnimation":{"enabled":False,"andFlag":65536},
+			"CollisionCharacter":{"enabled":False,"andFlag":131072},
+			}
+	
+
+class chain2GroupAttrFlags(AndFlags):
+	def __init__(self):
+		self.flagDict = {
+			"None":{"enabled":False,"andFlag":0},
+			"RootRotation":{"enabled":False,"andFlag":1},
+			"AngleLimit":{"enabled":False,"andFlag":2},
+			"ScaleAnimation":{"enabled":False,"andFlag":4},
+			"CollisionDefault":{"enabled":False,"andFlag":8},
+			"CollisionSelf":{"enabled":False,"andFlag":16},
+			"CollisionModel":{"enabled":False,"andFlag":32},
+			"CollisionVGround":{"enabled":False,"andFlag":64},
+			"CollisionCollider":{"enabled":False,"andFlag":128},
+			"CollisionGroup":{"enabled":False,"andFlag":256},
+			"EnablePartBlend":{"enabled":False,"andFlag":512},
+			"WindDefault":{"enabled":False,"andFlag":1024},
+			"TransAnimation":{"enabled":False,"andFlag":2048},
+			"AngleLimitRestitution":{"enabled":False,"andFlag":4096},
+			"StretchBoth":{"enabled":False,"andFlag":8192},
+			"EndRotConstraint":{"enabled":False,"andFlag":16384},
+			"EnableEnvWind":{"enabled":False,"andFlag":32768},
+			"CollisionCharacter":{"enabled":False,"andFlag":65536},
+			"ExtraNode":{"enabled":False,"andFlag":131072},
+			"UseBitFlag":{"enabled":False,"andFlag":262144},
+			"StretchBothAutoScale":{"enabled":False,"andFlag":524288},
+			}
+
+#Chain Group
 class WM_OT_SetAttrFlags(Operator):
 	bl_label = "Set Attribute Flag"
-	bl_description = "Set attribute flag value from a list of known values."
+	bl_description = "Set chain group attribute flags"
 	bl_idname = "re_chain.set_attr_flags"
 	bl_context = "objectmode"
 	bl_options = {'UNDO','INTERNAL'}
-	attrFlagsEnum : bpy.props.EnumProperty(
-		name="Attribute Flags",
-		description="Set Attribute Flags value",
-		items=attrFlagsItems,
-		default = "0")
+	#TODO Add which chain versions can use each flag
+	RootRotation : bpy.props.BoolProperty(
+		name="Root Rotation",
+		description="",
+		default = False)
+	AngleLimit : bpy.props.BoolProperty(
+		name="Angle Limit",
+		description="",
+		default = False)
+	ExtraNode : bpy.props.BoolProperty(
+		name="Extra Node",
+		description="",
+		default = False)
+	CollisionDefault : bpy.props.BoolProperty(
+		name="Collision Default",
+		description="",
+		default = False)
+	CollisionSelf : bpy.props.BoolProperty(
+		name="Collision Self",
+		description="",
+		default = False)
+	CollisionModel : bpy.props.BoolProperty(
+		name="Collision Model",
+		description="",
+		default = False)
+	CollisionVGround : bpy.props.BoolProperty(
+		name="Collision VGround",
+		description="",
+		default = False)
+	CollisionCollider : bpy.props.BoolProperty(
+		name="Collision Collider",
+		description="",
+		default = False)
+	CollisionGroup : bpy.props.BoolProperty(
+		name="Collision Group",
+		description="",
+		default = False)
+	EnablePartBlend : bpy.props.BoolProperty(
+		name="Enable Part Blend",
+		description="",
+		default = False)
+	WindDefault : bpy.props.BoolProperty(
+		name="Wind Default",
+		description="",
+		default = False)
+	TransAnimation : bpy.props.BoolProperty(
+		name="Trans Animation",
+		description="",
+		default = False)
+	AngleLimitRestitution : bpy.props.BoolProperty(
+		name="Angle Limit Restitution",
+		description="",
+		default = False)
+	StretchBoth : bpy.props.BoolProperty(
+		name="Stretch Both",
+		description="",
+		default = False)
+	EndRotConstraint : bpy.props.BoolProperty(
+		name="End Rot Constraint",
+		description="",
+		default = False)
+	EnableEnvWind : bpy.props.BoolProperty(
+		name="Enable Env Wind",
+		description="",
+		default = False)
+	ScaleAnimation : bpy.props.BoolProperty(
+		name="Scale Animation",
+		description="",
+		default = False)
+	CollisionCharacter : bpy.props.BoolProperty(
+		name="Collision Character",
+		description="",
+		default = False)
+	#chain2
+	UseBitFlag : bpy.props.BoolProperty(
+		name="Use Bit Flag",
+		description="",
+		default = False)
+	StretchBothAutoScale : bpy.props.BoolProperty(
+		name="Stretch Both Auto Scale",
+		description="",
+		default = False)
 	
+	def draw(self,context):
+		layout = self.layout
+		isChain2 = context.scene.re_chain_toolpanel.chainFileType == "chain2"
+		layout.label(text="Type: chain2" if isChain2 else "Type: chain")
+		layout.label(text="Older chain versions may not support all options.",icon = "ERROR")
+		layout.prop(self,"RootRotation")
+		layout.prop(self,"AngleLimit")
+		layout.prop(self,"ExtraNode")
+		layout.prop(self,"CollisionDefault")
+		layout.prop(self,"CollisionSelf")
+		layout.prop(self,"CollisionModel")
+		layout.prop(self,"CollisionVGround")
+		layout.prop(self,"CollisionCollider")
+		layout.prop(self,"CollisionGroup")
+		layout.prop(self,"CollisionCharacter")
+		layout.prop(self,"EnablePartBlend")
+		layout.prop(self,"WindDefault")
+		layout.prop(self,"EnableEnvWind")
+		layout.prop(self,"TransAnimation")
+		layout.prop(self,"AngleLimitRestitution")
+		layout.prop(self,"StretchBoth")
+		if isChain2:
+			layout.prop(self,"StretchBothAutoScale")
+		layout.prop(self,"EndRotConstraint")
+		layout.prop(self,"ScaleAnimation")
+		if isChain2:
+			layout.prop(self,"UseBitFlag")
+		
 	@classmethod
 	def poll(self,context):
-		return context.active_object is not None
+		return context.active_object is not None and (context.active_object.get("TYPE") == "RE_CHAIN_CHAINGROUP" or context.active_object.get("TYPE") == "RE_CHAIN_CHAINSETTINGS")
 	def execute(self, context):
+		
+		isChain2 = context.scene.re_chain_toolpanel.chainFileType == "chain2"
+		if isChain2:
+			flagClass = chain2GroupAttrFlags()
+		else:
+			flagClass = chainGroupAttrFlags()
+		for key in flagClass.flagDict:
+			if hasattr(self,key):
+				#print(key)
+				flagClass.flagDict[key]["enabled"] = getattr(self,key)
+		bitFlag = flagClass.getIntFromFlags()
+		
+		
 		#If more than one object is selected, apply the attribute flag to it if the type is the same
 		activeObject = bpy.context.active_object
 		if activeObject != None:
 			activeObjectType = activeObject.get("TYPE",None)
 			if activeObjectType == "RE_CHAIN_CHAINGROUP":
-				activeObject.re_chain_chaingroup.attrFlags = int(self.attrFlagsEnum)
-			elif activeObjectType == "RE_CHAIN_NODE":
-				activeObject.re_chain_chainnode.attrFlags = int(self.attrFlagsEnum)
-			elif activeObjectType == "RE_CHAIN_CHAINSETTINGS":
-				activeObject.re_chain_chainsettings.groupDefaultAttr = int(self.attrFlagsEnum)
-			elif activeObjectType == "RE_CHAIN_JIGGLE":
-				activeObject.re_chain_chainjiggle.attrFlags = int(self.attrFlagsEnum)
-			
+				activeObject.re_chain_chaingroup.attrFlags = bitFlag
+			else:
+				activeObject.re_chain_chainsettings.groupDefaultAttr = bitFlag
 			for selectedObject in bpy.context.selected_objects:
 				selectedObjectType = selectedObject.get("TYPE",None)
-				if selectedObjectType == "RE_CHAIN_CHAINGROUP" and selectedObjectType == activeObjectType:
-					selectedObject.re_chain_chaingroup.attrFlags = int(self.attrFlagsEnum)
-				elif selectedObjectType == "RE_CHAIN_NODE" and selectedObjectType == activeObjectType:
-					selectedObject.re_chain_chainnode.attrFlags = int(self.attrFlagsEnum)
-				elif selectedObjectType == "RE_CHAIN_CHAINSETTINGS" and selectedObjectType == activeObjectType: 
-					selectedObject.re_chain_chainsettings.groupDefaultAttr = int(self.attrFlagsEnum)
-				elif selectedObjectType == "RE_CHAIN_JIGGLE" and selectedObjectType == activeObjectType:
-					selectedObject.re_chain_chainjiggle.attrFlags = int(self.attrFlagsEnum)
+				if selectedObjectType == activeObjectType:
+					if selectedObjectType == "RE_CHAIN_CHAINGROUP":
+						selectedObject.re_chain_chaingroup.attrFlags = bitFlag
+					else:
+						selectedObject.re_chain_chainsettings.groupDefaultAttr = bitFlag
+			self.report({"INFO"},"Set attribute flags.")
+			tag_redraw(bpy.context)
 		return {'FINISHED'}
 	
 	def invoke(self,context,event):
+		isChain2 = context.scene.re_chain_toolpanel.chainFileType == "chain2"
+		if isChain2:
+			flagClass = chain2GroupAttrFlags()
+		else:
+			flagClass = chainGroupAttrFlags()
+		
+		flagClass.setFlagsFromInt(context.active_object.re_chain_chaingroup.attrFlags if context.active_object.get("TYPE") == "RE_CHAIN_CHAINGROUP" else context.active_object.re_chain_chainsettings.groupDefaultAttr)
+		for key in flagClass.flagDict:
+			if hasattr(self,key):
+				#print(key)
+				setattr(self,key,flagClass.flagDict[key]["enabled"])
+			
+		return context.window_manager.invoke_props_dialog(self)
+	
+#Chain Node
+class chainNodeAttrFlags(AndFlags):
+	def __init__(self):
+		self.flagDict = {
+			"PartMotionBlend":{"enabled":False,"andFlag":1},
+			"Jiggle":{"enabled":False,"andFlag":2},
+			}
+	
+class WM_OT_SetNodeAttrFlags(Operator):
+	bl_label = "Set Node Attribute Flag"
+	bl_description = "Set chain node attribute flags"
+	bl_idname = "re_chain.set_node_attr_flags"
+	bl_context = "objectmode"
+	bl_options = {'UNDO','INTERNAL'}
+	PartMotionBlend : bpy.props.BoolProperty(
+		name="Part Motion Blend",
+		description="",
+		default = False)
+	Jiggle : bpy.props.BoolProperty(
+		name="Jiggle",
+		description="",
+		default = False)
+	
+	def draw(self,context):
+		layout = self.layout
+		layout.prop(self,"PartMotionBlend")
+		layout.prop(self,"Jiggle")
+		
+	@classmethod
+	def poll(self,context):
+		return context.active_object is not None and context.active_object.get("TYPE") == "RE_CHAIN_NODE"
+	def execute(self, context):
+		
+	
+		flagClass = chainNodeAttrFlags()
+		for key in flagClass.flagDict:
+			if hasattr(self,key):
+				#print(key)
+				flagClass.flagDict[key]["enabled"] = getattr(self,key)
+		bitFlag = flagClass.getIntFromFlags()
+		
+		
+		#If more than one object is selected, apply the attribute flag to it if the type is the same
+		activeObject = bpy.context.active_object
+		if activeObject != None:
+			activeObjectType = activeObject.get("TYPE",None)
+			if activeObjectType == "RE_CHAIN_NODE":
+				activeObject.re_chain_chainnode.attrFlags = bitFlag
+			
+			for selectedObject in bpy.context.selected_objects:
+				selectedObjectType = selectedObject.get("TYPE",None)
+				if selectedObjectType == "RE_CHAIN_NODE":
+					selectedObject.re_chain_chainnode.attrFlags = bitFlag
+			self.report({"INFO"},"Set attribute flags.")
+			tag_redraw(bpy.context)
+		return {'FINISHED'}
+	
+	def invoke(self,context,event):
+		flagClass = chainNodeAttrFlags()
+		
+		flagClass.setFlagsFromInt(context.active_object.re_chain_chainnode.attrFlags)
+		for key in flagClass.flagDict:
+			if hasattr(self,key):
+				#print(key)
+				setattr(self,key,flagClass.flagDict[key]["enabled"])
+			
+		return context.window_manager.invoke_props_dialog(self)
+	
+#Chain Settings
+class chainSettingsAttrFlags(AndFlags):
+	def __init__(self):
+		self.flagDict = {
+			"Default":{"enabled":False,"andFlag":1},
+			"VirtualGroundRoot":{"enabled":False,"andFlag":2},
+			"VirtualGroundTarget":{"enabled":False,"andFlag":4},
+			"IgnoreSameGroupCollision":{"enabled":False,"andFlag":8},
+			"UseReduceDistanceCurve":{"enabled":False,"andFlag":16},#chain2
+			"VirtualGroundMask":{"enabled":False,"andFlag":6},#chain2
+			}
+	
+class WM_OT_SetSettingAttrFlags(Operator):
+	bl_label = "Set Settings Attribute Flag"
+	bl_description = "Set chain settings attribute flags"
+	bl_idname = "re_chain.set_settings_attr_flags"
+	bl_context = "objectmode"
+	bl_options = {'UNDO','INTERNAL'}
+	Default : bpy.props.BoolProperty(
+		name="Default",
+		description="",
+		default = False)
+	VirtualGroundRoot : bpy.props.BoolProperty(
+		name="Virtual Ground Root",
+		description="",
+		default = False)
+	VirtualGroundTarget : bpy.props.BoolProperty(
+		name="Virtual Ground Target",
+		description="",
+		default = False)
+	IgnoreSameGroupCollision : bpy.props.BoolProperty(
+		name="Ignore Same Group Collision",
+		description="",
+		default = False)
+	UseReduceDistanceCurve : bpy.props.BoolProperty(
+		name="Use Reduce Distance Curve",
+		description="",
+		default = False)
+	VirtualGroundMask : bpy.props.BoolProperty(
+		name="Virtual Ground Mask",
+		description="",
+		default = False)
+	
+	def draw(self,context):
+		isChain2 = context.scene.re_chain_toolpanel.chainFileType == "chain2"
+		layout = self.layout
+		layout.prop(self,"Default")
+		layout.prop(self,"VirtualGroundRoot")
+		layout.prop(self,"VirtualGroundTarget")
+		layout.prop(self,"IgnoreSameGroupCollision")
+		if isChain2:
+			layout.prop(self,"UseReduceDistanceCurve")
+			layout.prop(self,"VirtualGroundMask")
+		
+		
+	@classmethod
+	def poll(self,context):
+		return context.active_object is not None and context.active_object.get("TYPE") == "RE_CHAIN_CHAINSETTINGS"
+	def execute(self, context):
+		
+	
+		flagClass = chainSettingsAttrFlags()
+		for key in flagClass.flagDict:
+			if hasattr(self,key):
+				#print(key)
+				flagClass.flagDict[key]["enabled"] = getattr(self,key)
+		bitFlag = flagClass.getIntFromFlags()
+		
+		
+		#If more than one object is selected, apply the attribute flag to it if the type is the same
+		activeObject = bpy.context.active_object
+		if activeObject != None:
+			activeObjectType = activeObject.get("TYPE",None)
+			if activeObjectType == "RE_CHAIN_CHAINSETTINGS":
+				activeObject.re_chain_chainsettings.settingsAttrFlags = bitFlag
+			
+			for selectedObject in bpy.context.selected_objects:
+				selectedObjectType = selectedObject.get("TYPE",None)
+				if selectedObjectType == "RE_CHAIN_CHAINSETTINGS":
+					selectedObject.re_chain_chainsettings.settingsAttrFlags = bitFlag
+			self.report({"INFO"},"Set attribute flags.")
+			tag_redraw(bpy.context)
+		return {'FINISHED'}
+	
+	def invoke(self,context,event):
+		flagClass = chainSettingsAttrFlags()
+		
+		flagClass.setFlagsFromInt(context.active_object.re_chain_chainsettings.settingsAttrFlags)
+		for key in flagClass.flagDict:
+			if hasattr(self,key):
+				#print(key)
+				setattr(self,key,flagClass.flagDict[key]["enabled"])
+			
+		return context.window_manager.invoke_props_dialog(self)
+	
+#Chain Jiggle
+class chainJiggleAttrFlags(AndFlags):
+	def __init__(self):
+		self.flagDict = {
+			"OverrideDamping":{"enabled":False,"andFlag":1},
+			}
+	
+class WM_OT_SetJiggleAttrFlags(Operator):
+	bl_label = "Set Jiggle Attribute Flag"
+	bl_description = "Set chain jiggle attribute flags"
+	bl_idname = "re_chain.set_jiggle_attr_flags"
+	bl_context = "objectmode"
+	bl_options = {'UNDO','INTERNAL'}
+	OverrideDamping : bpy.props.BoolProperty(
+		name="Override Damping",
+		description="",
+		default = False)
+	
+	def draw(self,context):
+		layout = self.layout
+		layout.prop(self,"OverrideDamping")
+		
+	@classmethod
+	def poll(self,context):
+		return context.active_object is not None and context.active_object.get("TYPE") == "RE_CHAIN_JIGGLE"
+	def execute(self, context):
+		
+	
+		flagClass = chainJiggleAttrFlags()
+		for key in flagClass.flagDict:
+			if hasattr(self,key):
+				#print(key)
+				flagClass.flagDict[key]["enabled"] = getattr(self,key)
+		bitFlag = flagClass.getIntFromFlags()
+		
+		
+		#If more than one object is selected, apply the attribute flag to it if the type is the same
+		activeObject = bpy.context.active_object
+		if activeObject != None:
+			activeObjectType = activeObject.get("TYPE",None)
+			if activeObjectType == "RE_CHAIN_JIGGLE":
+				activeObject.re_chain_chainjiggle.attrFlags = bitFlag
+			
+			for selectedObject in bpy.context.selected_objects:
+				selectedObjectType = selectedObject.get("TYPE",None)
+				if selectedObjectType == "RE_CHAIN_JIGGLE":
+					selectedObject.re_chain_chainjiggle.attrFlags = bitFlag
+			self.report({"INFO"},"Set attribute flags.")
+			tag_redraw(bpy.context)
+		return {'FINISHED'}
+	
+	def invoke(self,context,event):
+		flagClass = chainJiggleAttrFlags()
+		
+		flagClass.setFlagsFromInt(context.active_object.re_chain_chainjiggle.attrFlags)
+		for key in flagClass.flagDict:
+			if hasattr(self,key):
+				#print(key)
+				setattr(self,key,flagClass.flagDict[key]["enabled"])
+			
 		return context.window_manager.invoke_props_dialog(self)

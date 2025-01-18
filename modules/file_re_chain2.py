@@ -1,61 +1,43 @@
 #Author: NSA Cloud
 
-from .gen_functions import textColors,raiseWarning,raiseError,getPaddingAmount,read_uint,read_int,read_uint64,read_int64,read_float,read_ushort,read_ubyte,read_unicode_string,read_byte,read_short,write_uint,write_int,write_uint64,write_int64,write_float,write_ushort,write_ubyte,write_unicode_string,write_byte,write_short
 
-version = 48
+from .gen_functions import textColors,raiseWarning,raiseError,getPaddingAmount,getPaddedPos,read_uint,read_int,read_uint64,read_int64,read_float,read_ushort,read_ubyte,read_unicode_string,read_byte,read_short,write_uint,write_int,write_uint64,write_int64,write_float,write_ushort,write_ubyte,write_unicode_string,write_byte,write_short
 
-supportedVersionSet = set([54,53,48,52,39,46,24,44,21])
+VERSION_DD2 = 4
+VERSION_DR = 9
+VERSION_MHWILDS = 12
+
+supportedVersionSet = set([4,9,12])
 
 #---CHAIN STRUCTS---#
 class SIZE_DATA():
-	def __init__(self):
-		self.HEADER_SIZE = 104
-		self.CHAIN_SETTING_SIZE = 168
-		self.CHAIN_GROUP_SIZE = 112
+	def __init__(self,version):
+		self.HEADER_SIZE = 112
+		self.CHAIN_SETTING_SIZE = 136
+		self.CHAIN_SETTING_SUBDATA_SIZE = 16
+		self.CHAIN_GROUP_SIZE = 104
 		self.CHAIN_SUBGROUP_SIZE = 16
 		self.COLLISION_SIZE = 80
 		self.COLLISION_SUBDATA_SIZE = 64
-		self.NODE_SIZE = 80
+		self.NODE_SIZE = 96
 		self.JIGGLE_SIZE = 72
 		self.WIND_SIZE = 184
 		self.CHAIN_LINK_SIZE = 32
 		self.CHAIN_LINK_NODE_SIZE = 8
-	def setSizeData(self, ver):
-		global version; version = ver
-		if ver == 21:
-			self.COLLISION_SIZE = 56
-			self.CHAIN_SETTING_SIZE = 128
-			self.CHAIN_GROUP_SIZE = 48
-			self.NODE_SIZE = 64
-		elif ver == 24:
-			self.COLLISION_SIZE = 56
-			self.CHAIN_SETTING_SIZE = 160
-			self.CHAIN_GROUP_SIZE = 48
-			self.NODE_SIZE = 64
-		elif ver == 35:
-			self.COLLISION_SIZE = 72
-			self.CHAIN_SETTING_SIZE = 160
-			self.CHAIN_GROUP_SIZE = 80
-		elif ver == 39:
-			self.CHAIN_SETTING_SIZE = 160
-			self.CHAIN_GROUP_SIZE = 80
-		elif ver == 44:
-			self.CHAIN_GROUP_SIZE = 88
-		elif ver == 46:
-			self.CHAIN_GROUP_SIZE = 88
-		elif ver == 52:
-			self.CHAIN_SETTING_SIZE = 176
-			self.CHAIN_GROUP_SIZE = 120
-		elif ver >= 53:
-			self.HEADER_SIZE = 112
-			self.CHAIN_SETTING_SIZE = 176
-			self.CHAIN_GROUP_SIZE = 120
+		
+		if version >= VERSION_DR:
+			self.CHAIN_SETTING_SIZE = 144
+		
+		if version >= VERSION_MHWILDS:
+			self.HEADER_SIZE = 120
+			self.CHAIN_SETTING_SIZE = 184
+			self.CHAIN_LINK_SIZE = 40
 
 
-class ChainHeaderData():
+class Chain2HeaderData():
 	def __init__(self):
-		self.version = 48
-		self.magic = 1851877475
+		self.version = 9
+		self.magic = 846096483
 		self.errFlags = 0#ENUM
 		self.masterSize = 0
 		self.collisionAttrAssetOffset = 0
@@ -65,7 +47,7 @@ class ChainHeaderData():
 		self.extraDataOffset = 0
 		self.chainGroupOffset = 0
 		self.chainLinkOffset = 0
-		self.ver53UnknOffset = 0
+		self.chainFreeLinkOffset = 0
 		self.chainSettingsOffset = 0
 		self.chainWindSettingsOffset = 0
 		self.chainGroupCount = 0
@@ -78,9 +60,11 @@ class ChainHeaderData():
 		self.calculateMode = 1#ENUM
 		self.chainAttrFlags = 0#ENUM
 		self.parameterFlag = 0#ENUM
-		self.calculateStepTime = 2.0
+		self.calculateStepTime = 1.0
 		self.modelCollisionSearch = 0#BOOL
-		self.legacyVersion = 0
+		self.taperedCollideMethod = 0
+		self.freeLinkCount = 0
+		self.freeLinkJoint = 0
 		self.collisionFilterHit0 = 0
 		self.collisionFilterHit1 = 0
 		self.collisionFilterHit2 = 0
@@ -89,16 +73,18 @@ class ChainHeaderData():
 		self.collisionFilterHit5 = 0
 		self.collisionFilterHit6 = 0
 		self.collisionFilterHit7 = 0
-		
+		self.highFPSCalculateMode = 1#ENUM, WILDS
+		self.padding0 = 0
+		self.padding1 = 0
+		self.padding2 = 0
 	def read(self,file):
-		global version
 		print("Reading Header...")
 		self.version = read_uint(file)
 		version = self.version
 		
 		self.magic = read_uint(file)
-		if self.magic != 1851877475:
-			raise Exception("File is not a chain file.")
+		if self.magic != 846096483:
+			raise Exception("File is not a chain2 file.")
 		print("Version", version)
 		if version not in supportedVersionSet:
 			raiseWarning("Unsupported chain version " + str(self.version) + ", file may not load correctly.")
@@ -109,8 +95,7 @@ class ChainHeaderData():
 		self.extraDataOffset = read_uint64(file)
 		self.chainGroupOffset = read_uint64(file)
 		self.chainLinkOffset = read_uint64(file)
-		if version >= 53:
-			self.ver53UnknOffset = read_uint64(file)
+		self.chainFreeLinkOffset = read_uint64(file)
 		self.chainSettingsOffset = read_uint64(file)
 		self.chainWindSettingsOffset = read_uint64(file)
 		self.chainGroupCount = read_ubyte(file)
@@ -125,7 +110,9 @@ class ChainHeaderData():
 		self.parameterFlag = read_uint(file)#ENUM
 		self.calculateStepTime = read_float(file)
 		self.modelCollisionSearch = read_ubyte(file)#BOOL
-		self.legacyVersion = read_ubyte(file)
+		self.taperedCollideMethod = read_ubyte(file)
+		self.freeLinkCount = read_ubyte(file)
+		self.freeLinkJoint = read_ubyte(file)
 		self.collisionFilterHit0 = read_ubyte(file)
 		self.collisionFilterHit1 = read_ubyte(file)
 		self.collisionFilterHit2 = read_ubyte(file)
@@ -134,8 +121,14 @@ class ChainHeaderData():
 		self.collisionFilterHit5 = read_ubyte(file)
 		self.collisionFilterHit6 = read_ubyte(file)
 		self.collisionFilterHit7 = read_ubyte(file)
+		if version >= VERSION_MHWILDS:
+			self.highFPSCalculateMode = read_uint(file)
+			self.padding0 = read_uint(file)
+			self.padding1 = read_uint(file)
+			self.padding2 = read_uint(file)
 		
 	def write(self,file):
+		version = self.version
 		write_uint(file, self.version)
 		write_uint(file, self.magic)
 		write_uint(file, self.errFlags)#ENUM
@@ -145,8 +138,7 @@ class ChainHeaderData():
 		write_uint64(file, self.extraDataOffset)
 		write_uint64(file, self.chainGroupOffset)
 		write_uint64(file, self.chainLinkOffset)
-		if version >= 53:
-			write_uint64(file, self.ver53UnknOffset)
+		write_uint64(file, self.chainFreeLinkOffset)
 		write_uint64(file, self.chainSettingsOffset)
 		write_uint64(file, self.chainWindSettingsOffset)
 		write_ubyte(file, self.chainGroupCount)
@@ -161,7 +153,9 @@ class ChainHeaderData():
 		write_uint(file, self.parameterFlag)#ENUM
 		write_float(file, self.calculateStepTime)
 		write_ubyte(file, self.modelCollisionSearch)#BOOL
-		write_ubyte(file, self.legacyVersion)
+		write_ubyte(file, self.taperedCollideMethod)
+		write_ubyte(file, self.freeLinkCount)
+		write_ubyte(file, self.freeLinkJoint)
 		write_ubyte(file, self.collisionFilterHit0)
 		write_ubyte(file, self.collisionFilterHit1)
 		write_ubyte(file, self.collisionFilterHit2)
@@ -170,46 +164,59 @@ class ChainHeaderData():
 		write_ubyte(file, self.collisionFilterHit5)
 		write_ubyte(file, self.collisionFilterHit6)
 		write_ubyte(file, self.collisionFilterHit7)
-
+		if version >= VERSION_MHWILDS:
+			write_uint(file, self.highFPSCalculateMode)
+			write_uint(file, self.padding0)
+			write_uint(file, self.padding1)
+			write_uint(file, self.padding2)
+			
 	def __str__(self):
 		return str(self.__class__) + ": " + str(self.__dict__)
 
-class Joint():
+class Chain2SettingsSubData():
 	def __init__(self):
-		self.offset = 0
-		self.jointName = "READ_ERROR"
+		self.unkn0 = 0
+		self.unkn1A = 0
+		self.unkn1B = 0
+		self.unkn1C = 0
+		self.unkn1D = 0
+		self.unkn2 = 0
+		self.unkn3 = 0
+		
 	def read(self,file):
-		self.offset = read_uint64(file)
-		currentPos = file.tell()
-		file.seek(self.offset)
-		self.jointName = read_unicode_string(file)
-		file.seek(currentPos)
+		self.unkn0 = read_int(file)
+		self.unkn1A = read_ubyte(file)
+		self.unkn1B = read_ubyte(file)
+		self.unkn1C = read_ubyte(file)
+		self.unkn1D = read_ubyte(file)
+		self.unkn2 = read_int(file)
+		self.unkn3 = read_int(file)
+		
 	def write(self,file):
-		pass#TODO
-	
+		write_uint(file, self.unkn0)
+		write_ubyte(file, self.unkn1A)
+		write_ubyte(file, self.unkn1B)
+		write_ubyte(file, self.unkn1C)
+		write_ubyte(file, self.unkn1D)
+		write_uint(file, self.unkn2)
+		write_uint(file, self.unkn3)
+		
 	def __str__(self):
 		return str(self.__class__) + ": " + str(self.__dict__)
-	
-class ChainSettingsData():
+
+class Chain2SettingsData():
 	def __init__(self):
-		self.jointList = []
 		self.colliderFilterInfoPathOffset = 0
 		self.colliderFilterInfoPath = ""
-		self.sprayParameterArc = 0.0
-		self.sprayParameterFrequency = 0.0
-		self.sprayParameterCurve1 = 0.0
-		self.sprayParameterCurve2 = 0.0
 		self.id = 0
-		self.chainType = 0 #ENUM
-		self.settingsAttrFlags = 1 #ENUM
-		self.muzzleDirection = 1 #ENUM
+		self.settingsAttrFlags = 0 #ENUM
+		self.springCalcType = 0
 		self.windID = 0
+		self.windDelayType = 0
 		self.gravityX = 0.0
 		self.gravityY = -9.8
 		self.gravityZ = 0.0
-		self.muzzleVelocityX = 0.0
-		self.muzzleVelocityY = 0.0
-		self.muzzleVelocityZ = 0.0
+		self.springMaxVelocity = 0.0
 		self.damping = 0.2
 		self.secondDamping = 0.05
 		self.secondDampingSpeed = 0.0
@@ -220,10 +227,6 @@ class ChainSettingsData():
 		self.collideMaxVelocity = 0.0
 		self.springForce = 0.0
 		self.springLimitRate = 0.0
-		self.springMaxVelocity = 0.0
-		self.springCalcType = 0#ENUM
-		self.windDelayType = 0#ENUM
-		self.padding = 0
 		self.reduceSelfDistanceRate = 0.0
 		self.secondReduceDistanceRate = 0.0
 		self.secondReduceDistanceSpeed = 0.0
@@ -233,57 +236,60 @@ class ChainSettingsData():
 		self.coefOfExternalForces = 0.0
 		self.stretchInteractionRatio = 0.5
 		self.angleLimitInteractionRatio = 0.5
-		self.shootingElasticLimitRate = 0.0
+		self.motionForce = 0.0
 		self.groupDefaultAttr = 0#ENUM
 		self.windEffectCoef = 0.0
 		self.velocityLimit = 0.0
 		self.hardness = 0.0
 		self.windDelaySpeed = 0.0
-		self.envWindEffectCoef = 0.1#VERSION 48
-		self.motionForce = 0.0#VERSION 52
-		self.padding2 = 0#VERSION 52
-	def read(self,file):
-		self.jointList = []
+		self.envWindEffectCoef = 1.0
+		
+		#DR
+		self.motionForceCalcType = 0#Sometimes 1, Dead Rising npc57_Chain2
+		self.padding = 0
+		
+		#MH Wilds
+		#Not present on versions below 12
+		self.subDataCount = 0
+		
+		#Quaternion probably
+		self.subDataUnkn0 = 0.0#Always 0.0
+		self.subDataUnkn1 = 0.0#Always 0.0
+		self.subDataUnkn2 = 0.0#Always 0.0
+		self.subDataUnkn3 = 1.0#Always 1.0
+		#Pos probably
+		self.subDataUnkn4 = 0.0#Always 0.0
+		self.subDataUnkn5 = 0.0#Always 0.0
+		self.subDataUnkn6 = 0.0#Always 0.0
+		self.subDataOffset = 0
+		self.subDataList = []
+	def read(self,file,version):
+		#print(file.tell())
 		self.colliderFilterInfoPathOffset = read_uint64(file)
 		if self.colliderFilterInfoPathOffset != 0:
 			currentPos = file.tell()
 			file.seek(self.colliderFilterInfoPathOffset)
 			self.colliderFilterInfoPath = read_unicode_string(file)
 			file.seek(currentPos)
-		self.sprayParameterArc = read_float(file)
-		self.sprayParameterFrequency = read_float(file)
-		self.sprayParameterCurve1 = read_float(file)
-		self.sprayParameterCurve2 = read_float(file)
-		self.id = read_uint(file)
-		self.chainType = read_ubyte(file)
+		self.id = read_uint(file)	
 		self.settingsAttrFlags = read_ubyte(file) #ENUM
-		self.muzzleDirection = read_ubyte(file) #ENUM
+		self.springCalcType = read_ubyte(file)
 		self.windID = read_byte(file)
+		self.windDelayType = read_ubyte(file)
 		self.gravityX = read_float(file)
 		self.gravityY = read_float(file)
 		self.gravityZ = read_float(file)
-		self.muzzleVelocityX = read_float(file)
-		self.muzzleVelocityY = read_float(file)
-		self.muzzleVelocityZ = read_float(file)
+		self.springMaxVelocity = read_float(file)
 		self.damping = read_float(file)
 		self.secondDamping = read_float(file)
 		self.secondDampingSpeed = read_float(file)
-		if version >= 24:
-			self.minDamping = read_float(file)
-			self.secondMinDamping = read_float(file)
-			self.dampingPow = read_float(file)
-			self.secondDampingPow = read_float(file)
-			self.collideMaxVelocity = read_float(file)
+		self.minDamping = read_float(file)
+		self.secondMinDamping = read_float(file)
+		self.dampingPow = read_float(file)
+		self.secondDampingPow = read_float(file)
+		self.collideMaxVelocity = read_float(file)
 		self.springForce = read_float(file)
-		if version >= 24:
-			self.springLimitRate = read_float(file)
-			self.springMaxVelocity = read_float(file)
-			self.springCalcType = read_ubyte(file) #ENUM
-			self.windDelayType = read_ubyte(file) #ENUM
-			self.padding = read_ushort(file)
-		if version >= 52:
-			self.motionForce = read_float(file)#VERSION 52
-			self.padding2 = read_float(file)#VERSION 52
+		self.springLimitRate = read_float(file)
 		self.reduceSelfDistanceRate = read_float(file)
 		self.secondReduceDistanceRate = read_float(file)
 		self.secondReduceDistanceSpeed = read_float(file)
@@ -293,51 +299,56 @@ class ChainSettingsData():
 		self.coefOfExternalForces = read_float(file)
 		self.stretchInteractionRatio = read_float(file)
 		self.angleLimitInteractionRatio = read_float(file)
-		self.shootingElasticLimitRate = read_float(file)
+		self.motionForce = read_float(file)
 		self.groupDefaultAttr = read_uint(file)
 		self.windEffectCoef = read_float(file)
 		self.velocityLimit = read_float(file)
 		self.hardness = read_float(file)
-		if version >= 46:
-			self.windDelaySpeed = read_float(file)#VERSION 48
-			self.envWindEffectCoef = read_float(file)#VERSION 48
+		self.windDelaySpeed = read_float(file)#VERSION 48
+		self.envWindEffectCoef = read_float(file)#VERSION 48
+		if version >= VERSION_MHWILDS:
+			self.subDataCount = read_uint(file)
+			self.subDataUnkn0 = read_float(file)
+			self.subDataUnkn1 = read_float(file)
+			self.subDataUnkn2 = read_float(file)
+			self.subDataUnkn3 = read_float(file)
+			self.subDataUnkn4 = read_float(file)
+			self.subDataUnkn5 = read_float(file)
+			self.subDataUnkn6 = read_float(file)
+			self.subDataOffset = read_uint64(file)
+			currentPos2 = file.tell()
+			file.seek(self.subDataOffset)
+			for i in range(0,self.subDataCount):
+				entry = Chain2SettingsSubData()
+				entry.read(file)
+				self.subDataList.append(entry)
+			file.seek(currentPos2)
+		if version >= VERSION_DR:
+			self.motionForceCalcType = read_uint(file)
+			self.padding = read_uint(file)
+			
 		
-	def write(self,file):
+	def write(self,file,version):#TODO Fix wilds write
 		write_uint64(file, self.colliderFilterInfoPathOffset)
-		write_float(file, self.sprayParameterArc)
-		write_float(file, self.sprayParameterFrequency)
-		write_float(file, self.sprayParameterCurve1)
-		write_float(file, self.sprayParameterCurve2)
 		write_uint(file, self.id)
-		write_ubyte(file, self.chainType)
 		write_ubyte(file, self.settingsAttrFlags) #ENUM
-		write_ubyte(file, self.muzzleDirection) #ENUM
+		write_ubyte(file, self.springCalcType)
 		write_byte(file, self.windID)
+		write_ubyte(file, self.windDelayType)
 		write_float(file, self.gravityX)
 		write_float(file, self.gravityY)
 		write_float(file, self.gravityZ)
-		write_float(file, self.muzzleVelocityX)
-		write_float(file, self.muzzleVelocityY)
-		write_float(file, self.muzzleVelocityZ)
+		write_float(file, self.springMaxVelocity)
 		write_float(file, self.damping)
 		write_float(file, self.secondDamping)
 		write_float(file, self.secondDampingSpeed)
-		if version >= 24:
-			write_float(file, self.minDamping)
-			write_float(file, self.secondMinDamping)
-			write_float(file, self.dampingPow)
-			write_float(file, self.secondDampingPow)
-			write_float(file, self.collideMaxVelocity)
+		write_float(file, self.minDamping)
+		write_float(file, self.secondMinDamping)
+		write_float(file, self.dampingPow)
+		write_float(file, self.secondDampingPow)
+		write_float(file, self.collideMaxVelocity)
 		write_float(file, self.springForce)
-		if version >= 24:
-			write_float(file, self.springLimitRate)
-			write_float(file, self.springMaxVelocity)
-			write_ubyte(file, self.springCalcType) #ENUM
-			write_ubyte(file, self.windDelayType)#ENUM
-			write_ushort(file, self.padding)
-		if version >= 52:
-			write_float(file, self.motionForce)#VERSION 52
-			write_uint(file, self.padding2)#VERSION 52
+		write_float(file, self.springLimitRate)
 		write_float(file, self.reduceSelfDistanceRate)
 		write_float(file, self.secondReduceDistanceRate)
 		write_float(file, self.secondReduceDistanceSpeed)
@@ -347,16 +358,26 @@ class ChainSettingsData():
 		write_float(file, self.coefOfExternalForces)
 		write_float(file, self.stretchInteractionRatio)
 		write_float(file, self.angleLimitInteractionRatio)
-		write_float(file, self.shootingElasticLimitRate)
+		write_float(file, self.motionForce)
 		write_uint(file, self.groupDefaultAttr)
 		write_float(file, self.windEffectCoef)
 		write_float(file, self.velocityLimit)
 		write_float(file, self.hardness)
-		if version >= 46:
-			write_float(file, self.windDelaySpeed)#VERSION 48
-			write_float(file, self.envWindEffectCoef)#VERSION 48
-
-
+		write_float(file, self.windDelaySpeed)
+		write_float(file, self.envWindEffectCoef)
+		if version >= VERSION_MHWILDS:
+			write_uint(file, self.subDataCount)
+			write_float(file, self.subDataUnkn0)
+			write_float(file, self.subDataUnkn1)
+			write_float(file, self.subDataUnkn2)
+			write_float(file, self.subDataUnkn3)
+			write_float(file, self.subDataUnkn4)
+			write_float(file, self.subDataUnkn5)
+			write_float(file, self.subDataUnkn6)
+			write_uint64(file, self.subDataOffset)
+		if version >= VERSION_DR:
+			write_uint(file, self.motionForceCalcType)
+			write_uint(file, self.padding)
 	def __str__(self):
 		return str(self.__class__) + ": " + str(self.__dict__)
 
@@ -387,7 +408,7 @@ class CollisionSubData():
 		self.pairPosY = read_float(file)
 		self.pairPosZ = read_float(file)
 		
-		#if version >= 35:
+
 		self.rotOffsetX = read_float(file)
 		self.rotOffsetY = read_float(file)
 		self.rotOffsetZ = read_float(file)
@@ -425,7 +446,7 @@ class CollisionSubData():
 		return str(self.__class__) + ": " + str(self.__dict__)
 
 
-class ChainCollisionData():
+class Chain2CollisionData():
 	def __init__(self):
 		self.subDataOffset = 0
 		self.posX = 0.0
@@ -462,19 +483,16 @@ class ChainCollisionData():
 		self.pairPosY = read_float(file)
 		self.pairPosZ = read_float(file)
 		
-		if version >= 35:
-			self.rotOffsetX = read_float(file)
-			self.rotOffsetY = read_float(file)
-			self.rotOffsetZ = read_float(file)
-			self.rotOffsetW = read_float(file)
-		if version >= 39:
-			self.rotationOrder = read_uint(file)#VERSION 39
+		self.rotOffsetX = read_float(file)
+		self.rotOffsetY = read_float(file)
+		self.rotOffsetZ = read_float(file)
+		self.rotOffsetW = read_float(file)
+		self.rotationOrder = read_uint(file)#VERSION 39
 		
 		self.jointNameHash = read_uint(file)#MURMUR HASH
 		self.pairJointNameHash = read_uint(file)#MURMUR HASH
 		self.radius = read_float(file)
-		if version >= 46:
-			self.endRadius = read_float(file)
+		self.endRadius = read_float(file)
 		
 		self.lerp = read_float(file)#VERSION 48
 		
@@ -483,8 +501,6 @@ class ChainCollisionData():
 		self.subDataCount = read_ushort(file)
 		self.collisionFilterFlags = read_int(file)
 		#self.subDataFlag = read_short(file)
-		if version == 39 or version == 44:
-			self.padding = read_int(file)
 		
 		if self.subDataCount > 0:
 			currentPos = file.tell()
@@ -501,19 +517,16 @@ class ChainCollisionData():
 		write_float(file, self.pairPosY)
 		write_float(file, self.pairPosZ)
 		
-		if version >= 35:
-			write_float(file, self.rotOffsetX)
-			write_float(file, self.rotOffsetY)
-			write_float(file, self.rotOffsetZ)
-			write_float(file, self.rotOffsetW)
-		if version >= 39:
-			write_uint(file, self.rotationOrder)#VERSION 39
+		write_float(file, self.rotOffsetX)
+		write_float(file, self.rotOffsetY)
+		write_float(file, self.rotOffsetZ)
+		write_float(file, self.rotOffsetW)
+		write_uint(file, self.rotationOrder)#VERSION 39
 
 		write_uint(file, self.jointNameHash)#MURMUR HASH
 		write_uint(file, self.pairJointNameHash)#MURMUR HASH
 		write_float(file, self.radius)
-		if version >= 46:
-			write_float(file, self.endRadius)
+		write_float(file, self.endRadius)
 		write_float(file,self.lerp)#VERSION 48
 
 		write_ubyte(file, self.chainCollisionShape)#ENUM, sphere by default
@@ -521,8 +534,6 @@ class ChainCollisionData():
 		write_ushort(file, self.subDataCount)
 		write_int(file, self.collisionFilterFlags)
 		#write_short(file, self.subDataFlag)
-		if version == 39 or version == 44:
-			write_int(file, self.padding)
 		
 		#Write subdata later
 			
@@ -531,14 +542,14 @@ class ChainCollisionData():
 
 
 
-class ChainJiggleData():
+class Chain2JiggleData():
 	def __init__(self):
-		self.rangeX = 0.04#Vec3
+		self.rangeX = 0.0#Vec3
 		self.rangeY = 0.0
 		self.rangeZ = 0.0
 		self.padding0 = 0
 		self.rangeOffsetX = 0.0#Vec3
-		self.rangeOffsetY = 0.04
+		self.rangeOffsetY = 0.0
 		self.rangeOffsetZ = 0.0
 		self.padding1 = 0
 		self.rangeAxisX = 0.0#Quaternion
@@ -546,14 +557,13 @@ class ChainJiggleData():
 		self.rangeAxisZ = 0.0
 		self.rangeAxisW = 1.0
 		self.rangeShape = 2
+		self.attrFlags = 0
 		self.springForce = 0.04
 		self.gravityCoef = 1.0
-		self.damping = 0.1
-		self.attrFlags = 0
-		self.padding2 = 0
-		self.windCoef = 0.0
+		self.damping = 0.04
+		self.windCoef = 0
 
-	def read(self,file):
+	def read(self,file,version):
 		self.rangeX = read_float(file)#Vec3
 		self.rangeY = read_float(file)
 		self.rangeZ = read_float(file)
@@ -567,13 +577,13 @@ class ChainJiggleData():
 		self.rangeAxisZ = read_float(file)
 		self.rangeAxisW = read_float(file)
 		self.rangeShape = read_uint(file)
+		self.attrFlags = read_uint(file)
 		self.springForce = read_float(file)
 		self.gravityCoef = read_float(file)
 		self.damping = read_float(file)
-		self.attrFlags = read_uint(file)
-		self.padding2 = read_uint(file)
+		self.windCoef = read_float(file)
 
-	def write(self,file):
+	def write(self,file,version):
 		write_float(file, self.rangeX)#Vec3
 		write_float(file, self.rangeY)
 		write_float(file, self.rangeZ)
@@ -587,16 +597,16 @@ class ChainJiggleData():
 		write_float(file, self.rangeAxisZ)
 		write_float(file, self.rangeAxisW)
 		write_uint(file, self.rangeShape)
+		write_uint(file, self.attrFlags)
 		write_float(file, self.springForce)
 		write_float(file, self.gravityCoef)
-		write_float(file, self.damping)
-		write_uint(file, self.attrFlags)
-		write_uint(file, self.padding2)
+		write_float(file, self.damping)	
+		write_float(file, self.windCoef)
 
 	def __str__(self):
 		return str(self.__class__) + ": " + str(self.__dict__)
 
-class ChainNodeData():
+class Chain2NodeData():
 	def __init__(self):
 		self.angleLimitDirectionX = 0.0#Quaternion
 		self.angleLimitDirectionY = 0.0
@@ -619,10 +629,11 @@ class ChainNodeData():
 		self.rotationType = 0
 		self.jiggleDataOffset = 0
 		self.gravityCoef = 1.0#VERSION 48
+		self.jointHash = 2180083513#Hash is of something that means None
+		self.basePos = (0.0,0.0,0.0)
 		self.padding = 0#VERSION 48
 		self.jiggleData = None
-		
-	def read(self,file):
+	def read(self,file,version):
 		self.angleLimitDirectionX = read_float(file)#Quaternion
 		self.angleLimitDirectionY = read_float(file)
 		self.angleLimitDirectionZ = read_float(file)
@@ -642,19 +653,20 @@ class ChainNodeData():
 		self.collisionShape = read_ubyte(file) #ENUM sphere by default
 		self.attachType = read_ubyte(file)
 		self.rotationType = read_ubyte(file)
-		if version >= 35:
-			self.jiggleDataOffset = read_uint64(file)
-			self.gravityCoef = read_float(file)#VERSION 48
-			self.padding = read_uint(file)#VERSION 48
+		self.jiggleDataOffset = read_uint64(file)
+		self.gravityCoef = read_float(file)#VERSION 48
+		self.jointHash = read_uint(file)
+		self.basePos = (read_float(file),read_float(file),read_float(file))
+		self.padding = read_uint(file)#VERSION 48
 		if self.jiggleDataOffset != 0:
 			currentPos = file.tell()
-			self.jiggleData = ChainJiggleData()
+			self.jiggleData = Chain2JiggleData()
 			file.seek(self.jiggleDataOffset)
-			self.jiggleData.read(file)
+			self.jiggleData.read(file,version)
 			file.seek(currentPos)
-
+		
 		file.seek(file.tell()+getPaddingAmount(file.tell(),16))#Skip padding
-	def write(self,file):
+	def write(self,file,version):
 		write_float(file, self.angleLimitDirectionX)#Quaternion
 		write_float(file, self.angleLimitDirectionY)
 		write_float(file, self.angleLimitDirectionZ)
@@ -674,16 +686,18 @@ class ChainNodeData():
 		write_ubyte(file, self.collisionShape) #ENUM sphere by default
 		write_ubyte(file, self.attachType)
 		write_ubyte(file, self.rotationType)
-		if version >= 35:
-			write_uint64(file, self.jiggleDataOffset)
-			write_float(file, self.gravityCoef)#VERSION 48
-			write_float(file, self.padding)#VERSION 48
+		write_uint64(file, self.jiggleDataOffset)
+		write_float(file, self.gravityCoef)#VERSION 48
+		write_uint(file,self.jointHash)
+		for val in self.basePos:
+			write_float(file,val)
+		write_float(file, self.padding)#VERSION 48
 		file.write(b"\x00"*getPaddingAmount(file.tell(), 16))
 
 	def __str__(self):
 		return str(self.__class__) + ": " + str(self.__dict__)
 
-class ChainSubGroupData():
+class Chain2SubGroupData():
 	def __init__(self):
 		self.nodeOffset = 0
 		self.subGroupID = 0
@@ -697,8 +711,8 @@ class ChainSubGroupData():
 		currentPos = file.tell()
 		file.seek(self.nodeOffset)
 		for i in range(0,nodeCount):
-			newChainNode = ChainNodeData()
-			newChainNode.read(file)
+			newChainNode = Chain2NodeData()
+			newChainNode.read(file,version)
 			self.nodeList.append(newChainNode)
 		file.seek(currentPos)
 	def write(self,file,version):
@@ -709,23 +723,15 @@ class ChainSubGroupData():
 	def __str__(self):
 		return str(self.__class__) + ": " + str(self.__dict__)
 
-class ChainGroupData():
+class Chain2GroupData():
 	def __init__(self):
-		self.terminateNodeNameOffset = 0
-		self.terminateNodeName = "READ_ERROR"
+		self.terminateNodeName = ""#Not included in chain2
 		self.nodeOffset = 0
 		self.settingID = 0
 		self.nodeCount = 0
 		self.rotationOrder = 0#ENUM
 		self.autoBlendCheckNodeNo = 0
 		self.windID = 0
-		self.terminateNodeNameHash = 0#MURMUR HASH
-		self.attrFlags = 33971#ENUM
-		self.collisionFilterFlags = 0#ENUM
-		self.extraNodeLocalPosX = 0.0
-		self.extraNodeLocalPosY = 0.0
-		self.extraNodeLocalPosZ = 0.0
-		#Tag usage example MHR_EXTRACT\re_chunk_000\natives\STM\enemy\em093\00\mod\em093_00.chain.48
 		self.tag0 = 0
 		self.tag1 = 0
 		self.tag2 = 0
@@ -738,127 +744,110 @@ class ChainGroupData():
 		self.dampingNoise1 = 0.0
 		self.endRotConstMax = 12.5
 		self.tagCount = 0
-		self.angleLimitDirectionMode = 0#ENUM
+		self.angleLimitDirectionMode = 0
 		self.subGroupCount = 0
 		self.colliderQualityLevel = 0
+		
+		self.attrFlags = 99339#ENUM
+		self.clspFlags0 = -1#VERSION 52
+		self.clspFlags1 = -1#VERSION 52
+		self.subGroupDataOffset = 0#VERSION 48
+
+		self.terminateNodeNameHash = 0#MURMUR HASH
+		self.interpCount = 0
+		self.nodeInterpolationMode = 3
 		self.padding = 0
-		self.clspFlags0 = -1
-		self.clspFlags1 = -1
-		self.subGroupDataOffset = 0
+		
+		
 		self.nodeList = []
 		self.subGroupList = []
 		
-	def read(self,file):
-		self.terminateNodeNameOffset = read_uint64(file)
-		currentPos = file.tell()
-		file.seek(self.terminateNodeNameOffset)
-		self.terminateNodeName = read_unicode_string(file)
-		file.seek(currentPos)
+	def read(self,file,version):
 		self.nodeOffset = read_uint64(file)
 		self.settingID = read_int(file)
 		self.nodeCount = read_ubyte(file)
-		self.rotationOrder = read_ubyte(file)#ENUM
+		self.rotationOrder = read_ubyte(file)
 		self.autoBlendCheckNodeNo = read_ubyte(file)
 		self.windID = read_byte(file)
-		self.terminateNodeNameHash = read_uint(file)#MURMUR HASH
-		self.attrFlags = read_int(file)#ENUM
-		self.collisionFilterFlags = read_int(file)#ENUM
-		self.extraNodeLocalPosX = read_float(file)
-		self.extraNodeLocalPosY = read_float(file)
-		self.extraNodeLocalPosZ = read_float(file)
-		if version >= 35:
-			self.tag0 = read_int(file)
-			self.tag1 = read_int(file)
-			self.tag2 = read_int(file)
-			self.tag3 = read_int(file)
-			if version >= 48:
-				self.hierarchyHash0 = read_int(file)
-				self.hierarchyHash1 = read_int(file)
-				self.hierarchyHash2 = read_int(file)
-				self.hierarchyHash3 = read_int(file)
-			
-			self.dampingNoise0 = read_float(file)
-			self.dampingNoise1 = read_float(file)
-			self.endRotConstMax = read_float(file)
-			self.tagCount = read_ubyte(file)
-			self.angleLimitDirectionMode = read_ubyte(file)#ENUM
-			self.subGroupCount = read_ushort(file)#padding on version 35, becomes subgroup count on 44
-		if version >= 48:
-			self.colliderQualityLevel = read_uint(file)#VERSION 48
-			self.padding = read_int(file)#VERSION 48
-		if version >= 52:
-			self.clspFlags0 = read_int(file)#VERSION 52
-			self.clspFlags1 = read_int(file)#VERSION 52
-		if version >= 44:
-			self.subGroupDataOffset = read_uint64(file)#VERSION 46
+		self.tag0 = read_int(file)
+		self.tag1 = read_int(file)
+		self.tag2 = read_int(file)
+		self.tag3 = read_int(file)
+		self.hierarchyHash0 = read_int(file)
+		self.hierarchyHash1 = read_int(file)
+		self.hierarchyHash2 = read_int(file)
+		self.hierarchyHash3 = read_int(file)
+		self.dampingNoise0 = read_float(file)
+		self.dampingNoise1 = read_float(file)
+		self.endRotConstMax = read_float(file)
+		self.tagCount = read_ubyte(file)
+		self.angleLimitDirectionMode = read_ubyte(file)
+		self.subGroupCount = read_ushort(file)
+		self.colliderQualityLevel = read_uint(file)
+		
+		self.attrFlags = read_int(file)
+		self.clspFlags0 = read_int(file)
+		self.clspFlags1 = read_int(file)
+		self.subGroupDataOffset = read_uint64(file)
+
+		self.terminateNodeNameHash = read_uint(file)
+		self.interpCount = read_uint(file)
+		self.nodeInterpolationMode = read_uint(file)
+		self.padding = read_uint(file)
 		self.nodeList = []
 		currentPos = file.tell()
 		file.seek(self.nodeOffset)
 		for i in range(0,self.nodeCount):
-			newChainNode = ChainNodeData()
-			newChainNode.read(file)
+			newChainNode = Chain2NodeData()
+			newChainNode.read(file,version)
 			self.nodeList.append(newChainNode)
-		
 		file.seek(self.subGroupDataOffset)
 		self.subGroupList = []
 		for i in range(0,self.subGroupCount):
-			entry = ChainSubGroupData()
+			entry = Chain2SubGroupData()
 			entry.read(file,version,self.nodeCount)
 			self.subGroupList.append(entry)
-		#paddingAmt = getPaddingAmount(currentPos,16) if version != 52 and version !=46 else 0
-
-		#file.seek(currentPos+paddingAmt)#Go back to the end of chain group and skip padding
 		file.seek(currentPos)
 		
-	def write(self,file):
-		startPos = file.tell()    
-		write_uint64(file, self.terminateNodeNameOffset)
+		
+	def write(self,file,version):
 		write_uint64(file, self.nodeOffset)
 		write_int(file, self.settingID)
 		write_ubyte(file, self.nodeCount)
-		write_ubyte(file, self.rotationOrder)#ENUM
+		write_ubyte(file, self.rotationOrder)
 		write_ubyte(file, self.autoBlendCheckNodeNo)
 		write_byte(file, self.windID)
-		write_uint(file, self.terminateNodeNameHash)#MURMUR HASH
-		write_int(file, self.attrFlags)#ENUM
-		write_int(file, self.collisionFilterFlags)#ENUM
-		write_float(file, self.extraNodeLocalPosX)
-		write_float(file, self.extraNodeLocalPosY)
-		write_float(file, self.extraNodeLocalPosZ)
-		if version >= 35:
-			write_int(file, self.tag0)
-			write_int(file, self.tag1)
-			write_int(file, self.tag2)
-			write_int(file, self.tag3)
-			if version >= 48:
-				write_int(file, self.hierarchyHash0)
-				write_int(file, self.hierarchyHash1)
-				write_int(file, self.hierarchyHash2)
-				write_int(file, self.hierarchyHash3)
-			write_float(file, self.dampingNoise0)
-			write_float(file, self.dampingNoise1)
-			write_float(file, self.endRotConstMax)
-			write_ubyte(file, self.tagCount)
-			write_ubyte(file, self.angleLimitDirectionMode)#ENUM
-			write_ushort(file, self.subGroupCount)
-		if version >= 48:
-			write_uint(file, self.colliderQualityLevel)#VERSION 48
-			write_uint(file, self.padding)#VERSION 48
-			
-		if version >= 52:
-			write_int(file, self.clspFlags0)#VERSION 52
-			write_int(file, self.clspFlags1)#VERSION 52
-		if version >= 44:
-			write_uint64(file, self.subGroupDataOffset)#VERSION 46
+		write_int(file, self.tag0)
+		write_int(file, self.tag1)
+		write_int(file, self.tag2)
+		write_int(file, self.tag3)
+		write_int(file, self.hierarchyHash0)
+		write_int(file, self.hierarchyHash1)
+		write_int(file, self.hierarchyHash2)
+		write_int(file, self.hierarchyHash3)
+		write_float(file, self.dampingNoise0)
+		write_float(file, self.dampingNoise1)
+		write_float(file, self.endRotConstMax)
+		write_ubyte(file, self.tagCount)
+		write_ubyte(file, self.angleLimitDirectionMode)
+		write_ushort(file, self.subGroupCount)
+		write_uint(file, self.colliderQualityLevel)
+		write_int(file, self.attrFlags)
+		write_int(file, self.clspFlags0)
+		write_int(file, self.clspFlags1)
+		write_uint64(file, self.subGroupDataOffset)
+		write_uint(file, self.terminateNodeNameHash)
+		write_uint(file, self.interpCount)
+		write_uint(file, self.nodeInterpolationMode)
+		write_uint(file, self.padding)
 		
 
 	def __str__(self):
 		return str(self.__class__) + ": " + str(self.__dict__)
 
-class WindSettingsData():
+class Chain2WindSettingsData():
 	def __init__(self):
 		self.id = 0
-		self.jointList = []
 		self.windDirection = 1#ENUM
 		self.windCount = 1
 		self.windType = 3#ENUM
@@ -908,7 +897,6 @@ class WindSettingsData():
 		self.interval4 = 0.0
 	def read(self,file):
 		self.id = read_uint(file)
-		self.jointList = []
 		self.windDirection = read_ubyte(file)#ENUM
 		self.windCount = read_ubyte(file)
 		self.windType = read_ushort(file)#ENUM
@@ -1011,7 +999,7 @@ class WindSettingsData():
 	def __str__(self):
 		return str(self.__class__) + ": " + str(self.__dict__)
 
-class ChainLinkNode():
+class Chain2LinkNode():
 	def __init__(self):
 		self.collisionRadius = 0.01
 		self.collisionFilterFlags = 4
@@ -1027,7 +1015,7 @@ class ChainLinkNode():
 	def __str__(self):
 		return str(self.__class__) + ": " + str(self.__dict__)
 
-class ChainLinkData():
+class Chain2LinkData():
 	def __init__(self):
 		self.nodeOffset = 0
 		self.terminateNodeNameHashA = 0#MURMUR HASH
@@ -1042,13 +1030,19 @@ class ChainLinkData():
 		self.skipGroupB = 0
 		self.linkOrder = 0#ENUM
 		self.nodeColLinkList = []
+		#wilds
+		self.clspFlags0 = -1
+		self.clspFlags1 = -1
 		
-	def read(self,file):
+	def read(self,file,version):
 		self.nodeOffset = read_uint64(file)
 		self.terminateNodeNameHashA = read_uint(file)#MURMUR HASH
 		self.terminateNodeNameHashB = read_uint(file)#MURMUR HASH
 		self.distanceShrinkLimitCoef = read_float(file)
 		self.distanceExpandLimitCoef = read_float(file)
+		if version >= VERSION_MHWILDS:
+			self.clspFlags0 = read_int(file)
+			self.clspFlags1 = read_int(file)
 		self.linkMode = read_ubyte(file)#ENUM
 		self.connectFlags = read_ubyte(file)#ENUM
 		self.linkAttrFlags = read_ushort(file)#ENUM
@@ -1060,17 +1054,20 @@ class ChainLinkData():
 			startPos = file.tell()
 			file.seek(self.nodeOffset)
 			for i in range(0,self.nodeCount):
-				linkNodeEntry = ChainLinkNode()
+				linkNodeEntry = Chain2LinkNode()
 				linkNodeEntry.read(file)
 				self.nodeColLinkList.append(linkNodeEntry)
 			file.seek(startPos)
 		
-	def write(self,file):
+	def write(self,file,version):
 		write_uint64(file, self.nodeOffset)
 		write_uint(file, self.terminateNodeNameHashA)#MURMUR HASH
 		write_uint(file, self.terminateNodeNameHashB)#MURMUR HASH
 		write_float(file, self.distanceShrinkLimitCoef)
 		write_float(file, self.distanceExpandLimitCoef)
+		if version >= VERSION_MHWILDS:
+			write_int(file, self.clspFlags0)
+			write_int(file, self.clspFlags1)
 		write_ubyte(file, self.linkMode)#ENUM
 		write_ubyte(file, self.connectFlags)#ENUM
 		write_ushort(file, self.linkAttrFlags)#ENUM
@@ -1082,11 +1079,10 @@ class ChainLinkData():
 	def __str__(self):
 		return str(self.__class__) + ": " + str(self.__dict__)
 
-class ChainFile():
+class Chain2File():
 	def __init__(self):
-		self.Header = ChainHeaderData()
-		self.sizeData = SIZE_DATA()
-		self.sizeData.setSizeData(self.Header.version)
+		self.Header = Chain2HeaderData()
+
 		self.ChainSettingsList = []
 		self.ChainCollisionList = []
 		self.ChainGroupList = []
@@ -1094,29 +1090,20 @@ class ChainFile():
 		self.ChainLinkList = []
 	def read(self,file):
 		self.Header.read(file)
-		self.sizeData.setSizeData(self.Header.version)
+		
+		version = self.Header.version
 		if self.Header.chainSettingsCount > 0:
 			print("Reading Chain Settings...")
 		file.seek(self.Header.chainSettingsOffset)
 		for i in range(0,self.Header.chainSettingsCount):
-			newChainSettings = ChainSettingsData()
-			newChainSettings.read(file)
-			currentPos = file.tell()
-			for j in range(0,self.Header.chainGroupCount):#Add joints to chain settings
-				file.seek(self.Header.chainGroupOffset + j * self.sizeData.CHAIN_GROUP_SIZE + 16)
-				if read_uint(file) == i:
-					file.seek(self.Header.chainGroupOffset + j * self.sizeData.CHAIN_GROUP_SIZE)
-					newJoint = Joint()
-					newJoint.read(file)
-					newChainSettings.jointList.append(newJoint)
-					
-			file.seek(currentPos)
+			newChainSettings = Chain2SettingsData()
+			newChainSettings.read(file,version)
 			self.ChainSettingsList.append(newChainSettings)
 		if self.Header.chainModelCollisionCount > 0:
 			print("Reading Chain Collisions...")
 		file.seek(self.Header.chainModelCollisionOffset)
 		for i in range(0,self.Header.chainModelCollisionCount):
-			newChainCollision = ChainCollisionData()
+			newChainCollision = Chain2CollisionData()
 			newChainCollision.read(file)
 			self.ChainCollisionList.append(newChainCollision)
 			#print (newChainCollision.jointNameHash)
@@ -1124,106 +1111,104 @@ class ChainFile():
 			print("Reading Chain Groups...")
 		file.seek(self.Header.chainGroupOffset)
 		for i in range(0,self.Header.chainGroupCount):
-			newChainGroup = ChainGroupData()
-			newChainGroup.read(file)
+			newChainGroup = Chain2GroupData()
+			newChainGroup.read(file,version)
 			self.ChainGroupList.append(newChainGroup)
 		if self.Header.chainWindSettingsCount > 0:
 			print("Reading Wind Settings...")
 		file.seek(self.Header.chainWindSettingsOffset)
 		for i in range(0,self.Header.chainWindSettingsCount):
-			newWindSettings = WindSettingsData()
+			newWindSettings = Chain2WindSettingsData()
 			newWindSettings.read(file)
-			"""
-			currentPos = file.tell()
-			for j in range(0,self.Header.chainGroupCount):#Add joints to wind settings
-				file.seek(self.Header.chainGroupOffset + j * self.sizeData.CHAIN_GROUP_SIZE + 23)
-				if read_ubyte(file) == newWindSettings.id:
-					file.seek(self.Header.chainGroupOffset + j * self.sizeData.CHAIN_GROUP_SIZE)
-					newJoint = Joint()
-					newJoint.read(file)
-					newWindSettings.jointList.append(newJoint)
-			file.seek(currentPos)
-			"""
 			self.WindSettingsList.append(newWindSettings)
 		if self.Header.chainLinkCount > 0:
 			print("Reading Chain Links...")
 		file.seek(self.Header.chainLinkOffset)
 		for i in range(0,self.Header.chainLinkCount):
-			newChainLink = ChainLinkData()
-			newChainLink.read(file)
+			newChainLink = Chain2LinkData()
+			newChainLink.read(file,version)
 			self.ChainLinkList.append(newChainLink)
 
 	def recalculateOffsets(self):
-		self.sizeData.setSizeData(self.Header.version)
+		sizeData = SIZE_DATA(self.Header.version)
+		version = self.Header.version
 		#Update header offsets
-		self.Header.chainSettingsOffset = self.sizeData.HEADER_SIZE + getPaddingAmount(self.sizeData.HEADER_SIZE, 16)
+		self.Header.chainSettingsOffset = sizeData.HEADER_SIZE + getPaddingAmount(sizeData.HEADER_SIZE, 16)
 		
-		currentFilterPathOffset = self.Header.chainSettingsOffset + self.Header.chainSettingsCount*self.sizeData.CHAIN_SETTING_SIZE + getPaddingAmount(self.Header.chainSettingsOffset + self.Header.chainSettingsCount*self.sizeData.CHAIN_SETTING_SIZE, 16)
+		currentFilterPathOffset = self.Header.chainSettingsOffset + self.Header.chainSettingsCount*sizeData.CHAIN_SETTING_SIZE# + getPaddingAmount(self.Header.chainSettingsOffset + self.Header.chainSettingsCount*sizeData.CHAIN_SETTING_SIZE, 16)
 		for chainSetting in self.ChainSettingsList:
 			if chainSetting.colliderFilterInfoPath != "":
 				chainSetting.colliderFilterInfoPathOffset = currentFilterPathOffset
-				currentFilterPathOffset = currentFilterPathOffset + (len(chainSetting.colliderFilterInfoPath)*2 + 2) + getPaddingAmount(currentFilterPathOffset + (len(chainSetting.colliderFilterInfoPath)*2 + 2), 16)
-		
-		self.Header.chainModelCollisionOffset = currentFilterPathOffset
-		self.Header.chainSubDataOffset = self.Header.chainModelCollisionOffset + self.Header.chainModelCollisionCount*self.sizeData.COLLISION_SIZE + getPaddingAmount(self.Header.chainModelCollisionOffset+self.Header.chainModelCollisionCount*self.sizeData.COLLISION_SIZE, 16)
+				currentFilterPathOffset = getPaddedPos(currentFilterPathOffset + (len(chainSetting.colliderFilterInfoPath)*2 + 2), 8)
+			if len(chainSetting.subDataList) != 0 and version >= VERSION_MHWILDS:
+				
+				chainSetting.subDataOffset = currentFilterPathOffset
+				currentFilterPathOffset += len(chainSetting.subDataList) * sizeData.CHAIN_SETTING_SUBDATA_SIZE
+		self.Header.chainModelCollisionOffset = getPaddedPos(currentFilterPathOffset,16)
+		self.Header.chainSubDataOffset = self.Header.chainModelCollisionOffset + self.Header.chainModelCollisionCount*sizeData.COLLISION_SIZE + getPaddingAmount(self.Header.chainModelCollisionOffset+self.Header.chainModelCollisionCount*sizeData.COLLISION_SIZE, 16)
 		currentSubDataOffset = self.Header.chainSubDataOffset
 		for collision in self.ChainCollisionList:
 			if collision.subDataCount > 0:
 				self.Header.chainSubDataCount += collision.subDataCount
 				collision.subDataOffset = currentSubDataOffset
-				currentSubDataOffset += self.sizeData.COLLISION_SUBDATA_SIZE
-		self.Header.chainGroupOffset = self.Header.chainSubDataOffset + self.Header.chainSubDataCount*self.sizeData.COLLISION_SUBDATA_SIZE + getPaddingAmount(self.Header.chainSubDataOffset + self.Header.chainSubDataCount*self.sizeData.COLLISION_SUBDATA_SIZE, 16)
-		currentNameOffset = self.Header.chainGroupOffset + self.Header.chainGroupCount * self.sizeData.CHAIN_GROUP_SIZE + getPaddingAmount(self.Header.chainGroupOffset + self.Header.chainGroupCount * self.sizeData.CHAIN_GROUP_SIZE, 16)
+				currentSubDataOffset += sizeData.COLLISION_SUBDATA_SIZE
+		self.Header.chainGroupOffset = getPaddedPos(self.Header.chainSubDataOffset + self.Header.chainSubDataCount*sizeData.COLLISION_SUBDATA_SIZE,16)
+		currentNameOffset = self.Header.chainGroupOffset + self.Header.chainGroupCount * sizeData.CHAIN_GROUP_SIZE + getPaddingAmount(self.Header.chainGroupOffset + self.Header.chainGroupCount * sizeData.CHAIN_GROUP_SIZE, 16)
 		currentNodeOffset = 0 #TEMP
 		for chainGroup in self.ChainGroupList:
-			chainGroup.terminateNodeNameOffset = currentNameOffset
-			currentNodeOffset = currentNameOffset + (len(chainGroup.terminateNodeName)*2+2)+getPaddingAmount(currentNameOffset + (len(chainGroup.terminateNodeName)*2+2), 16)
+			#chainGroup.terminateNodeNameOffset = currentNameOffset
+			currentNodeOffset = currentNameOffset + getPaddingAmount(currentNameOffset, 16)
 			chainGroup.nodeOffset = currentNodeOffset
-			nextOffset = currentNodeOffset + chainGroup.nodeCount * self.sizeData.NODE_SIZE
+			nextOffset = currentNodeOffset + chainGroup.nodeCount * sizeData.NODE_SIZE
 			for chainNode in chainGroup.nodeList: 
 				#TODO Export chainJiggles
 				if chainNode.jiggleData != None:
 					chainNode.jiggleDataOffset = nextOffset
-					nextOffset += self.sizeData.JIGGLE_SIZE
-			
+					nextOffset += sizeData.JIGGLE_SIZE
 			currentNameOffset = nextOffset + getPaddingAmount(nextOffset, 16)
-			if version >= 44:
-				chainGroup.subGroupDataOffset = currentNameOffset #chainGroup.nodeOffset + (sizeData.NODE_SIZE * chainGroup.nodeCount)#VERSION 48
-				chainGroup.subGroupCount = len(chainGroup.subGroupList)
-				
-				currentNameOffset += (chainGroup.subGroupCount * self.sizeData.CHAIN_SUBGROUP_SIZE)
-				for subGroup in chainGroup.subGroupList:
-					currentNodeOffset = currentNameOffset
-					subGroup.nodeOffset = currentNodeOffset
-					nextOffset = currentNodeOffset + len(subGroup.nodeList) * self.sizeData.NODE_SIZE
-					for chainNode in subGroup.nodeList: 
-						if chainNode.jiggleData != None:
-							chainNode.jiggleDataOffset = nextOffset
-							nextOffset += self.sizeData.JIGGLE_SIZE
-					currentNameOffset = nextOffset + getPaddingAmount(nextOffset, 16)
-				
+			
+			chainGroup.subGroupDataOffset = currentNameOffset #chainGroup.nodeOffset + (sizeData.NODE_SIZE * chainGroup.nodeCount)#VERSION 48
+			chainGroup.subGroupCount = len(chainGroup.subGroupList)
+			
+			currentNameOffset += (chainGroup.subGroupCount * sizeData.CHAIN_SUBGROUP_SIZE)
+			for subGroup in chainGroup.subGroupList:
+				currentNodeOffset = currentNameOffset
+				subGroup.nodeOffset = currentNodeOffset
+				nextOffset = currentNodeOffset + len(subGroup.nodeList) * sizeData.NODE_SIZE
+				for chainNode in subGroup.nodeList: 
+					if chainNode.jiggleData != None:
+						chainNode.jiggleDataOffset = nextOffset
+						nextOffset += sizeData.JIGGLE_SIZE
+				currentNameOffset = nextOffset + getPaddingAmount(nextOffset, 16)
+			
 		self.Header.chainWindSettingsOffset = currentNameOffset
-		self.Header.chainLinkOffset = self.Header.chainWindSettingsOffset + (self.sizeData.WIND_SIZE*self.Header.chainWindSettingsCount) + getPaddingAmount(self.Header.chainWindSettingsOffset + (self.sizeData.WIND_SIZE*self.Header.chainWindSettingsCount), 16)
-		currentLinkDataOffset = self.Header.chainLinkOffset + self.sizeData.CHAIN_LINK_SIZE * len(self.ChainLinkList)
-		for chainLink in self.ChainLinkList:
-			if len(chainLink.nodeColLinkList) != 0:
-				chainLink.nodeOffset = currentLinkDataOffset
-				currentLinkDataOffset += self.sizeData.CHAIN_LINK_NODE_SIZE * len(chainLink.nodeColLinkList)
+		if len(self.ChainLinkList) > 0:
+			self.Header.chainLinkOffset = self.Header.chainWindSettingsOffset + (sizeData.WIND_SIZE*self.Header.chainWindSettingsCount) + getPaddingAmount(self.Header.chainWindSettingsOffset + (sizeData.WIND_SIZE*self.Header.chainWindSettingsCount), 16)
+			currentLinkDataOffset = self.Header.chainLinkOffset + sizeData.CHAIN_LINK_SIZE * len(self.ChainLinkList)
+			for chainLink in self.ChainLinkList:
+				if len(chainLink.nodeColLinkList) != 0:
+					chainLink.nodeOffset = currentLinkDataOffset
+					currentLinkDataOffset += sizeData.CHAIN_LINK_NODE_SIZE * len(chainLink.nodeColLinkList)
 				
 	def write(self,file):
+		version = self.Header.version
 		self.recalculateOffsets()
 		#print(self.Header)
 		self.Header.write(file)
 		file.seek(self.Header.chainSettingsOffset)
 		for chainSettings in self.ChainSettingsList:
-			chainSettings.write(file)
+			chainSettings.write(file,version)
 		
 		#Loop over chain settings again to write filter paths
 		for chainSettings in self.ChainSettingsList:
+			
 			if chainSettings.colliderFilterInfoPathOffset != 0:
 				file.seek(chainSettings.colliderFilterInfoPathOffset)
 				write_unicode_string(file, chainSettings.colliderFilterInfoPath)
-		
+			if len(chainSettings.subDataList) != 0 and chainSettings.subDataOffset != 0:
+				file.seek(chainSettings.subDataOffset)
+				for subDataEntry in chainSettings.subDataList:
+					subDataEntry.write(file)
 		file.seek(self.Header.chainModelCollisionOffset)
 		for chainCollision in self.ChainCollisionList:
 			chainCollision.write(file)
@@ -1236,22 +1221,21 @@ class ChainFile():
 		
 		file.seek(self.Header.chainGroupOffset)
 		for chainGroup in self.ChainGroupList:
-			chainGroup.write(file)
+			chainGroup.write(file,version)
 		#Loop over chain group again to write the nodes
 		for c, chainGroup in enumerate(self.ChainGroupList):
 			#print("Node Name Offset:" + str(chainGroup.terminateNodeNameOffset))
 			#print("Node Offset:" + str(chainGroup.nodeOffset))
-			file.seek(chainGroup.terminateNodeNameOffset)
-			write_unicode_string(file, chainGroup.terminateNodeName)
+			#file.seek(chainGroup.terminateNodeNameOffset)
+			#write_unicode_string(file, chainGroup.terminateNodeName)
 			file.seek(chainGroup.nodeOffset)
 			
 			for i, node in enumerate(chainGroup.nodeList):
-				node.write(file)
+				node.write(file,version)
 			for i, node in enumerate(chainGroup.nodeList):
 				if node.jiggleData != None:
-					node.jiggleData.write(file)
-
-			if chainGroup.subGroupCount != 0 and version >= 44:
+					node.jiggleData.write(file,version)
+			if chainGroup.subGroupCount != 0:
 				file.seek(chainGroup.subGroupDataOffset)
 				for subGroup in chainGroup.subGroupList:
 					subGroup.write(file,version)		
@@ -1259,10 +1243,11 @@ class ChainFile():
 				for subGroup in chainGroup.subGroupList:
 					file.seek(subGroup.nodeOffset)
 					for i, node in enumerate(subGroup.nodeList):
-						node.write(file)
+						node.write(file,version)
 					for i, node in enumerate(subGroup.nodeList):
 						if node.jiggleData != None:
-							node.jiggleData.write(file)
+							node.jiggleData.write(file,version)
+
 		file.seek(self.Header.chainWindSettingsOffset)
 		for windSettings in self.WindSettingsList:
 			windSettings.write(file)
@@ -1277,21 +1262,21 @@ class ChainFile():
 				
 #---CHAIN IO FUNCTIONS---#
 
-def readREChain(filepath):
-	print(textColors.OKCYAN + "__________________________________\nChain read started." + textColors.ENDC)
+def readREChain2(filepath):
+	print(textColors.OKCYAN + "__________________________________\nChain2 read started." + textColors.ENDC)
 	print("Opening " + filepath)
 	try:  
 		file = open(filepath,"rb")
 	except:
 		raiseError("Failed to open " + filepath)
 	
-	chainFile = ChainFile()
+	chainFile = Chain2File()
 	chainFile.read(file)
 	file.close()
-	print(textColors.OKGREEN + "__________________________________\nChain read finished." + textColors.ENDC)
+	print(textColors.OKGREEN + "__________________________________\nChain2 read finished." + textColors.ENDC)
 	return chainFile
-def writeREChain(chainFile,filepath):
-	print(textColors.OKCYAN + "__________________________________\nChain write started." + textColors.ENDC)
+def writeREChain2(chainFile,filepath):
+	print(textColors.OKCYAN + "__________________________________\nChain2 write started." + textColors.ENDC)
 	print("Opening " + filepath)
 	try:
 		file = open(filepath,"wb")
@@ -1300,4 +1285,4 @@ def writeREChain(chainFile,filepath):
 	
 	chainFile.write(file)
 	file.close()
-	print(textColors.OKGREEN + "__________________________________\nChain write finished." + textColors.ENDC)
+	print(textColors.OKGREEN + "__________________________________\nChain2 write finished." + textColors.ENDC)

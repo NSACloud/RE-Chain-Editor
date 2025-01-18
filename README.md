@@ -1,21 +1,46 @@
 ![REChainEditorTitle](https://github.com/NSACloud/RE-Chain-Editor/assets/46909075/e74f6ac0-e7c7-4f26-94af-0cf1ff9e95ee)
 
+**V10.0 (1/18/2025)**
+
+[Change Log](https://github.com/NSACloud/RE-Chain-Editor?tab=readme-ov-file#change-log)
+
 This addon allows for importing and exporting of RE Engine chain (physics bone) files from Blender.
 
 Also supports collision shape (.clsp) files.
 
-![Blender Preview](https://github.com/NSACloud/RE-Chain-Editor/assets/46909075/f7f27463-2690-4978-893d-72f4647e0a6d)
+![Blender Preview](https://github.com/user-attachments/assets/d8c2ebd7-01bb-48ac-963b-6e9f921627cb)
 
 ### [Download RE Chain Editor](https://github.com/NSACloud/RE-Chain-Editor/archive/refs/heads/main.zip)
 
 ## Features
- - Allows for importing and exporting of RE Engine chain files.
+ - Allows for importing and exporting of RE Engine chain (and chain2) files.
  - Can create new chain files entirely within Blender.
  - Presets of chain configurations can be saved and shared.
 
 
 
 ## Change Log
+
+### V10.0 - 1/18/2025
+
+* Added chain2 import/export support.
+* Labelled all previously unknown values (with exception of chain2 setting subdata).
+* Added new chain setting presets for MH Wilds.
+* Added new menus for configuring attribute flags, click the drop down menu on the right of an attribute flag value to change it.
+* Chain groups are now represented visually via a line through all of it's nodes.
+* Added support for chain sub groups. These allow for chain groups to be assigned different chain and node settings based on their subgroup ID.
+* Chain sub groups nodes are represented with purple angle limit cones.
+* Moved all chain editor file import/export options into File > Import/Export > RE Chain Editor.
+* Added constraint joint field to chain nodes.
+* Added field in the Pose Mode RE Chain menu to create and assign chain settings to newly created chain groups.
+* Fixed issue with assignment of chain settings to groups.
+* Removed "Chain Entries" collection to make the chain header hierarchy less confusing.
+* Changed chain jiggle settings to make them more usable at their default settings.
+* Newly imported chain and clsp files will be grouped in the same collection as the mesh and mdf files.
+* Fixed compatibility issue with Blender 4.3.
+* Fixed issue where copying chain node settings with the clipboard would not update the collision radius of a node when pasted.
+* UI/UX improvements.
+* Added license.
 
 ### V9.1 - 7/25/2024
 
@@ -125,8 +150,10 @@ This is because certain settings have been stored differently compared to the pr
  - **Resident Evil 4 Remake**
  - **Resident Evil 8**
  - **Devil May Cry 5**
- - **Street Fighter 6**  (Street Fighter 6 is only partially supported at the moment and has issues with certain files.)
+ - **Street Fighter 6**
  - **Dragon's Dogma 2**
+ - **Dead Rising Deluxe Remaster**
+ - **Monster Hunter Wilds**
  
 Support for more games may be added in the future.
 
@@ -161,10 +188,15 @@ https://github.com/mhvuze/MonsterHunterRiseModding/wiki/Editing-Chains-with-RE-C
 6. (Optional) Create wind settings and parent the chain settings to it to give it wind effects.
 7. Configure chain objects in the Object properties tab, or apply presets
 8. Adjust the chain node XYZ angle limits if necessary
-9. Export from File > Export > RE Chain
+9. Export from File > Export > RE Chain Editor
+
+**For additional help, go here:**
+
+[Monster Hunter Modding Discord](https://discord.gg/gJwMdhK)
+
+[Modding Haven Discord](https://discord.gg/modding-haven-718224210270617702)
 
  ## Credits
-[Monster Hunter Modding Discord](https://discord.gg/gJwMdhK)
  - [AsteriskAmpersand](https://github.com/AsteriskAmpersand) - Advice and inspiration from CTC Editor
 - [Statyk](https://www.youtube.com/channel/UC2nEkiSL_X7xh6QHJcS0Wjw) - Beta testing and feedback
 - [AlphaZomega](https://github.com/alphazolam/) - RE Chain 010 Template, Modified this addon to work in all games and other bugfixes/additions

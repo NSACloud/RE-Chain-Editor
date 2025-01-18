@@ -35,12 +35,15 @@ class OBJECT_PT_ChainObjectModePanel(Panel):
 		layout = self.layout
 		layout.operator("re_chain.create_chain_header")
 		layout.label(text = "Active Chain Collection")
-		layout.prop_search(re_chain_toolpanel, "chainCollection",bpy.data,"collections",icon = "COLLECTION_COLOR_02")
+		#layout.prop_search(re_chain_toolpanel, "chainCollection",bpy.data,"collections",icon = "COLLECTION_COLOR_02")
+		layout.prop(re_chain_toolpanel, "chainCollection",icon = "COLLECTION_COLOR_02")
+		layout.prop(re_chain_toolpanel, "chainFileType")
 		layout.operator("re_chain.create_chain_settings")
 		layout.operator("re_chain.create_wind_settings")
 		layout.operator("re_chain.create_chain_jiggle")
 		layout.operator("re_chain.create_chain_link")
 		layout.operator("re_chain.create_chain_link_collision")
+		layout.operator("re_chain.create_sub_group")
 		#layout.operator("re_chain.align_chains_to_bone")# Not needed anymore
 		layout.operator("re_chain.align_frames")
 		layout.operator("re_chain.apply_angle_limit_ramp")
@@ -56,7 +59,7 @@ class OBJECT_PT_ChainClipboardPanel(Panel):
 	bl_region_type = "UI"
 	bl_category = "RE Chain"   
 	bl_context = "objectmode"
-
+	bl_options = {'DEFAULT_CLOSED'}
 	@classmethod
 	def poll(self,context):
 		return context is not None and "HIDE_RE_CHAIN_EDITOR_TAB" not in context.scene
@@ -88,7 +91,14 @@ class OBJECT_PT_ChainPoseModePanel(Panel):
 		re_chain_toolpanel = scene.re_chain_toolpanel
 		layout.label(text="Chain Tools")
 		layout.label(text = "Active Chain Collection")
-		layout.prop_search(re_chain_toolpanel, "chainCollection",bpy.data,"collections",icon = "COLLECTION_COLOR_02")
+		#layout.prop_search(re_chain_toolpanel, "chainCollection",bpy.data,"collections",icon = "COLLECTION_COLOR_02")
+		
+		layout.prop(re_chain_toolpanel, "chainCollection",icon = "COLLECTION_COLOR_02")
+		layout.label(text = "Chain Setting")
+		row = layout.row()
+		row.prop(re_chain_toolpanel, "chainSetting")
+		row.operator("re_chain.create_chain_settings",icon='ADD', text="")
+		
 		layout.operator("re_chain.chain_from_bone",text=re_chain_toolpanel.chainFromBoneLabelName)
 		layout.label(text="Collision Tools")
 		layout.prop(re_chain_toolpanel, "collisionShape")
@@ -108,7 +118,7 @@ class OBJECT_PT_ChainPresetPanel(Panel):
 	bl_region_type = "UI"
 	bl_category = "RE Chain"   
 	bl_context = "objectmode"
-
+	bl_options = {'DEFAULT_CLOSED'}
 	@classmethod
 	def poll(self,context):
 		return context is not None and "HIDE_RE_CHAIN_EDITOR_TAB" not in context.scene
@@ -189,7 +199,7 @@ class OBJECT_PT_ChainHeaderPanel(Panel):
 		layout = self.layout
 		object = context.active_object
 		re_chain_header = object.re_chain_header
-
+		isChain2 = context.scene.re_chain_toolpanel.chainFileType == "chain2"
 		split = layout.split(factor=0.01)
 		col1 = split.column()
 		col2 = split.column()
@@ -205,7 +215,10 @@ class OBJECT_PT_ChainHeaderPanel(Panel):
 		col2.prop(re_chain_header, "parameterFlag")
 		col2.prop(re_chain_header, "calculateStepTime")
 		col2.prop(re_chain_header, "modelCollisionSearch")
-		col2.prop(re_chain_header, "legacyVersion")
+		if not isChain2:
+			col2.prop(re_chain_header, "legacyVersion")
+		else:
+			col2.prop(re_chain_header, "highFPSCalculateMode")
 		col2.prop(re_chain_header, "collisionFilterHit0")
 		col2.prop(re_chain_header, "collisionFilterHit1")
 		col2.prop(re_chain_header, "collisionFilterHit2")
@@ -300,6 +313,7 @@ class OBJECT_PT_ChainSettingsPanel(Panel):
 		layout = self.layout
 		object = context.active_object
 		re_chain_chainsettings = object.re_chain_chainsettings
+		isChain2 = context.scene.re_chain_toolpanel.chainFileType == "chain2"
 		split = layout.split(factor=0.01)
 		col1 = split.column()
 		col2 = split.column()
@@ -307,15 +321,22 @@ class OBJECT_PT_ChainSettingsPanel(Panel):
 		col2.use_property_split = True
 		col2.prop(re_chain_chainsettings, "id")
 		col2.prop(re_chain_chainsettings, "colliderFilterInfoPath")
-		col2.prop(re_chain_chainsettings, "sprayParameterArc") 
-		col2.prop(re_chain_chainsettings, "sprayParameterFrequency")
-		col2.prop(re_chain_chainsettings, "sprayParameterCurve1")
-		col2.prop(re_chain_chainsettings, "sprayParameterCurve2")
-		col2.prop(re_chain_chainsettings, "chainType")
-		col2.prop(re_chain_chainsettings, "settingsAttrFlags")
-		col2.prop(re_chain_chainsettings, "muzzleDirection")
+		if not isChain2:
+			col2.prop(re_chain_chainsettings, "chainType")
+			col2.prop(re_chain_chainsettings, "sprayParameterArc") 
+			col2.prop(re_chain_chainsettings, "sprayParameterFrequency")
+			col2.prop(re_chain_chainsettings, "sprayParameterCurve1")
+			col2.prop(re_chain_chainsettings, "sprayParameterCurve2")
+			col2.prop(re_chain_chainsettings, "muzzleDirection")
+			col2.prop(re_chain_chainsettings, "muzzleVelocity")
+			col2.prop(re_chain_chainsettings, "shootingElasticLimitRate")
+			
+		row = col2.row()
+		row.prop(re_chain_chainsettings, "settingsAttrFlags")
+		row.operator("re_chain.set_settings_attr_flags",icon='DOWNARROW_HLT', text="")
+		
 		col2.prop(re_chain_chainsettings, "gravity")
-		col2.prop(re_chain_chainsettings, "muzzleVelocity")
+		
 		col2.prop(re_chain_chainsettings, "damping",slider=True)
 		#if version >= 24:
 		col2.prop(re_chain_chainsettings, "minDamping",slider=True)
@@ -327,12 +348,11 @@ class OBJECT_PT_ChainSettingsPanel(Panel):
 		#if version >= 24:	
 		col2.prop(re_chain_chainsettings, "secondDampingPow")
 		col2.prop(re_chain_chainsettings, "collideMaxVelocity")
+		col2.prop(re_chain_chainsettings, "springCalcType")
 		col2.prop(re_chain_chainsettings, "springForce")
-		#if version >= 24:
 		col2.prop(re_chain_chainsettings, "springLimitRate")
 		col2.prop(re_chain_chainsettings, "springMaxVelocity")
-		col2.prop(re_chain_chainsettings, "springCalcType")
-		col2.prop(re_chain_chainsettings, "unknFlag")
+		
 		col2.prop(re_chain_chainsettings, "reduceSelfDistanceRate",slider=True)
 		col2.prop(re_chain_chainsettings, "secondReduceDistanceRate",slider=True)
 		col2.prop(re_chain_chainsettings, "secondReduceDistanceSpeed")
@@ -342,22 +362,54 @@ class OBJECT_PT_ChainSettingsPanel(Panel):
 		col2.prop(re_chain_chainsettings, "coefOfExternalForces",slider=True)
 		col2.prop(re_chain_chainsettings, "stretchInteractionRatio",slider=True)
 		col2.prop(re_chain_chainsettings, "angleLimitInteractionRatio",slider=True)
-		col2.prop(re_chain_chainsettings, "shootingElasticLimitRate")
+		
+			
+		col2.prop(re_chain_chainsettings, "motionForce")
+		if isChain2:
+			col2.prop(re_chain_chainsettings, "motionForceCalcType")
 		row = col2.row()
 		row.prop(re_chain_chainsettings, "groupDefaultAttr")
 		row.operator("re_chain.set_attr_flags",icon='DOWNARROW_HLT', text="")
+		col2.prop(re_chain_chainsettings, "windDelayType")
 		col2.prop(re_chain_chainsettings, "windEffectCoef",slider=True)
-		col2.prop(re_chain_chainsettings, "unknChainSettingValue1",slider=True)
-		col2.prop(re_chain_chainsettings, "unknChainSettingValue0")
+		col2.prop(re_chain_chainsettings, "envWindEffectCoef",slider=True)
+		col2.prop(re_chain_chainsettings, "windDelaySpeed")
 		col2.prop(re_chain_chainsettings, "velocityLimit")
 		col2.prop(re_chain_chainsettings, "hardness",slider=True)
-		#if version >= 48:
+class OBJECT_PT_ChainSettingsSubDataPanel(Panel):
+	bl_label = "Settings Sub Data"
+	bl_idname = "OBJECT_PT_chain_settings_subdata_panel"
+	bl_parent_id = "OBJECT_PT_chain_settings_panel"  # Specify the ID of the parent panel
+	bl_space_type = 'PROPERTIES'
+	bl_region_type = 'WINDOW'
+	bl_options = {'DEFAULT_CLOSED'}
+	def draw(self, context):
+		layout = self.layout
+		object = context.active_object
+		re_chain_chainsettings = object.re_chain_chainsettings
 		
-		
-		#if version >= 52:
-		col2.prop(re_chain_chainsettings, "unknChainSettingValue2")
-		col2.prop(re_chain_chainsettings, "unknChainSettingValue3")
+		split = layout.split(factor=0.025)#Indent list slightly to make it more clear it's a part of a sub panel
+		col1 = split.column()
+		col2 = split.column()
+		col2.label(text = f"Chain2 version 12 (MH Wilds) and above only")
+		col2.prop(re_chain_chainsettings,"unknQuaternion")
+		col2.prop(re_chain_chainsettings,"unknPos")
+		col2.label(text = f"Sub Data Count: {str(len(object.re_chain_chainsettings.subDataList_items))}")
 
+		col2.template_list(
+			listtype_name = "CHAIN_UL_ChainSettingsSubDataList", 
+			list_id = "",
+			dataptr = re_chain_chainsettings,
+			propname = "subDataList_items",
+			active_dataptr = re_chain_chainsettings, 
+			active_propname = "subDataList_index",
+			rows = 4,
+			type='DEFAULT'
+			)
+	@classmethod
+	def poll(self,context):
+		
+		return context and context.scene.re_chain_toolpanel.chainFileType == "chain2"
 class OBJECT_PT_ChainGroupPanel(Panel):
 	bl_label = "RE Chain Group Settings"
 	bl_idname = "OBJECT_PT_chain_group_panel"
@@ -387,30 +439,64 @@ class OBJECT_PT_ChainGroupPanel(Panel):
 		row = col2.row()
 		row.prop(re_chain_chaingroup, "attrFlags")
 		row.operator("re_chain.set_attr_flags",icon='DOWNARROW_HLT', text="")
-		col2.prop(re_chain_chaingroup, "collisionFilterFlags")
-		#if version >= 35:
+		
 		col2.prop(re_chain_chaingroup, "dampingNoise0")
 		col2.prop(re_chain_chaingroup, "dampingNoise1")
 		col2.prop(re_chain_chaingroup, "endRotConstMax")
 		col2.prop(re_chain_chaingroup, "angleLimitDirectionMode")
-		#if version >= 48:
-		col2.prop(re_chain_chaingroup, "unknGroupValue0")
-		col2.prop(re_chain_chaingroup, "unknGroupValue0B")
-		col2.prop(re_chain_chaingroup, "unknGroupValue1")
-		col2.prop(re_chain_chaingroup, "unknGroupValue2")
-		#if version >= 52:
-		col2.prop(re_chain_chaingroup, "unknGroupValue3")
-		col2.prop(re_chain_chaingroup, "unknGroupValue4")
-		col2.prop(re_chain_chaingroup, "extraNodeLocalPos")
-		#if version >= 48:
-		col2.prop(re_chain_chaingroup, "unknBoneHash")
-		col2.prop(re_chain_chaingroup, "autoBlendCheckNodeNo") 
-		#if version >= 35:
+		
+		if context.scene.re_chain_toolpanel.chainFileType == "chain":
+			col2.prop(re_chain_chaingroup, "extraNodeLocalPos")
+			col2.prop(re_chain_chaingroup, "collisionFilterFlags")
+		else:#chain2
+			col2.prop(re_chain_chaingroup, "interpCount")
+			col2.prop(re_chain_chaingroup, "nodeInterpolationMode")
+		
+		col2.prop(re_chain_chaingroup, "colliderQualityLevel")
+		col2.prop(re_chain_chaingroup, "clspFlags0")
+		col2.prop(re_chain_chaingroup, "clspFlags1")
+		
+		col2.prop(re_chain_chaingroup, "autoBlendCheckNodeNo")
 		col2.prop(re_chain_chaingroup, "tagCount")
 		col2.prop(re_chain_chaingroup, "tag0")
 		col2.prop(re_chain_chaingroup, "tag1")
 		col2.prop(re_chain_chaingroup, "tag2")
 		col2.prop(re_chain_chaingroup, "tag3")
+		
+		col2.prop(re_chain_chaingroup, "hierarchyHash0")
+		col2.prop(re_chain_chaingroup, "hierarchyHash1")
+		col2.prop(re_chain_chaingroup, "hierarchyHash2")
+		col2.prop(re_chain_chaingroup, "hierarchyHash3")
+
+class OBJECT_PT_ChainSubGroupPanel(Panel):
+	bl_label = "RE Chain Sub Group Settings"
+	bl_idname = "OBJECT_PT_chain_sub_group_panel"
+	bl_space_type = "PROPERTIES"
+	bl_region_type = "WINDOW"
+	bl_category = "RE Chain Sub Group Settings"
+	bl_context = "object"
+
+
+	@classmethod
+	def poll(self,context):
+		
+		return context and context.object.mode == "OBJECT" and context.active_object.get("TYPE",None) == "RE_CHAIN_SUBGROUP"
+
+	def draw(self, context):
+		layout = self.layout
+		object = context.active_object
+		re_chain_chainsubgroup = object.re_chain_chainsubgroup
+		
+		split = layout.split(factor=0.01)
+		col1 = split.column()
+		col2 = split.column()
+		col2.alignment='RIGHT'
+		col2.use_property_split = True
+		
+		col2.prop(re_chain_chainsubgroup, "subGroupID")
+		col2.prop(re_chain_chainsubgroup, "parentGroup")
+		
+
 
 class OBJECT_PT_ChainNodePanel(Panel):
 	bl_label = "RE Chain Node Settings"
@@ -445,16 +531,20 @@ class OBJECT_PT_ChainNodePanel(Panel):
 		col2.prop(re_chain_chainnode, "capsuleStretchRate1",slider = True)
 		row = col2.row()
 		row.prop(re_chain_chainnode, "attrFlags")
-		row.operator("re_chain.set_attr_flags",icon='DOWNARROW_HLT', text="")
+		row.operator("re_chain.set_node_attr_flags",icon='DOWNARROW_HLT', text="")
 		col2.prop(re_chain_chainnode, "windCoef",slider = True)
 		col2.prop(re_chain_chainnode, "angleMode")
 		col2.prop(re_chain_chainnode, "collisionShape")
 		col2.prop(re_chain_chainnode, "attachType")
 		col2.prop(re_chain_chainnode, "rotationType")
 		#col2.prop(re_chain_chainnode, "jiggleData")
+		col2.prop(re_chain_chainnode, "gravityCoef")
+		col2.prop(re_chain_chainnode, "constraintJntName")
 		#if version >= 35:
-		col2.prop(re_chain_chainnode, "unknChainNodeValue0")
-		col2.prop(re_chain_chainnode, "unknChainNodeValue1")
+		
+		if context.scene.re_chain_toolpanel.chainFileType == "chain2":
+			col2.prop(re_chain_chainnode, "jointHash")
+			col2.prop(re_chain_chainnode, "basePos")
 
 
 class OBJECT_PT_ChainJigglePanel(Panel):
@@ -486,10 +576,11 @@ class OBJECT_PT_ChainJigglePanel(Panel):
 		col2.prop(re_chain_chainjiggle, "rangeShape")
 		col2.prop(re_chain_chainjiggle, "springForce",slider = True)
 		col2.prop(re_chain_chainjiggle, "gravityCoef",slider = True)
+		col2.prop(re_chain_chainjiggle, "windCoef",slider = True)
 		col2.prop(re_chain_chainjiggle, "damping",slider = True)
 		row = col2.row()
 		row.prop(re_chain_chainjiggle, "attrFlags")
-		row.operator("re_chain.set_attr_flags",icon='DOWNARROW_HLT', text="")
+		row.operator("re_chain.set_jiggle_attr_flags",icon='DOWNARROW_HLT', text="")
 		
 class OBJECT_PT_ChainCollisionPanel(Panel):
 	bl_label = "RE Chain Collision Settings"
@@ -634,7 +725,7 @@ class OBJECT_PT_ChainVisibilityPanel(Panel):
 	bl_region_type = "UI"
 	bl_category = "RE Chain"   
 	bl_context = "objectmode"
-
+	bl_options = {'DEFAULT_CLOSED'}
 	@classmethod
 	def poll(self,context):
 		return context is not None and "HIDE_RE_CHAIN_EDITOR_TAB" not in context.scene
@@ -662,6 +753,8 @@ class OBJECT_PT_NodeVisPanel(Panel):
 		layout.prop(re_chain_toolpanel, "showRelationLines")
 		layout.prop(re_chain_toolpanel, "showNodeNames")
 		layout.prop(re_chain_toolpanel, "drawNodesThroughObjects")
+		layout.prop(re_chain_toolpanel, "drawChainGroupsThroughObjects")
+		layout.prop(re_chain_toolpanel, "groupDisplaySize")
 		
 class OBJECT_PT_CollisionVisPanel(Panel):
 	bl_label = "Collision Settings"
@@ -713,3 +806,5 @@ class OBJECT_PT_ColorVisPanel(Panel):
 		layout.prop(re_chain_toolpanel, "chainLinkColor")
 		layout.prop(re_chain_toolpanel, "chainLinkCollisionColor")
 		layout.prop(re_chain_toolpanel, "coneColor")
+		layout.prop(re_chain_toolpanel, "coneSubGroupColor")
+		layout.prop(re_chain_toolpanel, "chainGroupColor")

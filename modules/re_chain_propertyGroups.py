@@ -7,14 +7,27 @@ from bpy.props import (StringProperty,
 					   FloatVectorProperty,
 					   EnumProperty,
 					   PointerProperty,
+					   CollectionProperty,
 					   )
 
 
 from .pymmh3 import hash_wide
 
+from .file_re_chain2 import Chain2SettingsSubData
+
 from .re_chain_presets import reloadPresets
 
 #V2 - Removed AttrFlags enum, replaced with a pseudo enum using int value and operator due to large variations in values
+
+def filterChainCollection(self, collection):
+	#I messed up with the mesh editor and accidentally left the type of mdf collections as RE_CHAIN_COLLECTION, so this long check is needed
+    return True if ((collection.get("~TYPE") == "RE_CHAIN_COLLECTION" or collection.get("~TYPE") == "RE_CLSP_COLLECTION") and (".chain" in collection.name or ".clsp" in collection.name)) else False
+
+def filterChainSetting(self, obj):
+    return True if (obj.get("TYPE") == "RE_CHAIN_CHAINSETTINGS" and bpy.context.scene.re_chain_toolpanel.chainCollection != None and obj.name in bpy.context.scene.re_chain_toolpanel.chainCollection.all_objects) else False
+def filterChainGroup(self, obj):
+    return True if (obj.get("TYPE") == "RE_CHAIN_CHAINGROUP" and bpy.context.scene.re_chain_toolpanel.chainCollection != None and obj.name in bpy.context.scene.re_chain_toolpanel.chainCollection.all_objects) else False
+
 
 def update_chainFromBoneName(self, context):
 	if self.experimentalPoseModeOptions:
@@ -56,6 +69,20 @@ def update_coneColor(self, context):
 		mat.diffuse_color = self.coneColor
 		mat.node_tree.nodes[0].inputs["Base Color"].default_value = bpy.context.scene.re_chain_toolpanel.coneColor
 		mat.node_tree.nodes[0].inputs["Alpha"].default_value = bpy.context.scene.re_chain_toolpanel.coneColor[3]
+
+def update_coneSubGroupColor(self, context):
+	if "ChainConeSubGroupMat" in bpy.data.materials:
+		mat = bpy.data.materials["ChainConeSubGroupMat"]
+		mat.diffuse_color = self.coneSubGroupColor
+		mat.node_tree.nodes[0].inputs["Base Color"].default_value = bpy.context.scene.re_chain_toolpanel.coneSubGroupColor
+		mat.node_tree.nodes[0].inputs["Alpha"].default_value = bpy.context.scene.re_chain_toolpanel.coneSubGroupColor[3]
+			
+def update_chainGroupColor(self, context):
+	if "ChainGroupMat" in bpy.data.materials:
+		mat = bpy.data.materials["ChainGroupMat"]
+		mat.diffuse_color = self.chainGroupColor
+		mat.node_tree.nodes[0].inputs["Base Color"].default_value = bpy.context.scene.re_chain_toolpanel.chainGroupColor
+		mat.node_tree.nodes[0].inputs["Alpha"].default_value = bpy.context.scene.re_chain_toolpanel.chainGroupColor[3]
 def update_RelationLinesVis(self, context):
 	bpy.context.space_data.overlay.show_relationship_lines = self.showRelationLines
 
@@ -78,7 +105,11 @@ def update_coneSize(self, context):
 				elif nodeObj.re_chain_chainnode.angleMode == "5":#Limit elliptic angle mode
 					yScaleModifier = .5
 			obj.scale = (self.coneDisplaySize*xScaleModifier,self.coneDisplaySize*yScaleModifier,self.coneDisplaySize*zScaleModifier)
-
+def update_groupSize(self, context):
+	for obj in bpy.data.objects:
+		if obj.get("TYPE",None) == "RE_CHAIN_CHAINGROUP" and obj.type == "CURVE":
+			
+			obj.data.bevel_depth = self.groupDisplaySize
 
 def update_AngleLimitMode(self, context):
 	obj = self.id_data
@@ -161,7 +192,7 @@ def update_EndCollisionRadius(self, context):
 					child.scale = [obj.re_chain_chaincollision.endRadius]*3#If tapered capsule, don't scale end bone
 def update_NodeNameVis(self, context):
 	for obj in bpy.data.objects:
-		if obj.get("TYPE",None) == "RE_CHAIN_NODE":
+		if obj.get("TYPE",None) == "RE_CHAIN_NODE" and not obj.get("isSubGroupNode"):
 			obj.show_name = self.showNodeNames
 
 def update_CollisionNameVis(self, context):
@@ -176,7 +207,11 @@ def update_DrawNodesThroughObjects(self, context):
 	for obj in bpy.data.objects:
 		if obj.get("TYPE",None) == "RE_CHAIN_NODE" or obj.get("TYPE",None) == "RE_CHAIN_NODE_FRAME":
 			obj.show_in_front = self.drawNodesThroughObjects
-			
+def update_DrawChainGroupsThroughObjects(self, context):
+	for obj in bpy.data.objects:
+		if obj.get("TYPE",None) == "RE_CHAIN_CHAINGROUP":
+			obj.show_in_front = self.drawChainGroupsThroughObjects
+				
 def update_DrawConesThroughObjects(self, context):
 	for obj in bpy.data.objects:
 		if obj.get("TYPE",None) == "RE_CHAIN_NODE_FRAME_HELPER":
@@ -362,6 +397,12 @@ class chainToolPanelPropertyGroup(bpy.types.PropertyGroup):
 		default = True,
 		update = update_DrawNodesThroughObjects
 		)
+	drawChainGroupsThroughObjects: BoolProperty(
+		name="Draw Groups Through Objects",
+		description="Make all chain group objects render through any objects in front of them",
+		default = True,
+		update = update_DrawChainGroupsThroughObjects
+		)
 	showCollisionNames: BoolProperty(
 		name="Show Collision Names",
 		description="Show Collision Names in 3D View",
@@ -412,12 +453,22 @@ class chainToolPanelPropertyGroup(bpy.types.PropertyGroup):
 	coneDisplaySize: FloatProperty(
 		name="Cone Size",
 		description="Set the display size of node angle limit cones",
-		default = 0.005,
+		default = 0.004,
 		soft_min = 0.0,
 		soft_max = .2,
 		precision = 3,
 		step = .005,
 		update = update_coneSize
+		)
+	groupDisplaySize: FloatProperty(
+		name="Group Size",
+		description="Set the thickness of chain group lines",
+		default = 0.006,
+		soft_min = 0.0,
+		soft_max = .2,
+		precision = 3,
+		step = .005,
+		update = update_groupSize
 		)
 	experimentalPoseModeOptions: BoolProperty(
 		name="Enable Experimental Features",
@@ -430,10 +481,31 @@ class chainToolPanelPropertyGroup(bpy.types.PropertyGroup):
 		default = "Create Chain From Bone",
 		
 		)
+	"""
 	chainCollection: bpy.props.StringProperty(
 		name="",
 		description = "Set the collection containing the chain file to edit.\nHint: Chain collections are orange.\nYou can create a new chain collection by pressing the \"Create Chain Header\" button.\nThis can also be set to a .clsp collection to create collisions for .clsp files",
 		
+		)
+	"""
+	chainCollection: bpy.props.PointerProperty(
+		name="",
+		description = "Set the collection containing the chain file to edit.\nHint: Chain collections are orange.\nYou can create a new chain collection by pressing the \"Create Chain Header\" button.\nThis can also be set to a .clsp collection to create collisions for .clsp files",
+		type=bpy.types.Collection,
+		poll = filterChainCollection
+		)
+	chainSetting: bpy.props.PointerProperty(
+		name="",
+		description = "Select the chain setting to use for a newly created chain group. You can create a new chain setting by pressing the + button",
+		type=bpy.types.Object,
+		poll = filterChainSetting
+		)
+	chainFileType: EnumProperty(
+		name="Type",
+		description="Chain File Type\nThis determines what fields are usable on chain objects",
+		items=[("chain", "Chain", "Old chain file format, use for anything older than MH Wilds/Dead Rising"),
+			   ("chain2", "Chain2", "New chain file format, use for MH Wilds/Dead Rising and newer"),
+			   ]
 		)
 	collisionColor: bpy.props.FloatVectorProperty(
         name="Collision Color",
@@ -471,6 +543,24 @@ class chainToolPanelPropertyGroup(bpy.types.PropertyGroup):
 		default = (0.8,0.6,0.0,0.4),
 		update = update_coneColor
     )
+	coneSubGroupColor: bpy.props.FloatVectorProperty(
+        name="Sub Group Color",
+        subtype='COLOR',
+        size=4,
+        min=0.0,
+        max=1.0,
+		default = (0.5,0.0,0.8,0.4),
+		update = update_coneSubGroupColor
+    )
+	chainGroupColor: bpy.props.FloatVectorProperty(
+        name="Chain Group Color",
+        subtype='COLOR',
+        size=4,
+        min=0.0,
+        max=1.0,
+		default = (0.8,0.3,0.0,0.47),
+		update = update_chainGroupColor
+    )
 	showRelationLines: BoolProperty(
 		name="Show Relation Lines",
 		description="Show dotted lines indicating object parents. Recommended to disable since they can be very obtrusive with many objects.\nNote that this affects all objects, not just chain objects",
@@ -490,6 +580,7 @@ class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
 		description="Chain Version",#TODO Add description
 		#default = 35,
 		)'''
+	"""
 	version: EnumProperty(
 		name = "Chain Version",
 		description="Chain Version",#TODO Add description
@@ -505,6 +596,7 @@ class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
 				("44", ".44 (RE:Verse)", ""),
 			   ]
 		)
+	"""
 	errFlags: EnumProperty(
 		name="Error Flags",
 		description="Apply Data to attribute.",
@@ -563,10 +655,12 @@ class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
 		description = "Calculate Step Time",#TODO Add description
 		default = 2.0,
 		)
-	modelCollisionSearch: BoolProperty(
+	modelCollisionSearch: IntProperty(
 		name="Model Collision Search",
 		description="Model Collision Search",#TODO Add description
-		default = False
+		default = 0,
+		min = 0,
+		max = 255,
 		)
 	legacyVersion: EnumProperty(
 		name="Legacy Version",
@@ -575,6 +669,7 @@ class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
 				("1", "LegacyVersion_Legacy1", ""),
 			  ]
 		)
+	
 	collisionFilterHit0: EnumProperty(
 		name="Collision Hit Flag 0",
 		description="Apply Data to attribute.",
@@ -678,11 +773,20 @@ class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
 				("64", "HitFlags_VGround", ""),
 				("110", "HitFlags_Collision", ""),
 			   ]
-		) 
-  
-def getChainHeader(ChainHeaderData,targetObject):
+		)
+	#chain2
+	highFPSCalculateMode: EnumProperty(
+		name="High FPS Calculate Mode",
+		description="Apply Data to attribute.",
+		items=[ ("0", "HighFpsCalculateMode_Default", ""),
+				("1", "HighFpsCalculateMode_LimitedVariableStepTime", ""),
+				("2", "HighFpsCalculateMode_VariableStepTime", ""),
+			  ],
+		default = "1"
+		
+		)
+def getChainHeader(ChainHeaderData,targetObject,isChain2 = False):
 	#Done manually to be able to account for chain version differences eventually
-	targetObject.re_chain_header.version = str(ChainHeaderData.version)
 	targetObject.re_chain_header.errFlags = str(ChainHeaderData.errFlags)
 	targetObject.re_chain_header.masterSize = ChainHeaderData.masterSize
 	targetObject.re_chain_header.rotationOrder = str(ChainHeaderData.rotationOrder)
@@ -692,7 +796,10 @@ def getChainHeader(ChainHeaderData,targetObject):
 	targetObject.re_chain_header.parameterFlag = str(ChainHeaderData.parameterFlag)
 	targetObject.re_chain_header.calculateStepTime = ChainHeaderData.calculateStepTime
 	targetObject.re_chain_header.modelCollisionSearch = ChainHeaderData.modelCollisionSearch
-	targetObject.re_chain_header.legacyVersion = str(ChainHeaderData.legacyVersion)
+	if not isChain2:
+		targetObject.re_chain_header.legacyVersion = str(ChainHeaderData.legacyVersion)
+	else:
+		targetObject.re_chain_header.highFPSCalculateMode = str(ChainHeaderData.highFPSCalculateMode)
 	targetObject.re_chain_header.collisionFilterHit0 = str(ChainHeaderData.collisionFilterHit0)
 	targetObject.re_chain_header.collisionFilterHit1 = str(ChainHeaderData.collisionFilterHit1)
 	targetObject.re_chain_header.collisionFilterHit2 = str(ChainHeaderData.collisionFilterHit2)
@@ -703,8 +810,7 @@ def getChainHeader(ChainHeaderData,targetObject):
 	targetObject.re_chain_header.collisionFilterHit7 = str(ChainHeaderData.collisionFilterHit7)
 
 
-def setChainHeaderData(ChainHeaderData,targetObject):
-	ChainHeaderData.version = int(targetObject.re_chain_header.version) 
+def setChainHeaderData(ChainHeaderData,targetObject,isChain2 = False):
 	ChainHeaderData.errFlags = int(targetObject.re_chain_header.errFlags)
 	ChainHeaderData.masterSize = targetObject.re_chain_header.masterSize 
 	ChainHeaderData.rotationOrder = int(targetObject.re_chain_header.rotationOrder)
@@ -714,7 +820,10 @@ def setChainHeaderData(ChainHeaderData,targetObject):
 	ChainHeaderData.parameterFlag = int(targetObject.re_chain_header.parameterFlag)
 	ChainHeaderData.calculateStepTime = targetObject.re_chain_header.calculateStepTime
 	ChainHeaderData.modelCollisionSearch = int(targetObject.re_chain_header.modelCollisionSearch)
-	ChainHeaderData.legacyVersion = int(targetObject.re_chain_header.legacyVersion)
+	if not isChain2:
+		ChainHeaderData.legacyVersion = int(targetObject.re_chain_header.legacyVersion)
+	else:
+		ChainHeaderData.highFPSCalculateMode = int(targetObject.re_chain_header.highFPSCalculateMode)
 	ChainHeaderData.collisionFilterHit0 = int(targetObject.re_chain_header.collisionFilterHit0)
 	ChainHeaderData.collisionFilterHit1 = int(targetObject.re_chain_header.collisionFilterHit1)
 	ChainHeaderData.collisionFilterHit2 = int(targetObject.re_chain_header.collisionFilterHit2)
@@ -930,7 +1039,7 @@ class chainWindSettingsPropertyGroup(bpy.types.PropertyGroup):
 		)
 	
   
-def getWindSettings(WindSettingsData,targetObject):
+def getWindSettings(WindSettingsData,targetObject,isChain2 = False):
 	#Done manually to be able to account for chain version differences eventually
 	targetObject.re_chain_windsettings.id = WindSettingsData.id
 	targetObject.re_chain_windsettings.windDirection = str(WindSettingsData.windDirection)
@@ -975,9 +1084,7 @@ def getWindSettings(WindSettingsData,targetObject):
 	targetObject.re_chain_windsettings.cycle4 = WindSettingsData.cycle4
 	targetObject.re_chain_windsettings.interval4 = WindSettingsData.interval4
 	
-
-
-def setWindSettingsData(WindSettingsData,targetObject):
+def setWindSettingsData(WindSettingsData,targetObject,isChain2 = False):
 	WindSettingsData.id = targetObject.re_chain_windsettings.id 
 	WindSettingsData.windDirection = int(targetObject.re_chain_windsettings.windDirection)
 	WindSettingsData.windCount = targetObject.re_chain_windsettings.windCount 
@@ -1036,6 +1143,22 @@ def setWindSettingsData(WindSettingsData,targetObject):
 	WindSettingsData.cycle4 = targetObject.re_chain_windsettings.cycle4 
 	WindSettingsData.interval4 = targetObject.re_chain_windsettings.interval4 
 
+class ChainSettingSubDataPropertyGroup(bpy.types.PropertyGroup):
+
+    values: bpy.props.IntVectorProperty(
+		name = "Values",
+        size = 7,
+		min = 0,
+		max = 255,
+    )
+class CHAIN_UL_ChainSettingsSubDataList(bpy.types.UIList):
+	
+	def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        # Display the properties of each item in the UIList
+		layout.prop(item,"values")
+	# Disable double-click to rename
+	def invoke(self, context, event):
+		return {'PASS_THROUGH'}
 
 
 class chainSettingsPropertyGroup(bpy.types.PropertyGroup):
@@ -1077,23 +1200,10 @@ class chainSettingsPropertyGroup(bpy.types.PropertyGroup):
 				("1", "ChainType_Shooter", ""),
 			  ]
 		)
-	settingsAttrFlags: EnumProperty(
-		name="Settings Attribute Flags",
-		description="Apply Data to attribute.",
-		items=[ ("0", "SettingAttrFlags_None", ""),
-				("1", "SettingAttrFlags_Default", ""),
-				("2", "SettingAttrFlags_VirtualGroundRoot", ""),
-				("3", "SettingAttrFlags_UNKNOWNFLAG_3", ""),
-				("4", "SettingAttrFlags_VirtualGroundTarget", ""),
-				("5", "SettingAttrFlags_UNKNOWNFLAG_4", ""),
-				("8", "SettingAttrFlags_IgnoreSameGroupCollision", ""),
-				("9", "SettingAttrFlags_UNKNOWNFLAG_9", ""),
-				("6", "SettingAttrFlags_VirtualGroundMask", ""),
-				("10", "SettingAttrFlags_UNKNOWNFLAG_10", ""),
-				("11", "SettingAttrFlags_UNKNOWNFLAG_11", ""),
-				("12", "SettingAttrFlags_UNKNOWNFLAG_12", ""),
-				("13", "SettingAttrFlags_UNKNOWNFLAG_13", ""),
-			  ]
+	settingsAttrFlags: IntProperty(
+		name="Setting Attribute Flags",
+		description="",
+		default = 0,
 		)
 	muzzleDirection: EnumProperty(
 		name="Muzzle Direction",
@@ -1106,7 +1216,7 @@ class chainSettingsPropertyGroup(bpy.types.PropertyGroup):
 	gravity: FloatVectorProperty(
 		name = "Gravity",
 		description="Gravity",#TODO Add description
-		default = (0.0,9.8,0.0),
+		default = (0.0,-9.8,0.0),
 		subtype = "XYZ"
 		)
 	muzzleVelocity: FloatVectorProperty(
@@ -1191,10 +1301,13 @@ class chainSettingsPropertyGroup(bpy.types.PropertyGroup):
 				("3", "ChainSpringCalcType_VFRRotation", ""),
 			   ]
 		)
-	unknFlag: IntProperty(
-		name="Unknown Spring Calculation Flag",
-		description="Unknown Spring Calculation Flag\nVersion 24 and above only",#TODO Add description
-		default = 0
+	windDelayType: EnumProperty(
+		name="Wind Delay Type",
+		description="Version 24 and above",
+		items=[ ("0", "WindDelayType_None", ""),
+				("1", "WindDelayType_Auto", ""),
+				("2", "WindDelayType_Manual", ""),
+			  ]
 		)
 	reduceSelfDistanceRate: FloatProperty(
 		name = "Reduce Self Distance Rate",
@@ -1289,40 +1402,77 @@ class chainSettingsPropertyGroup(bpy.types.PropertyGroup):
 		soft_min = 0.00,
 		soft_max = 1.00,
 		)
-	unknChainSettingValue0: FloatProperty(
+	windDelaySpeed: FloatProperty(
 		name = "Wind Delay Speed",
 		description = "Capcom Example Values RE4: [0.0]\nVersion 48 and above only",#TODO Add description
 		default = 0.00,
 		)
-	unknChainSettingValue1: FloatProperty(
+	envWindEffectCoef: FloatProperty(
 		name = "Env Wind Effect Coefficient",
 		description = "Capcom Example Values RE4: [0.0, 0.003000000026077032, 0.004999999888241291, 0.009999999776482582, 0.019999999552965164, 0.029999999329447746, 0.03500000014901161, 0.03999999910593033, 0.05000000074505806, 0.10000000149011612, 0.5]\nVersion 48 and above only",
 		default = 0.10,
 		)
-	unknChainSettingValue2: FloatProperty(
+	motionForce: FloatProperty(
 		name = "Motion Force",
 		description = "Capcom Example Values RE4: [0.0, 1.0, 5.0, 20.0, 30.0, 40.0, 41.0, 45.0, 50.0, 53.0, 60.0, 65.0]\nVersion 52 and above only",
 		default = 0.00,
 		)
-	unknChainSettingValue3: FloatProperty(
-		name = "Unknown 3",
-		description = "Capcom Example Values RE4: [0.0]\nVersion 52 and above only",
-		default = 0.00,
-		)
 	
-def getChainSettings(ChainSettingsData,targetObject):
+	windDelayType: EnumProperty(
+		name="Wind Delay Type",
+		description="Version 24 and above",
+		items=[ ("0", "WindDelayType_None", ""),
+				("1", "WindDelayType_Auto", ""),
+				("2", "WindDelayType_Manual", ""),
+			  ]
+		)
+	motionForceCalcType: EnumProperty(
+		name="Motion Force Calculation Type (chain2)",
+		description="*This value might not be motion force calc type\nVersion 9 and above",
+		items=[ ("0", "MotionForceCalcType_MotionForce", ""),
+				("1", "MotionForceCalcType_InitShapeForce", ""),
+			  ]
+		)
+	#chain2 subdata
+	unknQuaternion: FloatVectorProperty(
+		name = "Unknown 0",
+		description="Quaternion Maybe (Always (0.0,0.0,0.0,1.0))",
+		default = (0.0,0.0,0.0,1.0),
+		subtype = "XYZ",
+		size = 4,
+		)
+	unknPos: FloatVectorProperty(
+		name = "Unknown 1",
+		description="Position Maybe (Always (0.0,0.0,0.0))",
+		default = (0.0,0.0,0.0),
+		subtype = "XYZ",
+		)
+	subDataList_items: CollectionProperty(type=ChainSettingSubDataPropertyGroup)
+	subDataList_index: IntProperty(name="")
+def getChainSettings(ChainSettingsData,targetObject,isChain2 = False):
 	#Done manually to be able to account for chain version differences eventually
 	targetObject.re_chain_chainsettings.id = ChainSettingsData.id
 	targetObject.re_chain_chainsettings.colliderFilterInfoPath = str(ChainSettingsData.colliderFilterInfoPath)
-	targetObject.re_chain_chainsettings.sprayParameterArc = ChainSettingsData.sprayParameterArc
-	targetObject.re_chain_chainsettings.sprayParameterFrequency = ChainSettingsData.sprayParameterFrequency
-	targetObject.re_chain_chainsettings.sprayParameterCurve1 = ChainSettingsData.sprayParameterCurve1
-	targetObject.re_chain_chainsettings.sprayParameterCurve2 = ChainSettingsData.sprayParameterCurve2
-	targetObject.re_chain_chainsettings.chainType = str(ChainSettingsData.chainType)
-	targetObject.re_chain_chainsettings.settingsAttrFlags = str(ChainSettingsData.settingsAttrFlags)
-	targetObject.re_chain_chainsettings.muzzleDirection = str(ChainSettingsData.muzzleDirection)
+	if not isChain2:
+		targetObject.re_chain_chainsettings.sprayParameterArc = ChainSettingsData.sprayParameterArc
+		targetObject.re_chain_chainsettings.sprayParameterFrequency = ChainSettingsData.sprayParameterFrequency
+		targetObject.re_chain_chainsettings.sprayParameterCurve1 = ChainSettingsData.sprayParameterCurve1
+		targetObject.re_chain_chainsettings.sprayParameterCurve2 = ChainSettingsData.sprayParameterCurve2
+		targetObject.re_chain_chainsettings.chainType = str(ChainSettingsData.chainType)
+		targetObject.re_chain_chainsettings.muzzleDirection = str(ChainSettingsData.muzzleDirection)
+		targetObject.re_chain_chainsettings.shootingElasticLimitRate = ChainSettingsData.shootingElasticLimitRate
+		targetObject.re_chain_chainsettings.muzzleVelocity = (ChainSettingsData.muzzleVelocityX,ChainSettingsData.muzzleVelocityY,ChainSettingsData.muzzleVelocityZ)
+	else:
+		targetObject.re_chain_chainsettings.motionForceCalcType = str(ChainSettingsData.motionForceCalcType)
+		targetObject.re_chain_chainsettings.unknQuaternion = (ChainSettingsData.subDataUnkn0,ChainSettingsData.subDataUnkn1,ChainSettingsData.subDataUnkn2,ChainSettingsData.subDataUnkn3)
+		targetObject.re_chain_chainsettings.unknPos = (ChainSettingsData.subDataUnkn4,ChainSettingsData.subDataUnkn5,ChainSettingsData.subDataUnkn6)
+		for subData in ChainSettingsData.subDataList:
+			newListItem = targetObject.re_chain_chainsettings.subDataList_items.add()
+			newListItem.values = (subData.unkn0,subData.unkn1A,subData.unkn1B,subData.unkn1C,subData.unkn1D,subData.unkn2,subData.unkn3)
+	targetObject.re_chain_chainsettings.settingsAttrFlags = ChainSettingsData.settingsAttrFlags
+	
 	targetObject.re_chain_chainsettings.gravity = (ChainSettingsData.gravityX,ChainSettingsData.gravityY,ChainSettingsData.gravityZ)
-	targetObject.re_chain_chainsettings.muzzleVelocity = (ChainSettingsData.muzzleVelocityX,ChainSettingsData.muzzleVelocityY,ChainSettingsData.muzzleVelocityZ)
+	
 	targetObject.re_chain_chainsettings.damping = ChainSettingsData.damping
 	targetObject.re_chain_chainsettings.secondDamping = ChainSettingsData.secondDamping
 	targetObject.re_chain_chainsettings.secondDampingSpeed = ChainSettingsData.secondDampingSpeed
@@ -1335,7 +1485,7 @@ def getChainSettings(ChainSettingsData,targetObject):
 	targetObject.re_chain_chainsettings.springLimitRate = ChainSettingsData.springLimitRate
 	targetObject.re_chain_chainsettings.springMaxVelocity = ChainSettingsData.springMaxVelocity
 	targetObject.re_chain_chainsettings.springCalcType = str(ChainSettingsData.springCalcType)
-	targetObject.re_chain_chainsettings.unknFlag = ChainSettingsData.unknFlag
+	targetObject.re_chain_chainsettings.windDelayType = str(ChainSettingsData.windDelayType)
 	targetObject.re_chain_chainsettings.reduceSelfDistanceRate = ChainSettingsData.reduceSelfDistanceRate
 	targetObject.re_chain_chainsettings.secondReduceDistanceRate = ChainSettingsData.secondReduceDistanceRate
 	targetObject.re_chain_chainsettings.secondReduceDistanceSpeed = ChainSettingsData.secondReduceDistanceSpeed
@@ -1345,34 +1495,59 @@ def getChainSettings(ChainSettingsData,targetObject):
 	targetObject.re_chain_chainsettings.coefOfExternalForces = ChainSettingsData.coefOfExternalForces
 	targetObject.re_chain_chainsettings.stretchInteractionRatio = ChainSettingsData.stretchInteractionRatio
 	targetObject.re_chain_chainsettings.angleLimitInteractionRatio = ChainSettingsData.angleLimitInteractionRatio
-	targetObject.re_chain_chainsettings.shootingElasticLimitRate = ChainSettingsData.shootingElasticLimitRate
+		
 	targetObject.re_chain_chainsettings.groupDefaultAttr = ChainSettingsData.groupDefaultAttr
 
 	targetObject.re_chain_chainsettings.windEffectCoef = ChainSettingsData.windEffectCoef
 	targetObject.re_chain_chainsettings.velocityLimit = ChainSettingsData.velocityLimit
 	targetObject.re_chain_chainsettings.hardness = ChainSettingsData.hardness
-	targetObject.re_chain_chainsettings.unknChainSettingValue0 = ChainSettingsData.unknChainSettingValue0
-	targetObject.re_chain_chainsettings.unknChainSettingValue1 = ChainSettingsData.unknChainSettingValue1
-	targetObject.re_chain_chainsettings.unknChainSettingValue2 = ChainSettingsData.unknChainSettingValue2
-	targetObject.re_chain_chainsettings.unknChainSettingValue3 = ChainSettingsData.unknChainSettingValue3
-def setChainSettingsData(ChainSettingsData,targetObject):
+	targetObject.re_chain_chainsettings.windDelaySpeed = ChainSettingsData.windDelaySpeed
+	targetObject.re_chain_chainsettings.envWindEffectCoef = ChainSettingsData.envWindEffectCoef
+	targetObject.re_chain_chainsettings.motionForce = ChainSettingsData.motionForce
+
+def setChainSettingsData(ChainSettingsData,targetObject,isChain2 = False):
 	ChainSettingsData.id = targetObject.re_chain_chainsettings.id 
 	ChainSettingsData.colliderFilterInfoPath = str(targetObject.re_chain_chainsettings.colliderFilterInfoPath) 
-	ChainSettingsData.sprayParameterArc = targetObject.re_chain_chainsettings.sprayParameterArc 
-	ChainSettingsData.sprayParameterFrequency = targetObject.re_chain_chainsettings.sprayParameterFrequency 
-	ChainSettingsData.sprayParameterCurve1 = targetObject.re_chain_chainsettings.sprayParameterCurve1 
-	ChainSettingsData.sprayParameterCurve2 = targetObject.re_chain_chainsettings.sprayParameterCurve2 
-	ChainSettingsData.chainType = int(targetObject.re_chain_chainsettings.chainType)
-	ChainSettingsData.settingsAttrFlags = int(targetObject.re_chain_chainsettings.settingsAttrFlags)
-	ChainSettingsData.muzzleDirection = int(targetObject.re_chain_chainsettings.muzzleDirection)
+	if not isChain2:
+		ChainSettingsData.sprayParameterArc = targetObject.re_chain_chainsettings.sprayParameterArc 
+		ChainSettingsData.sprayParameterFrequency = targetObject.re_chain_chainsettings.sprayParameterFrequency 
+		ChainSettingsData.sprayParameterCurve1 = targetObject.re_chain_chainsettings.sprayParameterCurve1 
+		ChainSettingsData.sprayParameterCurve2 = targetObject.re_chain_chainsettings.sprayParameterCurve2 
+		ChainSettingsData.chainType = int(targetObject.re_chain_chainsettings.chainType)
+		ChainSettingsData.muzzleDirection = int(targetObject.re_chain_chainsettings.muzzleDirection)
+		ChainSettingsData.muzzleVelocityX = targetObject.re_chain_chainsettings.muzzleVelocity[0]
+		ChainSettingsData.muzzleVelocityY = targetObject.re_chain_chainsettings.muzzleVelocity[1]
+		ChainSettingsData.muzzleVelocityZ = targetObject.re_chain_chainsettings.muzzleVelocity[2]
+		ChainSettingsData.shootingElasticLimitRate = targetObject.re_chain_chainsettings.shootingElasticLimitRate 
+	else:
+		ChainSettingsData.motionForceCalcType = int(targetObject.re_chain_chainsettings.motionForceCalcType)
+		ChainSettingsData.subDataUnkn0 = targetObject.re_chain_chainsettings.unknQuaternion[0]
+		ChainSettingsData.subDataUnkn1 = targetObject.re_chain_chainsettings.unknQuaternion[1]
+		ChainSettingsData.subDataUnkn2 = targetObject.re_chain_chainsettings.unknQuaternion[2]
+		ChainSettingsData.subDataUnkn3 = targetObject.re_chain_chainsettings.unknQuaternion[3]
+		ChainSettingsData.subDataUnkn4 = targetObject.re_chain_chainsettings.unknPos[0]
+		ChainSettingsData.subDataUnkn5 = targetObject.re_chain_chainsettings.unknPos[1]
+		ChainSettingsData.subDataUnkn6 = targetObject.re_chain_chainsettings.unknPos[2]
+		ChainSettingsData.subDataList = []
+		for item in targetObject.re_chain_chainsettings.subDataList_items:
+			entry = Chain2SettingsSubData()
+			#print(list(item.values))
+			entry.unkn0 = item.values[0]
+			entry.unkn1A = item.values[1]
+			entry.unkn1B = item.values[2]
+			entry.unkn1C = item.values[3]
+			entry.unkn1D = item.values[4]
+			entry.unkn2 = item.values[5]
+			entry.unkn3 = item.values[6]
+			ChainSettingsData.subDataList.append(entry)
+		ChainSettingsData.subDataCount = len(ChainSettingsData.subDataList)
+	ChainSettingsData.settingsAttrFlags = targetObject.re_chain_chainsettings.settingsAttrFlags
+	
 	
 	ChainSettingsData.gravityX = targetObject.re_chain_chainsettings.gravity[0]
 	ChainSettingsData.gravityY = targetObject.re_chain_chainsettings.gravity[1]
 	ChainSettingsData.gravityZ = targetObject.re_chain_chainsettings.gravity[2]
 	
-	ChainSettingsData.muzzleVelocityX = targetObject.re_chain_chainsettings.muzzleVelocity[0]
-	ChainSettingsData.muzzleVelocityY = targetObject.re_chain_chainsettings.muzzleVelocity[1]
-	ChainSettingsData.muzzleVelocityZ = targetObject.re_chain_chainsettings.muzzleVelocity[2]
 	
 	ChainSettingsData.damping = targetObject.re_chain_chainsettings.damping 
 	ChainSettingsData.secondDamping = targetObject.re_chain_chainsettings.secondDamping 
@@ -1386,7 +1561,7 @@ def setChainSettingsData(ChainSettingsData,targetObject):
 	ChainSettingsData.springLimitRate = targetObject.re_chain_chainsettings.springLimitRate 
 	ChainSettingsData.springMaxVelocity = targetObject.re_chain_chainsettings.springMaxVelocity 
 	ChainSettingsData.springCalcType = int(targetObject.re_chain_chainsettings.springCalcType)
-	ChainSettingsData.unknFlag = int(targetObject.re_chain_chainsettings.unknFlag)
+	ChainSettingsData.windDelayType = int(targetObject.re_chain_chainsettings.windDelayType)
 	ChainSettingsData.reduceSelfDistanceRate = targetObject.re_chain_chainsettings.reduceSelfDistanceRate 
 	ChainSettingsData.secondReduceDistanceRate = targetObject.re_chain_chainsettings.secondReduceDistanceRate 
 	ChainSettingsData.secondReduceDistanceSpeed = targetObject.re_chain_chainsettings.secondReduceDistanceSpeed 
@@ -1396,20 +1571,32 @@ def setChainSettingsData(ChainSettingsData,targetObject):
 	ChainSettingsData.coefOfExternalForces = targetObject.re_chain_chainsettings.coefOfExternalForces 
 	ChainSettingsData.stretchInteractionRatio = targetObject.re_chain_chainsettings.stretchInteractionRatio 
 	ChainSettingsData.angleLimitInteractionRatio = targetObject.re_chain_chainsettings.angleLimitInteractionRatio 
-	ChainSettingsData.shootingElasticLimitRate = targetObject.re_chain_chainsettings.shootingElasticLimitRate 
 	ChainSettingsData.groupDefaultAttr = targetObject.re_chain_chainsettings.groupDefaultAttr
 	ChainSettingsData.windEffectCoef = targetObject.re_chain_chainsettings.windEffectCoef 
 	ChainSettingsData.velocityLimit = targetObject.re_chain_chainsettings.velocityLimit 
 	ChainSettingsData.hardness = targetObject.re_chain_chainsettings.hardness
-	ChainSettingsData.unknChainSettingValue0 = targetObject.re_chain_chainsettings.unknChainSettingValue0 
-	ChainSettingsData.unknChainSettingValue1 = targetObject.re_chain_chainsettings.unknChainSettingValue1 
-	ChainSettingsData.unknChainSettingValue2 = targetObject.re_chain_chainsettings.unknChainSettingValue2 
-	ChainSettingsData.unknChainSettingValue3 = targetObject.re_chain_chainsettings.unknChainSettingValue3 
+	ChainSettingsData.windDelaySpeed = targetObject.re_chain_chainsettings.windDelaySpeed 
+	ChainSettingsData.envWindEffectCoef = targetObject.re_chain_chainsettings.envWindEffectCoef 
+	ChainSettingsData.motionForce = targetObject.re_chain_chainsettings.motionForce 
 	if targetObject.parent.get("TYPE",None) == "RE_CHAIN_WINDSETTINGS":
 		ChainSettingsData.windID = targetObject.parent.re_chain_windsettings.id
 	else:
-		ChainSettingsData.windID = -1
+		ChainSettingsData.windID = 0
 	
+class chainSubGroupPropertyGroup(bpy.types.PropertyGroup):
+
+	subGroupID: IntProperty(
+		name = "Sub Group ID",
+		description="",
+		default = 1,
+		)
+	parentGroup: PointerProperty(
+		name="Parent Chain Group",
+		description = "Set the chain group that this subgroup belongs to",
+		type=bpy.types.Object,
+		poll = filterChainGroup
+		)
+
 class chainGroupPropertyGroup(bpy.types.PropertyGroup):
 
 	rotationOrder: EnumProperty(
@@ -1433,22 +1620,14 @@ class chainGroupPropertyGroup(bpy.types.PropertyGroup):
 		description="Controls how chain groups interact. Also affects whether nodes can collide",
 		default = 0,
 		)
-	collisionFilterFlags: EnumProperty(
+	collisionFilterFlags: IntProperty(
 		name="Collision Filter Flags",
-		description="Apply Data to attribute.",
-		items=[ ("0", "ChainCollisionType_Self", ""),
-				("1", "ChainCollisionType_Model", ""),
-				("2", "ChainCollisionType_Collider", ""),
-				("3", "ChainCollisionType_VGround", ""),
-				("4", "ChainCollisionType_UNKNOWN4", ""),
-				("5", "ChainCollisionType_UNKNOWN5", ""),
-				("6", "ChainCollisionType_UNKNOWN6", ""),
-				("7", "ChainCollisionType_UNKNOWN7", ""),
-			   ]
+		description="Controls how collisions will interact with surroundings",
+		default = -1,
 		)
 	extraNodeLocalPos: FloatVectorProperty(
 		name = "Extra Node Local Pos",
-		description="Extra Node Local Pos",#TODO Add description
+		description="For chain only",#TODO Add description
 		default = (0.0,0.0,0.0),
 		)
 	tag0: IntProperty(
@@ -1468,6 +1647,26 @@ class chainGroupPropertyGroup(bpy.types.PropertyGroup):
 		)
 	tag3: IntProperty(
 		name = "Tag 3",
+		description="Tag 3\nVersion 35 and above only",#TODO Add description
+		default = 0,
+		)
+	hierarchyHash0: IntProperty(
+		name = "Hierarchy Hash 0",
+		description="Tag 0\nVersion 35 and above only",#TODO Add description
+		default = 0,
+		)
+	hierarchyHash1: IntProperty(
+		name = "Hierarchy Hash 1",
+		description="Tag 1\nVersion 35 and above only",#TODO Add description
+		default = 0,
+		)
+	hierarchyHash2: IntProperty(
+		name = "Hierarchy Hash 2",
+		description="Tag 2\nVersion 35 and above only",#TODO Add description
+		default = 0,
+		)
+	hierarchyHash3: IntProperty(
+		name = "Hierarchy Hash 3",
 		description="Tag 3\nVersion 35 and above only",#TODO Add description
 		default = 0,
 		)
@@ -1498,94 +1697,99 @@ class chainGroupPropertyGroup(bpy.types.PropertyGroup):
 				("1", "AngleLimitDirectionMode_MotionPose", ""),
 			  ]
 		)
-	unknGroupValue0: FloatProperty(
-		name = "Unknown 0 A",
-		description="Unknown 0 A\nVersion 48 and above only",#TODO Add description
-		default = 0.0,
-		)
-	unknGroupValue0B: FloatProperty(
-		name = "Unknown 0 B",
-		description="Unknown 0 B\nVersion 48 and above only",#TODO Add description
-		default = 0.0,
-		)
-	unknBoneHash: IntProperty(
-		name = "Unknown Bone Hash",
-		description="Unknown Bone Hash\nVersion 48 and above only",#TODO Add description
-		default = 1095307227,
-		)
-	unknGroupValue1: IntProperty(
-		name = "Unknown 1",
-		description="Unknown 1\nVersion 48 and above only",#TODO Add description
+	colliderQualityLevel: IntProperty(
+		name = "Collider Quality Level",
+		description="Version 48 and above only",#TODO Add description
 		default = 0,
 		)
-	unknGroupValue2: IntProperty(
-		name = "Unknown 2",
-		description="Unknown 2\nVersion 48 and above only",#TODO Add description
-		default = 0,
-		)
-	unknGroupValue3: IntProperty(
+	
+	clspFlags0: IntProperty(
 		name = "CLSP Flags A",
 		description="Bitflag that determines what CLSP Tag Groups to collide with. -1 on files that don't use CLSP.\nVersion 52 and above only",#TODO Add description
 		default = 0,
 		)
-	unknGroupValue4: IntProperty(
+	clspFlags1: IntProperty(
 		name = "CLSP Flags B",
 		description="Bitflag that determines what CLSP Tag Groups to collide with. -1 on files that don't use CLSP.\nVersion 52 and above only",#TODO Add description
 		default = 0,
 		)
-
-def getChainGroup(ChainGroupData,targetObject):
+	
+	#Chain2
+	interpCount: IntProperty(
+		name = "Interpolation Count (chain2)",
+		description="For chain2 only",
+		default = 0,
+		)
+	nodeInterpolationMode: EnumProperty(
+		name="Node Interpolation Mode (chain2)",
+		description="For chain2 only",
+		items=[ ("0", "NodeInterpolationMode_None", ""),
+				("1", "NodeInterpolationMode_Linear", ""),
+				("2", "NodeInterpolationMode_SplineLerp", ""),
+				("3", "NodeInterpolationMode_FastSpline", ""),
+			  ]
+		)
+def getChainGroup(ChainGroupData,targetObject,isChain2 = False):
 	#Done manually to be able to account for chain version differences eventually
 	targetObject.re_chain_chaingroup.rotationOrder = str(ChainGroupData.rotationOrder)
 	targetObject.re_chain_chaingroup.autoBlendCheckNodeNo = ChainGroupData.autoBlendCheckNodeNo
 	targetObject.re_chain_chaingroup.attrFlags = ChainGroupData.attrFlags
-	targetObject.re_chain_chaingroup.collisionFilterFlags = str(ChainGroupData.collisionFilterFlags)
-	targetObject.re_chain_chaingroup.extraNodeLocalPos = (ChainGroupData.extraNodeLocalPosX,ChainGroupData.extraNodeLocalPosY,ChainGroupData.extraNodeLocalPosZ)
+	if not isChain2:
+		targetObject.re_chain_chaingroup.collisionFilterFlags = ChainGroupData.collisionFilterFlags
+		targetObject.re_chain_chaingroup.extraNodeLocalPos = (ChainGroupData.extraNodeLocalPosX,ChainGroupData.extraNodeLocalPosY,ChainGroupData.extraNodeLocalPosZ)
 	targetObject.re_chain_chaingroup.tag0 = ChainGroupData.tag0
 	targetObject.re_chain_chaingroup.tag1 = ChainGroupData.tag1
 	targetObject.re_chain_chaingroup.tag2 = ChainGroupData.tag2
 	targetObject.re_chain_chaingroup.tag3 = ChainGroupData.tag3
+	targetObject.re_chain_chaingroup.hierarchyHash0 = ChainGroupData.hierarchyHash0
+	targetObject.re_chain_chaingroup.hierarchyHash1 = ChainGroupData.hierarchyHash1
+	targetObject.re_chain_chaingroup.hierarchyHash2 = ChainGroupData.hierarchyHash2
+	targetObject.re_chain_chaingroup.hierarchyHash3 = ChainGroupData.hierarchyHash3
 	targetObject.re_chain_chaingroup.dampingNoise0 = ChainGroupData.dampingNoise0
 	targetObject.re_chain_chaingroup.dampingNoise1 = ChainGroupData.dampingNoise1
 	targetObject.re_chain_chaingroup.endRotConstMax = ChainGroupData.endRotConstMax
 	targetObject.re_chain_chaingroup.tagCount = ChainGroupData.tagCount
 	targetObject.re_chain_chaingroup.angleLimitDirectionMode = str(ChainGroupData.angleLimitDirectionMode)
-	targetObject.re_chain_chaingroup.unknGroupValue0 = ChainGroupData.unknGroupValue0
-	targetObject.re_chain_chaingroup.unknGroupValue0B = ChainGroupData.unknGroupValue0B
-	targetObject.re_chain_chaingroup.unknBoneHash = ChainGroupData.unknBoneHash
-	targetObject.re_chain_chaingroup.unknGroupValue1 = ChainGroupData.unknGroupValue1
-	targetObject.re_chain_chaingroup.unknGroupValue2 = ChainGroupData.unknGroupValue2
-	targetObject.re_chain_chaingroup.unknGroupValue3 = ChainGroupData.unknGroupValue3
-	targetObject.re_chain_chaingroup.unknGroupValue4 = ChainGroupData.unknGroupValue4
-def setChainGroupData(ChainGroupData,targetObject):
+	targetObject.re_chain_chaingroup.colliderQualityLevel = ChainGroupData.colliderQualityLevel
+	targetObject.re_chain_chaingroup.clspFlags0 = ChainGroupData.clspFlags0
+	targetObject.re_chain_chaingroup.clspFlags1 = ChainGroupData.clspFlags1
+	if isChain2:
+		targetObject.re_chain_chaingroup.interpCount = ChainGroupData.interpCount
+		targetObject.re_chain_chaingroup.nodeInterpolationMode = str(ChainGroupData.nodeInterpolationMode)
+	
+	
+def setChainGroupData(ChainGroupData,targetObject,isChain2 = False):
 	ChainGroupData.rotationOrder = int(targetObject.re_chain_chaingroup.rotationOrder)
 	ChainGroupData.autoBlendCheckNodeNo = targetObject.re_chain_chaingroup.autoBlendCheckNodeNo 
 	ChainGroupData.attrFlags = targetObject.re_chain_chaingroup.attrFlags
-	ChainGroupData.collisionFilterFlags = int(targetObject.re_chain_chaingroup.collisionFilterFlags)
+	if not isChain2:
+		ChainGroupData.collisionFilterFlags = targetObject.re_chain_chaingroup.collisionFilterFlags
+		
+		ChainGroupData.extraNodeLocalPosX = targetObject.re_chain_chaingroup.extraNodeLocalPos[0] 
+		ChainGroupData.extraNodeLocalPosY = targetObject.re_chain_chaingroup.extraNodeLocalPos[1]
+		ChainGroupData.extraNodeLocalPosZ = targetObject.re_chain_chaingroup.extraNodeLocalPos[2] 
 	
-	ChainGroupData.extraNodeLocalPosX = targetObject.re_chain_chaingroup.extraNodeLocalPos[0] 
-	ChainGroupData.extraNodeLocalPosY = targetObject.re_chain_chaingroup.extraNodeLocalPos[1]
-	ChainGroupData.extraNodeLocalPosZ = targetObject.re_chain_chaingroup.extraNodeLocalPos[2] 
-	
-	ChainGroupData.tag0 = targetObject.re_chain_chaingroup.tag0 
-	ChainGroupData.tag1 = targetObject.re_chain_chaingroup.tag1 
-	ChainGroupData.tag2 = targetObject.re_chain_chaingroup.tag2 
-	ChainGroupData.tag3 = targetObject.re_chain_chaingroup.tag3 
+	ChainGroupData.tag0 = targetObject.re_chain_chaingroup.tag0
+	ChainGroupData.tag1 = targetObject.re_chain_chaingroup.tag1
+	ChainGroupData.tag2 = targetObject.re_chain_chaingroup.tag2
+	ChainGroupData.tag3 = targetObject.re_chain_chaingroup.tag3
+	ChainGroupData.hierarchyHash0 = targetObject.re_chain_chaingroup.hierarchyHash0 
+	ChainGroupData.hierarchyHash1 = targetObject.re_chain_chaingroup.hierarchyHash1 
+	ChainGroupData.hierarchyHash2 = targetObject.re_chain_chaingroup.hierarchyHash2 
+	ChainGroupData.hierarchyHash3 = targetObject.re_chain_chaingroup.hierarchyHash3 
 	ChainGroupData.dampingNoise0 = targetObject.re_chain_chaingroup.dampingNoise0 
 	ChainGroupData.dampingNoise1 = targetObject.re_chain_chaingroup.dampingNoise1 
 	ChainGroupData.endRotConstMax = targetObject.re_chain_chaingroup.endRotConstMax 
 	ChainGroupData.tagCount = targetObject.re_chain_chaingroup.tagCount 
 	ChainGroupData.angleLimitDirectionMode = int(targetObject.re_chain_chaingroup.angleLimitDirectionMode)
 	
-	ChainGroupData.unknGroupValue0 = targetObject.re_chain_chaingroup.unknGroupValue0
-	ChainGroupData.unknGroupValue0B = targetObject.re_chain_chaingroup.unknGroupValue0B
-	ChainGroupData.unknBoneHash = targetObject.re_chain_chaingroup.unknBoneHash 
-	ChainGroupData.unknGroupValue1 = targetObject.re_chain_chaingroup.unknGroupValue1 
-	ChainGroupData.unknGroupValue2 = targetObject.re_chain_chaingroup.unknGroupValue2 
-	ChainGroupData.unknGroupValue3 = targetObject.re_chain_chaingroup.unknGroupValue3
-	ChainGroupData.unknGroupValue4 = targetObject.re_chain_chaingroup.unknGroupValue4
+	ChainGroupData.clspFlags0 = targetObject.re_chain_chaingroup.clspFlags0 
+	ChainGroupData.clspFlags1 = targetObject.re_chain_chaingroup.clspFlags1
 	
-
+	if isChain2:
+		ChainGroupData.interpCount = targetObject.re_chain_chaingroup.interpCount 
+		ChainGroupData.nodeInterpolationMode = int(targetObject.re_chain_chaingroup.nodeInterpolationMode)
+		
 	if targetObject.parent.get("TYPE",None) == "RE_CHAIN_WINDSETTINGS":
 		ChainGroupData.windID = targetObject.parent.re_chain_windsettings.id
 		
@@ -1593,12 +1797,9 @@ def setChainGroupData(ChainGroupData,targetObject):
 		ChainGroupData.windID = targetObject.parent.parent.re_chain_windsettings.id
 		
 	else:
-		ChainGroupData.windID = -1
+		ChainGroupData.windID = 0
 
-	if targetObject.parent.get("TYPE",None) == "RE_CHAIN_CHAINSETTINGS":
-		ChainGroupData.settingID = targetObject.parent.re_chain_chainsettings.id
-	else:
-		ChainGroupData.settingID = -1
+
 class chainNodePropertyGroup(bpy.types.PropertyGroup):
 	angleLimitRad: FloatProperty(
 		name = "Angle Limit Radius",
@@ -1632,22 +1833,10 @@ class chainNodePropertyGroup(bpy.types.PropertyGroup):
 		step = .1,
 		soft_min = 0.00
 		)
-	collisionFilterFlags: EnumProperty(
+	collisionFilterFlags: IntProperty(
 		name="Collision Filter Flags",
-		description="Apply Data to attribute.",
-		items=[ ("-1", "ChainCollisionType_None", ""),
-				("0", "ChainCollisionType_Self", ""),
-				("1", "ChainCollisionType_Model", ""),
-				("2", "ChainCollisionType_Collider", ""),
-				("3", "ChainCollisionType_VGround", ""),
-				("4", "ChainCollisionType_UNKNOWN4", ""),
-				("5", "ChainCollisionType_UNKNOWN5", ""),
-				("6", "ChainCollisionType_UNKNOWN6", ""),
-				("7", "ChainCollisionType_UNKNOWN7", ""),
-				("15", "ChainCollisionType_UNKNOWN15", ""),
-				("16", "ChainCollisionType_UNKNOWN16", ""),
-				("17", "ChainCollisionType_UNKNOWN17", ""),
-			   ]
+		description="Controls how collisions will interact with surroundings",
+		default = -1,
 		)
 	capsuleStretchRate0: FloatProperty(
 		name = "Capsule Stretch Rate 0",
@@ -1707,24 +1896,39 @@ class chainNodePropertyGroup(bpy.types.PropertyGroup):
 		description="Rotation Type",#TODO Add description
 		default = 0,
 		)
-	unknChainNodeValue0: FloatProperty(
-		name = "Unknown 0",
-		description="Unknown 0\nVersion 35 and above only",#TODO Add description
+	gravityCoef: FloatProperty(
+		name = "Gravity Coefficient",
+		description="Version 35 and above only",#TODO Add description
 		default = 1.0,
 		)
-	unknChainNodeValue1: FloatProperty(
-		name = "Unknown 1",
-		description="Unknown 1\nVersion 35 and above only",#TODO Add description
-		default = 0.0,
+	
+	constraintJntName: StringProperty(
+		name="Constraint Joint Name",
+		description="Constraint joint, if the bone is not on the armature when the chain is imported, this will be an integer hash value",
+		default = "",
 		)
-def getChainNode(ChainNodeData,targetObject):
+	
+	#chain2
+	jointHash: StringProperty(
+		name = "Joint Name Hash (chain2)",
+		description="The default value is a hash of a string that seems to mean None.\nIf a string is entered into this field, it will be hashed upon export",
+		default = "2180083513",
+		)
+	basePos: FloatVectorProperty(
+		name = "Base Position (chain2)",
+		description="For chain2 files only",#TODO Add description
+		default = (0.0,0.0,0.0),
+		subtype = "XYZ",
+		)
+	
+def getChainNode(ChainNodeData,targetObject,isChain2 = False):
 	#Done manually to be able to account for chain version differences eventually
 	targetObject.re_chain_chainnode.angleLimitRad = ChainNodeData.angleLimitRad
 	targetObject.re_chain_chainnode.angleLimitDistance = ChainNodeData.angleLimitDistance
 	targetObject.re_chain_chainnode.angleLimitRestitution = ChainNodeData.angleLimitRestitution
 	targetObject.re_chain_chainnode.angleLimitRestituteStopSpeed = ChainNodeData.angleLimitRestituteStopSpeed
 	targetObject.re_chain_chainnode.collisionRadius = ChainNodeData.collisionRadius
-	targetObject.re_chain_chainnode.collisionFilterFlags = str(ChainNodeData.collisionFilterFlags)
+	targetObject.re_chain_chainnode.collisionFilterFlags = ChainNodeData.collisionFilterFlags
 	targetObject.re_chain_chainnode.capsuleStretchRate0 = ChainNodeData.capsuleStretchRate0
 	targetObject.re_chain_chainnode.capsuleStretchRate1 = ChainNodeData.capsuleStretchRate1
 	targetObject.re_chain_chainnode.attrFlags = ChainNodeData.attrFlags
@@ -1733,16 +1937,17 @@ def getChainNode(ChainNodeData,targetObject):
 	targetObject.re_chain_chainnode.collisionShape = str(ChainNodeData.collisionShape)
 	targetObject.re_chain_chainnode.attachType = ChainNodeData.attachType
 	targetObject.re_chain_chainnode.rotationType = ChainNodeData.rotationType
-	targetObject.re_chain_chainnode.unknChainNodeValue0 = ChainNodeData.unknChainNodeValue0
-	targetObject.re_chain_chainnode.unknChainNodeValue1 = ChainNodeData.unknChainNodeValue1
+	targetObject.re_chain_chainnode.gravityCoef = ChainNodeData.gravityCoef
+	if isChain2:
+		targetObject.re_chain_chainnode.basePos = ChainNodeData.basePos
 	
-def setChainNodeData(ChainNodeData,targetObject):
+def setChainNodeData(ChainNodeData,targetObject, isChain2 = False):
 	ChainNodeData.angleLimitRad = targetObject.re_chain_chainnode.angleLimitRad 
 	ChainNodeData.angleLimitDistance = targetObject.re_chain_chainnode.angleLimitDistance 
 	ChainNodeData.angleLimitRestitution = targetObject.re_chain_chainnode.angleLimitRestitution 
 	ChainNodeData.angleLimitRestituteStopSpeed = targetObject.re_chain_chainnode.angleLimitRestituteStopSpeed 
 	ChainNodeData.collisionRadius = targetObject.re_chain_chainnode.collisionRadius * targetObject.scale[0]
-	ChainNodeData.collisionFilterFlags = int(targetObject.re_chain_chainnode.collisionFilterFlags)
+	ChainNodeData.collisionFilterFlags = targetObject.re_chain_chainnode.collisionFilterFlags
 	ChainNodeData.capsuleStretchRate0 = targetObject.re_chain_chainnode.capsuleStretchRate0 
 	ChainNodeData.capsuleStretchRate1 = targetObject.re_chain_chainnode.capsuleStretchRate1 
 	ChainNodeData.attrFlags = int(targetObject.re_chain_chainnode.attrFlags)
@@ -1751,8 +1956,7 @@ def setChainNodeData(ChainNodeData,targetObject):
 	ChainNodeData.collisionShape = int(targetObject.re_chain_chainnode.collisionShape)
 	ChainNodeData.attachType = targetObject.re_chain_chainnode.attachType 
 	ChainNodeData.rotationType = targetObject.re_chain_chainnode.rotationType
-	ChainNodeData.unknChainNodeValue0 = targetObject.re_chain_chainnode.unknChainNodeValue0
-	ChainNodeData.unknChainNodeValue1 = targetObject.re_chain_chainnode.unknChainNodeValue1
+	ChainNodeData.gravityCoef = targetObject.re_chain_chainnode.gravityCoef
 
 	for child in targetObject.children:
 		if child.get("TYPE",None) == "RE_CHAIN_NODE_FRAME":
@@ -1763,6 +1967,8 @@ def setChainNodeData(ChainNodeData,targetObject):
 	ChainNodeData.angleLimitDirectionZ = frame.rotation_quaternion[3]
 	ChainNodeData.angleLimitDirectionW = frame.rotation_quaternion[0]
 	frame.rotation_mode = "XYZ"
+	if isChain2:
+		ChainNodeData.basePos = (targetObject.re_chain_chainnode.basePos[0],targetObject.re_chain_chainnode.basePos[1],targetObject.re_chain_chainnode.basePos[2])
 class chainJigglePropertyGroup(bpy.types.PropertyGroup):
 	'''range: FloatVectorProperty(
 		name = "Jiggle Range",
@@ -1820,7 +2026,13 @@ class chainJigglePropertyGroup(bpy.types.PropertyGroup):
 		description="Controls how chain groups interact. Also affects whether nodes can collide",
 		default = 0,
 		)
-
+	windCoef: FloatProperty(
+		name = "Wind Coefficient",
+		description = "Wind Coefficient",#TODO Add description
+		default = 0.00,
+		soft_min=0.000,
+		soft_max=1.000
+		)
 def getChainJiggle(ChainJiggleData,targetObject):
 	#Done manually to be able to account for chain version differences eventually
 	targetObject.re_chain_chainjiggle.rangeShape = str(ChainJiggleData.rangeShape)
@@ -1828,6 +2040,8 @@ def getChainJiggle(ChainJiggleData,targetObject):
 	targetObject.re_chain_chainjiggle.gravityCoef = ChainJiggleData.gravityCoef
 	targetObject.re_chain_chainjiggle.damping = ChainJiggleData.damping
 	targetObject.re_chain_chainjiggle.attrFlags = ChainJiggleData.attrFlags
+	targetObject.re_chain_chainjiggle.windCoef = ChainJiggleData.windCoef
+	
 
 def setChainJiggleData(ChainJiggleData,targetObject):
 	ChainJiggleData.rangeX = targetObject.scale[0]
@@ -1848,6 +2062,7 @@ def setChainJiggleData(ChainJiggleData,targetObject):
 	ChainJiggleData.gravityCoef = targetObject.re_chain_chainjiggle.gravityCoef
 	ChainJiggleData.damping = targetObject.re_chain_chainjiggle.damping
 	ChainJiggleData.attrFlags = targetObject.re_chain_chainjiggle.attrFlags
+	ChainJiggleData.windCoef = targetObject.re_chain_chainjiggle.windCoef
 
 class collisionSubDataPropertyGroup(bpy.types.PropertyGroup):
 	pos: FloatVectorProperty(
@@ -1974,19 +2189,10 @@ class chainCollisionPropertyGroup(bpy.types.PropertyGroup):
 		min = 0,
 		max = 1,#Max shouldn't be 1 but I would have to rewrite the way subdata works otherwise. Barely anything has a subdata count of more than 1 so I don't think it matters
 		)
-	collisionFilterFlags: EnumProperty(
+	collisionFilterFlags: IntProperty(
 		name="Collision Filter Flags",
-		description="Apply Data to attribute.",
-		items=[ ("-1", "ChainCollisionType_None", ""),
-				("0", "ChainCollisionType_Self", ""),
-				("1", "ChainCollisionType_Model", ""),
-				("2", "ChainCollisionType_Collider", ""),
-				("3", "ChainCollisionType_VGround", ""),
-				("4", "ChainCollisionType_UNKNOWN4", ""),
-				("5", "ChainCollisionType_UNKNOWN5", ""),
-				("6", "ChainCollisionType_UNKNOWN6", ""),
-				("7", "ChainCollisionType_UNKNOWN7", ""),
-			   ]
+		description="Controls how collisions will interact with surroundings",
+		default = -1,
 		)
 	"""
 	subDataFlag: IntProperty(
@@ -2010,7 +2216,7 @@ class chainCollisionPropertyGroup(bpy.types.PropertyGroup):
 		default = 0,
 		)
 
-def getChainCollision(ChainCollisionData,targetObject):
+def getChainCollision(ChainCollisionData,targetObject,isChain2 = False):
 	#Done manually to be able to account for chain version differences eventually
 	targetObject.re_chain_chaincollision.rotationOrder = str(ChainCollisionData.rotationOrder)
 	targetObject.re_chain_chaincollision.radius = ChainCollisionData.radius
@@ -2018,7 +2224,7 @@ def getChainCollision(ChainCollisionData,targetObject):
 	targetObject.re_chain_chaincollision.lerp = ChainCollisionData.lerp
 	targetObject.re_chain_chaincollision.chainCollisionShape = str(ChainCollisionData.chainCollisionShape)
 	targetObject.re_chain_chaincollision.subDataCount = ChainCollisionData.subDataCount
-	targetObject.re_chain_chaincollision.collisionFilterFlags = str(ChainCollisionData.collisionFilterFlags)
+	targetObject.re_chain_chaincollision.collisionFilterFlags = ChainCollisionData.collisionFilterFlags
 	
 	if ChainCollisionData.subDataCount >= 1:
 		targetObject.re_chain_collision_subdata.pos = (ChainCollisionData.subData.posX,ChainCollisionData.subData.posY,ChainCollisionData.subData.posZ)
@@ -2031,14 +2237,14 @@ def getChainCollision(ChainCollisionData,targetObject):
 		targetObject.re_chain_collision_subdata.unknSubCollisionData2 = ChainCollisionData.subData.unknSubCollisionData2
 		targetObject.re_chain_collision_subdata.unknSubCollisionData3 = ChainCollisionData.subData.unknSubCollisionData3
 
-def setChainCollisionData(ChainCollisionData,targetObject):
+def setChainCollisionData(ChainCollisionData,targetObject,isChain2 = False):
 	ChainCollisionData.rotationOrder = int(targetObject.re_chain_chaincollision.rotationOrder)
 	ChainCollisionData.radius = targetObject.scale[0]
 	ChainCollisionData.endRadius = targetObject.re_chain_chaincollision.endRadius
 	ChainCollisionData.lerp = targetObject.re_chain_chaincollision.lerp
 	ChainCollisionData.chainCollisionShape = int(targetObject.re_chain_chaincollision.chainCollisionShape)
 	ChainCollisionData.subDataCount = targetObject.re_chain_chaincollision.subDataCount 
-	ChainCollisionData.collisionFilterFlags = int(targetObject.re_chain_chaincollision.collisionFilterFlags)
+	ChainCollisionData.collisionFilterFlags = targetObject.re_chain_chaincollision.collisionFilterFlags
 	
 	
 	
@@ -2138,13 +2344,13 @@ class chainLinkCollisionNodePropertyGroup(bpy.types.PropertyGroup):
 		default = 4,
 		)
 
-def getChainLinkCollisionNode(ChainLinkNodeData,targetObject):
+def getChainLinkCollisionNode(ChainLinkNodeData,targetObject,isChain2 = False):
 	#Done manually to be able to account for chain version differences eventually
 	targetObject.re_chain_chainlink.collisionRadius = ChainLinkNodeData.collisionRadius
 	targetObject.re_chain_chainlink.collisionFilterFlags = ChainLinkNodeData.collisionFilterFlags
 	
 
-def setChainLinkCollisionNodeData(ChainLinkNodeData,targetObject):
+def setChainLinkCollisionNodeData(ChainLinkNodeData,targetObject,isChain2 = False):
 	#TODO get chain group links
 	ChainLinkNodeData.collisionRadius = targetObject.re_chain_chainlink_collision.collisionRadius 
 	ChainLinkNodeData.collisionFilterFlags = targetObject.re_chain_chainlink_collision.collisionFilterFlags 
@@ -2218,7 +2424,7 @@ class chainLinkPropertyGroup(bpy.types.PropertyGroup):
 				("5", "RotationOrder_XZY", ""),
 			   ]
 		)
-def getChainLink(ChainLinkData,targetObject):
+def getChainLink(ChainLinkData,targetObject,isChain2 = False):
 	#Done manually to be able to account for chain version differences eventually
 	targetObject.re_chain_chainlink.distanceShrinkLimitCoef = ChainLinkData.distanceShrinkLimitCoef
 	targetObject.re_chain_chainlink.distanceExpandLimitCoef = ChainLinkData.distanceExpandLimitCoef
@@ -2230,7 +2436,7 @@ def getChainLink(ChainLinkData,targetObject):
 	targetObject.re_chain_chainlink.linkOrder = str(ChainLinkData.linkOrder)
 	
 
-def setChainLinkData(ChainLinkData,targetObject):
+def setChainLinkData(ChainLinkData,targetObject,isChain2 = False):
 	#TODO get chain group links
 	ChainLinkData.distanceShrinkLimitCoef = targetObject.re_chain_chainlink.distanceShrinkLimitCoef 
 	ChainLinkData.distanceExpandLimitCoef = targetObject.re_chain_chainlink.distanceExpandLimitCoef 
@@ -2249,6 +2455,7 @@ class chainClipboardPropertyGroup(bpy.types.PropertyGroup):
 	re_chain_windsettings : PointerProperty(type=chainWindSettingsPropertyGroup)
 	re_chain_chainsettings : PointerProperty(type=chainSettingsPropertyGroup)
 	re_chain_chaingroup : PointerProperty(type=chainGroupPropertyGroup)
+	re_chain_chainsubgroup : PointerProperty(type=chainSubGroupPropertyGroup)
 	re_chain_chainnode : PointerProperty(type=chainNodePropertyGroup)
 	re_chain_chainjiggle : PointerProperty(type=chainJigglePropertyGroup)
 	re_chain_collision_subdata : PointerProperty(type=collisionSubDataPropertyGroup)

@@ -1,9 +1,9 @@
 #Author: NSA Cloud
-#-----General Functions-----#
+#V3
 import os
 import struct
-
-
+import glob
+from pathlib import Path
 #---General Functions---#
 os.system("color")#Enable console colors
 class textColors:
@@ -127,7 +127,7 @@ def getPaddingAmount(currentPos,alignment):
     padding = (currentPos*-1)%alignment
     return padding
 #bitflag operations
-def getBit(bitFlag, index):
+def getBit(bitFlag, index):#Index starting from rightmost bit
     return bool((bitFlag >> index) & 1)
 def setBit(bitFlag, index):
     return bitFlag | (1 << index)
@@ -150,3 +150,68 @@ def removeByteSection(byteArray,offset,size):#removes specified amount of bytes 
     del byteArray[offset:(offset+size)]#Deletes directly from the array passed to it
 def insertByteSection(byteArray,offset,input):#inserts bytes into bytearray at offset
     byteArray[offset:offset] = input
+
+def dictString(dictionary):#Return string of dictionary contents
+	outputString =""
+	for key,value in dictionary.items():
+		outputString +=str(key)+": "+str(value)+"\n"
+	return outputString
+def unsignedToSigned(uintValue):
+	intValue = uintValue & ((1 << 32) - 1)
+	intValue = (intValue & ((1 << 31) - 1)) - (intValue & (1 << 31))
+	return intValue
+def signedToUnsigned(intValue):
+	return intValue & 0xffffffff
+
+def getPaddedPos(currentPos,alignment):
+	paddedPos = ((currentPos*-1)%alignment)+currentPos
+	return paddedPos
+
+def getFolderSize(path='.'):
+	total = 0
+	try:
+		for entry in os.scandir(path):
+			if entry.is_file():
+				total += entry.stat().st_size
+			elif entry.is_dir():
+				total += getFolderSize(entry.path)
+	except:
+		total = -1
+	return total
+
+def formatByteSize(num, suffix="B"):
+    for unit in ("", "K", "M", "G", "T", "P", "E", "Z"):
+        if abs(num) < 1024.0:
+            return f"{num:3.1f}{unit}{suffix}"
+        num /= 1024.0
+    return f"{num:.1f}Yi{suffix}"
+
+def wildCardFileSearch(wildCardFilePath):#Returns first file found matching wildcard, none if not found
+	search = glob.glob(wildCardFilePath)
+	if search == []:
+		search = [None]
+	return search[0]
+
+def wildCardFileSearchList(wildCardFilePath):#Returns all files matching wildcard
+	search = glob.glob(wildCardFilePath)
+	return search
+
+def splitNativesPath(filePath):#Splits file path of RE Engine natives/platform folder, returns none if there's no natives folder
+	path = Path(filePath)	
+	parts = path.parts
+	try:
+		nativesIndex = parts.index("natives")
+		rootPath = str(Path(*parts[:nativesIndex+2]))#stage\m01\a02\m01a02_iwa.mesh.2109148288
+		nativesPath = str(Path(*parts[nativesIndex+2::]))#F:\MHR_EXTRACT\extract\re_chunk_000\natives\STM
+		return (rootPath,nativesPath)
+	except:
+		return None
+	
+def getAdjacentFileVersion(rootPath,fileType):
+	fileVersion = -1
+	search = wildCardFileSearch(os.path.join(rootPath,"*"+fileType+"*"))
+	if search != None:
+		versionExtension = os.path.splitext(search)[1][1::]
+		if versionExtension.isdigit():
+			fileVersion = int(versionExtension)
+	return fileVersion

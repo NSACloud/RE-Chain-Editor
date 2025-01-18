@@ -1,0 +1,73 @@
+{
+    "presetVersion": 6,
+    "presetType": "RE_CHAIN_CHAINSETTINGS",
+    "subDataValues": [
+        [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0
+        ],
+        [
+            0,
+            1,
+            0,
+            0,
+            77,
+            0,
+            0
+        ]
+    ],
+    "id": 3,
+    "colliderFilterInfoPath": "System/Collision/Filter/Character/Character_Chain.cfil",
+    "motionForceCalcType": 0,
+    "unknQuaternion": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+    ],
+    "unknPos": [
+        0.0,
+        0.0,
+        0.0
+    ],
+    "settingsAttrFlags": 0,
+    "gravity": [
+        0.0,
+        -9.800000190734863,
+        0.0
+    ],
+    "damping": 0.04287499934434891,
+    "secondDamping": 0.05000000074505806,
+    "secondDampingSpeed": 0.0,
+    "minDamping": 0.04287499934434891,
+    "secondMinDamping": 0.05000000074505806,
+    "dampingPow": 1.0,
+    "secondDampingPow": 1.0,
+    "collideMaxVelocity": 0.0,
+    "springForce": 0.017575999721884727,
+    "springLimitRate": 0.0,
+    "springMaxVelocity": 0.0,
+    "springCalcType": 0,
+    "windDelayType": 1,
+    "reduceSelfDistanceRate": 0.0,
+    "secondReduceDistanceRate": 0.5,
+    "secondReduceDistanceSpeed": 0.0,
+    "friction": 0.0,
+    "shockAbsorptionRate": 0.0,
+    "coefOfElasticity": 0.0,
+    "coefOfExternalForces": 0.0,
+    "stretchInteractionRatio": 0.5,
+    "angleLimitInteractionRatio": 0.5,
+    "groupDefaultAttr": 65536,
+    "windEffectCoef": 0.10000000149011612,
+    "velocityLimit": 0.0,
+    "hardness": 0.0,
+    "windDelaySpeed": 0.0,
+    "envWindEffectCoef": 0.10000000149011612,
+    "motionForce": 0.0
+}

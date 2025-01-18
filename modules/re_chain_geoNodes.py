@@ -12,7 +12,8 @@ def getCollisionMat():
 		mat.node_tree.nodes[0].inputs["Base Color"].default_value = bpy.context.scene.re_chain_toolpanel.collisionColor
 		mat.node_tree.nodes[0].inputs["Alpha"].default_value = bpy.context.scene.re_chain_toolpanel.collisionColor[3]
 		mat.blend_method = "BLEND"
-		mat.shadow_method = "NONE"
+		if bpy.app.version < (4,2,0):
+			mat.shadow_method = "NONE"
 	return mat
 
 def getChainLinkMat():
@@ -24,7 +25,8 @@ def getChainLinkMat():
 		mat.node_tree.nodes[0].inputs["Base Color"].default_value = bpy.context.scene.re_chain_toolpanel.chainLinkColor
 		mat.node_tree.nodes[0].inputs["Alpha"].default_value = bpy.context.scene.re_chain_toolpanel.chainLinkColor[3]
 		mat.blend_method = "BLEND"
-		mat.shadow_method = "NONE"
+		if bpy.app.version < (4,2,0):
+			mat.shadow_method = "NONE"
 	return mat
 def getChainLinkColMat():
 	mat = bpy.data.materials.get("ChainLinkColMat")
@@ -35,7 +37,8 @@ def getChainLinkColMat():
 		mat.node_tree.nodes[0].inputs["Base Color"].default_value = bpy.context.scene.re_chain_toolpanel.chainLinkCollisionColor
 		mat.node_tree.nodes[0].inputs["Alpha"].default_value = bpy.context.scene.re_chain_toolpanel.chainLinkCollisionColor[3]
 		mat.blend_method = "BLEND"
-		mat.shadow_method = "NONE"
+		if bpy.app.version < (4,2,0):
+			mat.shadow_method = "NONE"
 	return mat
 def getConeMat():
 	mat = bpy.data.materials.get("ChainConeMat")
@@ -46,7 +49,32 @@ def getConeMat():
 		mat.node_tree.nodes[0].inputs["Base Color"].default_value = bpy.context.scene.re_chain_toolpanel.coneColor
 		mat.node_tree.nodes[0].inputs["Alpha"].default_value = bpy.context.scene.re_chain_toolpanel.coneColor[3]
 		mat.blend_method = "BLEND"
-		mat.shadow_method = "NONE"
+		if bpy.app.version < (4,2,0):
+			mat.shadow_method = "NONE"
+	return mat
+def getConeSubGroupMat():
+	mat = bpy.data.materials.get("ChainConeSubGroupMat")
+	if mat == None:
+		mat = bpy.data.materials.new("ChainConeSubGroupMat")
+		mat.use_nodes = True
+		mat.diffuse_color = bpy.context.scene.re_chain_toolpanel.coneSubGroupColor
+		mat.node_tree.nodes[0].inputs["Base Color"].default_value = bpy.context.scene.re_chain_toolpanel.coneSubGroupColor
+		mat.node_tree.nodes[0].inputs["Alpha"].default_value = bpy.context.scene.re_chain_toolpanel.coneSubGroupColor[3]
+		mat.blend_method = "BLEND"
+		if bpy.app.version < (4,2,0):
+			mat.shadow_method = "NONE"
+	return mat
+def getChainGroupMat():
+	mat = bpy.data.materials.get("ChainGroupMat")
+	if mat == None:
+		mat = bpy.data.materials.new("ChainGroupMat")
+		mat.use_nodes = True
+		mat.diffuse_color = bpy.context.scene.re_chain_toolpanel.chainGroupColor
+		mat.node_tree.nodes[0].inputs["Base Color"].default_value = bpy.context.scene.re_chain_toolpanel.chainGroupColor
+		mat.node_tree.nodes[0].inputs["Alpha"].default_value = bpy.context.scene.re_chain_toolpanel.chainGroupColor[3]
+		mat.blend_method = "BLEND"
+		if bpy.app.version < (4,2,0):
+			mat.shadow_method = "NONE"
 	return mat
 """
 def getColCapsuleGeoNodeTree():
@@ -662,9 +690,14 @@ def getLinkColGeoNodeTree():
 		node_group = bpy.data.node_groups[TREENAME]
 	return node_group
 
-def getConeGeoNodeTree():
-	TREENAME = "ChainConeGeoNodeTreeV1"
-	mat = getConeMat()
+def getConeGeoNodeTree(isSubGroup = False):
+	if isSubGroup:
+		TREENAME = "ChainConeSubGroupGeoNodeTreeV1"
+		mat = getConeSubGroupMat()
+	else:
+		TREENAME = "ChainConeGeoNodeTreeV1"
+		mat = getConeMat()
+	
 	if TREENAME not in bpy.data.node_groups:
 		node_group = bpy.data.node_groups.new(type="GeometryNodeTree", name=TREENAME)
 		nodes = node_group.nodes

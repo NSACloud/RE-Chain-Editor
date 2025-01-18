@@ -16,8 +16,8 @@ def findHeaderObj():
 			return headerList[0]
 		else:
 			return None
-PRESET_VERSION = 4#To be changed when there are changes to chain object variables
-
+PRESET_VERSION = 6#To be changed when there are changes to chain object variables
+skipKeys = set(["subDataList_items"])
 def saveAsPreset(selection,presetName):
 	if len(selection) == 1:
 		activeObj = selection[0]
@@ -36,7 +36,10 @@ def saveAsPreset(selection,presetName):
 				folderPath = "ChainSettings"
 				presetDict["presetType"] = "RE_CHAIN_CHAINSETTINGS"
 				variableList = activeObj.re_chain_chainsettings.items()
-					
+				presetDict["subDataValues"] = []#Manual subdata support
+				for item in activeObj.re_chain_chainsettings.subDataList_items:
+					presetDict["subDataValues"].append([v for v in item.values])
+				
 			elif chainObjType == "RE_CHAIN_CHAINGROUP":
 				folderPath = "ChainGroup"
 				presetDict["presetType"] = "RE_CHAIN_CHAINGROUP"
@@ -51,11 +54,11 @@ def saveAsPreset(selection,presetName):
 			
 			if variableList != []:
 				for key, value in variableList:
-					if type(value).__name__ == "IDPropertyArray":
-						
-						presetDict[key] = value.to_list()
-					else:
-						presetDict[key] = value
+					if key not in skipKeys:
+						if type(value).__name__ == "IDPropertyArray":
+							presetDict[key] = value.to_list()
+						else:
+							presetDict[key] = value
 				
 				#Find chain header in scene and get the version
 				chainHeader = findHeaderObj()
@@ -98,13 +101,34 @@ def readPresetJSON(filepath,activeObj):
 			propertyGroup = activeObj.re_chain_windsettings
 				
 		elif jsonDict["presetType"] == "RE_CHAIN_CHAINSETTINGS":
-			propertyGroup = activeObj.re_chain_chainsettings
+			if jsonDict["presetVersion"] < 6:
+				#Fix keys changed in update
+				if "unknChainSettingValue0" in jsonDict:
+					jsonDict["windDelaySpeed"] = jsonDict["unknChainSettingValue0"]
+				if "unknChainSettingValue1" in jsonDict:
+					jsonDict["envWindEffectCoef"] = jsonDict["unknChainSettingValue1"]
+				if "unknChainSettingValue2" in jsonDict:
+					jsonDict["motionForce"] = jsonDict["unknChainSettingValue2"]
 				
+			
+			propertyGroup = activeObj.re_chain_chainsettings
+			if "subDataValues" in jsonDict:
+				activeObj.re_chain_chainsettings.subDataList_items.clear()
+				for entry in jsonDict["subDataValues"]:
+					item = activeObj.re_chain_chainsettings.subDataList_items.add()
+					for index, val in enumerate(entry[:len(item.values)]):
+						if isinstance(val, int):
+							item.values[index] = val
+							
 		elif jsonDict["presetType"] == "RE_CHAIN_CHAINGROUP":
 			propertyGroup = activeObj.re_chain_chaingroup
-				
+			
 		elif jsonDict["presetType"] == "RE_CHAIN_NODE":
 			propertyGroup = activeObj.re_chain_chainnode
+			if jsonDict["presetVersion"] < 6:
+				#Fix keys changed in update
+				if "unknChainNodeValue0" in jsonDict:
+					jsonDict["gravityCoef"] = jsonDict["unknChainNodeValue0"]
 		else:
 			showErrorMessageBox("Preset type is not supported")
 			return False
@@ -121,11 +145,11 @@ def readPresetJSON(filepath,activeObj):
 		else:
 			raiseWarning("Preset is missing the chain version.")
 		for key in propertyGroup.keys():
-			
-			try:
-				propertyGroup[key] = jsonDict[key]
-			except:
-				raiseWarning("Preset is missing key " + str(key) +", cannot set value on active object.")
+			if key not in skipKeys:
+				try:
+					propertyGroup[key] = jsonDict[key]
+				except:
+					raiseWarning("Preset is missing key " + str(key) +", cannot set value on active object.")
 		return True
 def reloadPresets(folderPath):
 	presetsPath = os.path.join(os.path.dirname(os.path.split(os.path.abspath(__file__))[0]),"Presets")

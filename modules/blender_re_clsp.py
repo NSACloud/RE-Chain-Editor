@@ -22,8 +22,7 @@ def findArmatureObjFromData(armatureData):
 			
 def findHeaderObj(chainCollection = None):
 	if chainCollection == None:
-		if bpy.data.collections.get(bpy.context.scene.re_chain_toolpanel.chainCollection,None) != None:
-			chainCollection = bpy.data.collections[bpy.context.scene.re_chain_toolpanel.chainCollection]
+			chainCollection = bpy.context.scene.re_chain_toolpanel.chainCollection
 	if chainCollection != None:
 		objList = chainCollection.all_objects
 		headerList = [obj for obj in objList if obj.get("TYPE",None) == "RE_CHAIN_HEADER"]
@@ -352,10 +351,16 @@ def importCLSPFile(filepath,options):
 
 	#CHAIN COLLISION IMPORT
 	if len(clspFile.clspEntryList) > 0:
-		collisionCollection = getCollection(clspFileName,None,makeNew = True)
+		parentCollection = None
+		if len(armature.users_collection) > 0 and armature.users_collection[0].get("~TYPE") == "RE_MESH_COLLECTION":
+			for collection in bpy.data.collections:
+				if armature.users_collection[0].name in collection.children:
+					parentCollection = collection
+					break
+		collisionCollection = getCollection(clspFileName,parentCollection,makeNew = True)
 		collisionCollection.color_tag = "COLOR_02"
 		collisionCollection["~TYPE"] = "RE_CLSP_COLLECTION"
-		bpy.context.scene.re_chain_toolpanel.chainCollection = collisionCollection.name
+		bpy.context.scene.re_chain_toolpanel.chainCollection = collisionCollection
 	singleObjectColList = ["SPHERE","OBB","PLANE","LINESPHERE","LERPSPHERE"]
 	
 	enumItemDict ={0:"SPHERE",1:"CAPSULE",2:"BOX",3:"TCAPSULE",4:"PLANE"}
