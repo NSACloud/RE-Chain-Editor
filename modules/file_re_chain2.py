@@ -73,7 +73,10 @@ class Chain2HeaderData():
 		self.collisionFilterHit5 = 0
 		self.collisionFilterHit6 = 0
 		self.collisionFilterHit7 = 0
+		self.wilds_unkn0 = 0#Struct count, free links probably
 		self.highFPSCalculateMode = 1#ENUM, WILDS
+		self.wilds_unkn1 = 0
+		self.wilds_unkn2 = 0
 		self.padding0 = 0
 		self.padding1 = 0
 		self.padding2 = 0
@@ -122,8 +125,11 @@ class Chain2HeaderData():
 		self.collisionFilterHit6 = read_ubyte(file)
 		self.collisionFilterHit7 = read_ubyte(file)
 		if version >= VERSION_MHWILDS:
-			self.highFPSCalculateMode = read_uint(file)
-			self.padding0 = read_uint(file)
+			self.wilds_unkn0 = read_ushort(file)
+			self.highFPSCalculateMode = read_ushort(file)
+			self.wilds_unkn1 = read_ubyte(file)
+			self.wilds_unkn2 = read_ubyte(file)
+			self.padding0 = read_ushort(file)
 			self.padding1 = read_uint(file)
 			self.padding2 = read_uint(file)
 		
@@ -165,8 +171,11 @@ class Chain2HeaderData():
 		write_ubyte(file, self.collisionFilterHit6)
 		write_ubyte(file, self.collisionFilterHit7)
 		if version >= VERSION_MHWILDS:
-			write_uint(file, self.highFPSCalculateMode)
-			write_uint(file, self.padding0)
+			write_ushort(file, self.wilds_unkn0)
+			write_ushort(file, self.highFPSCalculateMode)
+			write_ubyte(file, self.wilds_unkn1)
+			write_ubyte(file, self.wilds_unkn2)
+			write_ushort(file, self.padding0)
 			write_uint(file, self.padding1)
 			write_uint(file, self.padding2)
 			

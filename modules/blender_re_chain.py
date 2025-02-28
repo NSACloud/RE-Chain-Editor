@@ -307,6 +307,9 @@ def alignCollisions():#TODO Fix matrices
 						#child.empty_display_size = collisionObj.re_chain_chaincollision.radius# * 100
 					#else:
 						#child.empty_display_size = .01
+		#Force positions to correct themselves if they're wrong by triggering update function
+		collisionObj.re_chain_chaincollision.collisionOffset = collisionObj.re_chain_chaincollision.collisionOffset
+		collisionObj.re_chain_chaincollision.endCollisionOffset = collisionObj.re_chain_chaincollision.endCollisionOffset
 	bpy.context.view_layer.update()
 def getArmatureHashList(armature):
 	boneHashDict = {}

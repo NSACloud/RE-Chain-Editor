@@ -1,6 +1,6 @@
 ![REChainEditorTitle](https://github.com/NSACloud/RE-Chain-Editor/assets/46909075/e74f6ac0-e7c7-4f26-94af-0cf1ff9e95ee)
 
-**V10.0 (1/18/2025)**
+**V11.0 (2/28/2025)**
 
 [Change Log](https://github.com/NSACloud/RE-Chain-Editor?tab=readme-ov-file#change-log)
 
@@ -20,6 +20,13 @@ Also supports collision shape (.clsp) files.
 
 
 ## Change Log
+
+### V11.0 - 2/28/2025
+* Added support for the full release of Monster Hunter Wilds.
+* Added unknown values to the chain2 header for MH Wilds.
+* Added dropdown menu for setting CFIL paths on chain settings.
+* Fixed issue where certain flags on chain settings attribute flags would behave incorrectly.
+* Fixed issue where collision capsules could be misaligned.
 
 ### V10.1 - 1/18/2025
 * Fixed chain2 chain link export issue.

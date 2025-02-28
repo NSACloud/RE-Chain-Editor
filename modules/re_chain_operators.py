@@ -1997,7 +1997,7 @@ class chainSettingsAttrFlags(AndFlags):
 			"VirtualGroundTarget":{"enabled":False,"andFlag":4},
 			"IgnoreSameGroupCollision":{"enabled":False,"andFlag":8},
 			"UseReduceDistanceCurve":{"enabled":False,"andFlag":16},#chain2
-			"VirtualGroundMask":{"enabled":False,"andFlag":6},#chain2
+			#"VirtualGroundMask":{"enabled":False,"andFlag":6},#chain2
 			}
 	
 class WM_OT_SetSettingAttrFlags(Operator):
@@ -2026,11 +2026,12 @@ class WM_OT_SetSettingAttrFlags(Operator):
 		name="Use Reduce Distance Curve",
 		description="",
 		default = False)
+	"""
 	VirtualGroundMask : bpy.props.BoolProperty(
 		name="Virtual Ground Mask",
 		description="",
 		default = False)
-	
+	"""
 	def draw(self,context):
 		isChain2 = context.scene.re_chain_toolpanel.chainFileType == "chain2"
 		layout = self.layout
@@ -2040,7 +2041,7 @@ class WM_OT_SetSettingAttrFlags(Operator):
 		layout.prop(self,"IgnoreSameGroupCollision")
 		if isChain2:
 			layout.prop(self,"UseReduceDistanceCurve")
-			layout.prop(self,"VirtualGroundMask")
+			#layout.prop(self,"VirtualGroundMask")
 		
 		
 	@classmethod
@@ -2143,4 +2144,40 @@ class WM_OT_SetJiggleAttrFlags(Operator):
 				#print(key)
 				setattr(self,key,flagClass.flagDict[key]["enabled"])
 			
+		return context.window_manager.invoke_props_dialog(self)
+	
+	
+class WM_OT_SetCFILPath(Operator):
+	bl_label = "Set CFIL Path"
+	bl_description = "Choose .cfil path from list of known paths.\nNote that if this file does not exist for the game you're modding, the game will infinitely load"
+	bl_idname = "re_chain.set_cfil_path"
+	bl_context = "objectmode"
+	bl_options = {'UNDO','INTERNAL'}
+	cfilPath: bpy.props.EnumProperty(
+		name="CFIL Type",
+		description="Set collider filter info path of chain settings",
+		items=[	("System/Collision/Filter/Character/Character_Chain.cfil", "MH Wilds Character CFIL", ""),
+		        ("Collision/CollisionFilter/Chain/ChainCloth.cfil", "DMC5 Character CFIL", ""),
+			   ]
+		)
+	
+	def draw(self,context):
+		layout = self.layout
+		layout.prop(self,"cfilPath")
+		
+	@classmethod
+	def poll(self,context):
+		return context.active_object is not None and context.active_object.get("TYPE") == "RE_CHAIN_CHAINSETTINGS"
+	def execute(self, context):
+		
+		
+		for selectedObject in bpy.context.selected_objects:
+			selectedObjectType = selectedObject.get("TYPE",None)
+			if selectedObjectType == "RE_CHAIN_CHAINSETTINGS":
+				selectedObject.re_chain_chainsettings.colliderFilterInfoPath = self.cfilPath
+		self.report({"INFO"},"Set cfil path flags.")
+		tag_redraw(bpy.context)
+		return {'FINISHED'}
+	
+	def invoke(self,context,event):
 		return context.window_manager.invoke_props_dialog(self)

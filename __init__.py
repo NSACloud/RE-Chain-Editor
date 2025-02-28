@@ -1,7 +1,7 @@
 bl_info = {
 	"name": "RE Chain Editor",
 	"author": "NSA Cloud, alphaZomega",
-	"version": (10, 1),
+	"version": (11, 0),
 	"blender": (3, 1, 2),
 	"location": "File > Import-Export",
 	"description": "Import and export RE Engine chain files.",
@@ -26,7 +26,7 @@ from .modules.gen_functions import textColors
 from .modules.blender_re_chain import importChainFile,exportChainFile
 from .modules.re_chain_propertyGroups import chainToolPanelPropertyGroup,chainHeaderPropertyGroup,chainWindSettingsPropertyGroup,chainSettingsPropertyGroup,ChainSettingSubDataPropertyGroup,CHAIN_UL_ChainSettingsSubDataList,chainGroupPropertyGroup,chainSubGroupPropertyGroup,chainNodePropertyGroup,chainJigglePropertyGroup,chainCollisionPropertyGroup,chainClipboardPropertyGroup,chainLinkPropertyGroup,collisionSubDataPropertyGroup,chainLinkCollisionNodePropertyGroup
 from .modules.ui_re_chain_panels import OBJECT_PT_ChainObjectModePanel,OBJECT_PT_ChainPoseModePanel,OBJECT_PT_ChainPresetPanel,OBJECT_PT_ChainHeaderPanel,OBJECT_PT_WindSettingsPanel,OBJECT_PT_ChainSettingsPanel,OBJECT_PT_ChainSettingsSubDataPanel,OBJECT_PT_ChainGroupPanel,OBJECT_PT_ChainSubGroupPanel,OBJECT_PT_ChainNodePanel,OBJECT_PT_ChainJigglePanel,OBJECT_PT_ChainCollisionPanel,OBJECT_PT_ChainClipboardPanel,OBJECT_PT_ChainLinkPanel,OBJECT_PT_ChainVisibilityPanel,OBJECT_PT_ChainCollisionSubDataPanel,OBJECT_PT_ChainLinkCollisionPanel,OBJECT_PT_NodeVisPanel,OBJECT_PT_CollisionVisPanel,OBJECT_PT_AngleLimitVisPanel,OBJECT_PT_ColorVisPanel
-from .modules.re_chain_operators import WM_OT_ChainFromBone,WM_OT_CollisionFromBones,WM_OT_AlignChainsToBones,WM_OT_AlignFrames,WM_OT_PointFrame,WM_OT_CopyChainProperties,WM_OT_PasteChainProperties,WM_OT_NewChainHeader,WM_OT_ApplyChainSettingsPreset,WM_OT_NewChainSettings,WM_OT_NewWindSettings,WM_OT_NewChainJiggle,WM_OT_ApplyChainGroupPreset,WM_OT_ApplyChainNodePreset,WM_OT_ApplyWindSettingsPreset,WM_OT_SavePreset,WM_OT_OpenPresetFolder,WM_OT_NewChainLink,WM_OT_CreateChainBoneGroup,WM_OT_SwitchToPoseMode,WM_OT_SwitchToObjectMode,WM_OT_HideNonNodes,WM_OT_HideNonAngleLimits,WM_OT_HideNonCollisions,WM_OT_UnhideAll,WM_OT_RenameBoneChain,WM_OT_ApplyAngleLimitRamp,WM_OT_AlignBoneTailsToAxis,WM_OT_SetAttrFlags,WM_OT_SetNodeAttrFlags,WM_OT_SetSettingAttrFlags,WM_OT_SetJiggleAttrFlags,WM_OT_CreateChainLinkCollision,WM_OT_CreateChainSubGroup
+from .modules.re_chain_operators import WM_OT_ChainFromBone,WM_OT_CollisionFromBones,WM_OT_AlignChainsToBones,WM_OT_AlignFrames,WM_OT_PointFrame,WM_OT_CopyChainProperties,WM_OT_PasteChainProperties,WM_OT_NewChainHeader,WM_OT_ApplyChainSettingsPreset,WM_OT_NewChainSettings,WM_OT_NewWindSettings,WM_OT_NewChainJiggle,WM_OT_ApplyChainGroupPreset,WM_OT_ApplyChainNodePreset,WM_OT_ApplyWindSettingsPreset,WM_OT_SavePreset,WM_OT_OpenPresetFolder,WM_OT_NewChainLink,WM_OT_CreateChainBoneGroup,WM_OT_SwitchToPoseMode,WM_OT_SwitchToObjectMode,WM_OT_HideNonNodes,WM_OT_HideNonAngleLimits,WM_OT_HideNonCollisions,WM_OT_UnhideAll,WM_OT_RenameBoneChain,WM_OT_ApplyAngleLimitRamp,WM_OT_AlignBoneTailsToAxis,WM_OT_SetAttrFlags,WM_OT_SetNodeAttrFlags,WM_OT_SetSettingAttrFlags,WM_OT_SetJiggleAttrFlags,WM_OT_CreateChainLinkCollision,WM_OT_CreateChainSubGroup,WM_OT_SetCFILPath
 
 from .modules.blender_re_clsp import importCLSPFile,exportCLSPFile
 
@@ -167,7 +167,7 @@ class ImportREChain(bpy.types.Operator, ImportHelper):
 		return {'RUNNING_MODAL'}
 
 supportedChainVersions = set([54,53,48,52,39,46,24,44,21])		
-supportedChain2Versions = set([4,9,12])
+supportedChain2Versions = set([4,9,12,13])
 class ExportREChain(bpy.types.Operator, ExportHelper):
 	'''Export RE Engine Chain File'''
 	bl_idname = "re_chain.exportfile"
@@ -463,9 +463,9 @@ class ExportREChain2(bpy.types.Operator, ExportHelper):
 		description="Set which game to export the chain for",
 		items=[ (".4", "Dragon's Dogma 2", "Dragon's Dogma 2"),
 				(".9", "Dead Rising", "Dead Rising"),
-				(".12", "Monster Hunter Wilds", "Monster Hunter Wilds"),
+				(".13", "Monster Hunter Wilds", "Monster Hunter Wilds"),
 			   ],
-		default = ".12"
+		default = ".13"
 		)
 	targetCollection : StringProperty(
 	   name = "",
@@ -482,6 +482,9 @@ class ExportREChain2(bpy.types.Operator, ExportHelper):
 					
 				
 		if context.scene.get("REChainLastImportedChain2Version",0) in supportedChainVersions:
+			if context.scene["REChainLastImportedChain2Version"] == 12:
+				#MH Wilds beta fix
+				context.scene["REChainLastImportedChain2Version"] = 13
 			self.filename_ext = "."+str(context.scene["REChainLastImportedChain2Version"])
 		context.window_manager.fileselect_add(self)
 		return {'RUNNING_MODAL'}
@@ -601,6 +604,7 @@ classes = [
 	WM_OT_SetNodeAttrFlags,
 	WM_OT_SetSettingAttrFlags,
 	WM_OT_SetJiggleAttrFlags,
+	WM_OT_SetCFILPath,
 	]
 
 """

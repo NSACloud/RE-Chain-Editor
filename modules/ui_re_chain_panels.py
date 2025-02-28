@@ -219,6 +219,8 @@ class OBJECT_PT_ChainHeaderPanel(Panel):
 			col2.prop(re_chain_header, "legacyVersion")
 		else:
 			col2.prop(re_chain_header, "highFPSCalculateMode")
+			col2.prop(re_chain_header, "wilds_unkn1")
+			col2.prop(re_chain_header, "wilds_unkn2")
 		col2.prop(re_chain_header, "collisionFilterHit0")
 		col2.prop(re_chain_header, "collisionFilterHit1")
 		col2.prop(re_chain_header, "collisionFilterHit2")
@@ -320,7 +322,9 @@ class OBJECT_PT_ChainSettingsPanel(Panel):
 		col2.alignment='RIGHT'
 		col2.use_property_split = True
 		col2.prop(re_chain_chainsettings, "id")
-		col2.prop(re_chain_chainsettings, "colliderFilterInfoPath")
+		row = col2.row()
+		row.prop(re_chain_chainsettings, "colliderFilterInfoPath")
+		row.operator("re_chain.set_cfil_path",icon='DOWNARROW_HLT', text="")
 		if not isChain2:
 			col2.prop(re_chain_chainsettings, "chainType")
 			col2.prop(re_chain_chainsettings, "sprayParameterArc") 

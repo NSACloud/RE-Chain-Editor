@@ -641,6 +641,10 @@ class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
 		description="Apply Data to attribute.",
 		items=[ ("0", "ChainAttrFlags_None", ""),
 				("1", "ChainAttrFlags_ModelCollisionPreset", ""),
+				("2", "ChainAttrFlags_UNKN2", ""),
+				("3", "ChainAttrFlags_UNKN3", ""),
+				("4", "ChainAttrFlags_UNKN4", ""),
+				("5", "ChainAttrFlags_UNKN5", ""),
 			   ]
 		)
 	parameterFlag: EnumProperty(
@@ -785,6 +789,21 @@ class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
 		default = "1"
 		
 		)
+	
+	wilds_unkn1: IntProperty(
+		name="Wilds Unknown",
+		description="Likely a flag",
+		default = 0,
+		min = 0,
+		max = 255,
+		)
+	wilds_unkn2: IntProperty(
+		name="Wilds Unknown 2",
+		description="Likely a flag",
+		default = 0,
+		min = 0,
+		max = 255,
+		)
 def getChainHeader(ChainHeaderData,targetObject,isChain2 = False):
 	#Done manually to be able to account for chain version differences eventually
 	targetObject.re_chain_header.errFlags = str(ChainHeaderData.errFlags)
@@ -800,6 +819,8 @@ def getChainHeader(ChainHeaderData,targetObject,isChain2 = False):
 		targetObject.re_chain_header.legacyVersion = str(ChainHeaderData.legacyVersion)
 	else:
 		targetObject.re_chain_header.highFPSCalculateMode = str(ChainHeaderData.highFPSCalculateMode)
+		targetObject.re_chain_header.wilds_unkn1 = ChainHeaderData.wilds_unkn1
+		targetObject.re_chain_header.wilds_unkn2 = ChainHeaderData.wilds_unkn2
 	targetObject.re_chain_header.collisionFilterHit0 = str(ChainHeaderData.collisionFilterHit0)
 	targetObject.re_chain_header.collisionFilterHit1 = str(ChainHeaderData.collisionFilterHit1)
 	targetObject.re_chain_header.collisionFilterHit2 = str(ChainHeaderData.collisionFilterHit2)
@@ -824,6 +845,8 @@ def setChainHeaderData(ChainHeaderData,targetObject,isChain2 = False):
 		ChainHeaderData.legacyVersion = int(targetObject.re_chain_header.legacyVersion)
 	else:
 		ChainHeaderData.highFPSCalculateMode = int(targetObject.re_chain_header.highFPSCalculateMode)
+		ChainHeaderData.wilds_unkn1 = targetObject.re_chain_header.wilds_unkn1
+		ChainHeaderData.wilds_unkn2 = targetObject.re_chain_header.wilds_unkn2
 	ChainHeaderData.collisionFilterHit0 = int(targetObject.re_chain_header.collisionFilterHit0)
 	ChainHeaderData.collisionFilterHit1 = int(targetObject.re_chain_header.collisionFilterHit1)
 	ChainHeaderData.collisionFilterHit2 = int(targetObject.re_chain_header.collisionFilterHit2)
