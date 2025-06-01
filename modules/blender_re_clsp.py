@@ -189,7 +189,7 @@ def syncCollisionOffsets():
 	for collisionObj in [obj for obj in bpy.context.scene.objects if (obj.get("TYPE",None) in collisionTypeList)] :
 		if collisionObj.get("TYPE",None) != "RE_CHAIN_COLLISION_CAPSULE_ROOT":
 			collisionObj.re_chain_chaincollision.collisionOffset = collisionObj.location# * .01
-			collisionObj.re_chain_chaincollision.chainCollisionShape.radius = collisionObj.scale[0]
+			collisionObj.re_chain_chaincollision.radius = collisionObj.scale[0]
 		else:
 			for child in collisionObj.children:
 				if child.get("TYPE",None) == "RE_CHAIN_COLLISION_CAPSULE_START":

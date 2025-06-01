@@ -1,6 +1,6 @@
 ![REChainEditorTitle](https://github.com/NSACloud/RE-Chain-Editor/assets/46909075/e74f6ac0-e7c7-4f26-94af-0cf1ff9e95ee)
 
-**V11.0 (2/28/2025)**
+**V11.1 (6/1/2025)**
 
 [Change Log](https://github.com/NSACloud/RE-Chain-Editor?tab=readme-ov-file#change-log)
 
@@ -20,6 +20,9 @@ Also supports collision shape (.clsp) files.
 
 
 ## Change Log
+
+### V11.1 - 6/1/2025
+* Fixed issue where exporting a CLSP file with a sphere collision would cause an error.
 
 ### V11.0 - 2/28/2025
 * Added support for the full release of Monster Hunter Wilds.
