@@ -868,7 +868,7 @@ def importChainFile(filepath,options,isChain2 = False):
 				colCapsuleStartObj = createFakeEmptySphere(name, [("TYPE","RE_CHAIN_COLLISION_CAPSULE_START")],colCapsuleRootObj,collisionCollection)
 				colCapsuleRootObj.show_in_front = bpy.context.scene.re_chain_toolpanel.drawCollisionsThroughObjects
 				
-				colCapsuleStartObj.re_chain_chaincollision.collisionOffset = (chainCollision.posX,chainCollision.posY,chainCollision.posZ)
+				colCapsuleRootObj.re_chain_chaincollision.collisionOffset = (chainCollision.posX,chainCollision.posY,chainCollision.posZ)
 				colCapsuleStartObj.rotation_mode = "QUATERNION" 
 				colCapsuleStartObj.rotation_quaternion = (chainCollision.rotOffsetW,chainCollision.rotOffsetX,chainCollision.rotOffsetY,chainCollision.rotOffsetZ)
 				
@@ -888,7 +888,7 @@ def importChainFile(filepath,options,isChain2 = False):
 				
 				name = subName+ f"_{shape}_END" + " " + boneHashDict[chainCollision.pairJointNameHash].name
 				colCapsuleEndObj = createFakeEmptySphere(name, [("TYPE","RE_CHAIN_COLLISION_CAPSULE_END")],colCapsuleRootObj,collisionCollection)
-				colCapsuleEndObj.re_chain_chaincollision.endCollisionOffset = (chainCollision.pairPosX,chainCollision.pairPosY,chainCollision.pairPosZ)
+				colCapsuleRootObj.re_chain_chaincollision.endCollisionOffset = (chainCollision.pairPosX,chainCollision.pairPosY,chainCollision.pairPosZ)
 				#colCapsuleEndObj.empty_display_type = "SPHERE"
 				#colCapsuleEndObj.empty_display_size = 1.1
 				constraint = colCapsuleEndObj.constraints.new(type = "CHILD_OF")

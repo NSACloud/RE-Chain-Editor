@@ -645,6 +645,7 @@ class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
 				("3", "ChainAttrFlags_UNKN3", ""),
 				("4", "ChainAttrFlags_UNKN4", ""),
 				("5", "ChainAttrFlags_UNKN5", ""),
+				("6", "ChainAttrFlags_UNKN6", ""),
 			   ]
 		)
 	parameterFlag: EnumProperty(

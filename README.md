@@ -1,6 +1,6 @@
 ![REChainEditorTitle](https://github.com/NSACloud/RE-Chain-Editor/assets/46909075/e74f6ac0-e7c7-4f26-94af-0cf1ff9e95ee)
 
-**V11.2 (7/16/2025)**
+**V11.3 (8/19/2025)**
 
 [Change Log](https://github.com/NSACloud/RE-Chain-Editor?tab=readme-ov-file#change-log)
 
@@ -20,6 +20,10 @@ Also supports collision shape (.clsp) files.
 
 
 ## Change Log
+
+### V11.3 - 8/19/2025
+* Fixed issue where collision capsule offsets weren't imported.
+* Fixed error that occurred when importing Alma's summer outfit chain file.
 
 ### V11.2 - 7/16/2025
 * Fixed issues with geometry nodes on Blender 4.5.
