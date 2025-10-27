@@ -1,7 +1,7 @@
 bl_info = {
 	"name": "RE Chain Editor",
 	"author": "NSA Cloud, alphaZomega",
-	"version": (11, 3),
+	"version": (11, 4),
 	"blender": (3, 1, 2),
 	"location": "File > Import-Export",
 	"description": "Import and export RE Engine chain files.",
@@ -228,14 +228,7 @@ class ExportREChain(bpy.types.Operator, ExportHelper):
 		success = exportChainFile(self.filepath,options, chainVersion)
 		if success:
 			self.report({"INFO"},"Exported RE Chain successfully.")
-			#Add batch export entry to RE Toolbox if it doesn't already have one
-			if hasattr(bpy.types, "OBJECT_PT_re_tools_quick_export_panel"):
-				if not any(item.path == self.filepath for item in bpy.context.scene.re_toolbox_toolpanel.batchExportList_items):
-					newExportItem = bpy.context.scene.re_toolbox_toolpanel.batchExportList_items.add()
-					newExportItem.fileType = "CHAIN"
-					newExportItem.path = self.filepath
-					newExportItem.chainCollection = self.targetCollection
-					print("Added path to RE Toolbox Batch Export list.")
+			bpy.data.collections[self.targetCollection]["BatchExport_path"] = self.filepath
 		else:
 			self.report({"INFO"},"RE Chain export failed. See Window > Toggle System Console for details.")
 		return {"FINISHED"}
@@ -349,17 +342,7 @@ class ExportRECLSP(bpy.types.Operator, ExportHelper):
 		success = exportCLSPFile(self.filepath,options, clspVersion)
 		if success:
 			self.report({"INFO"},"Exported RE CLSP successfully.")
-			#Add batch export entry to RE Toolbox if it doesn't already have one
-			if hasattr(bpy.types, "OBJECT_PT_re_tools_quick_export_panel"):
-				try:
-					if not any(item.path == self.filepath for item in bpy.context.scene.re_toolbox_toolpanel.batchExportList_items):
-						newExportItem = bpy.context.scene.re_toolbox_toolpanel.batchExportList_items.add()
-						newExportItem.fileType = "CLSP"
-						newExportItem.path = self.filepath
-						newExportItem.chainCollection = self.targetCollection
-						print("Added path to RE Toolbox Batch Export list.")
-				except:
-					print("Failed to add path to RE Toolbox. RE Toolbox is likely outdated and needs an update.")
+			bpy.data.collections[self.targetCollection]["BatchExport_path"] = self.filepath
 		else:
 			self.report({"INFO"},"RE CLSP export failed. See Window > Toggle System Console for details.")
 		return {"FINISHED"}
@@ -511,16 +494,7 @@ class ExportREChain2(bpy.types.Operator, ExportHelper):
 			self.report({"INFO"},"Exported RE Chain successfully.")
 			#Add batch export entry to RE Toolbox if it doesn't already have one
 			
-			if hasattr(bpy.types, "OBJECT_PT_re_tools_quick_export_panel"):
-				try:
-					if not any(item.path == self.filepath for item in bpy.context.scene.re_toolbox_toolpanel.batchExportList_items):
-						newExportItem = bpy.context.scene.re_toolbox_toolpanel.batchExportList_items.add()
-						newExportItem.fileType = "CHAIN2"
-						newExportItem.path = self.filepath
-						newExportItem.chainCollection = self.targetCollection
-						print("Added path to RE Toolbox Batch Export list.")
-				except:
-					print("Failed to add path to RE Toolbox. RE Toolbox is likely outdated and needs an update.")
+			bpy.data.collections[self.targetCollection]["BatchExport_path"] = self.filepath
 		else:
 			self.report({"INFO"},"RE Chain export failed. See Window > Toggle System Console for details.")
 		return {"FINISHED"}

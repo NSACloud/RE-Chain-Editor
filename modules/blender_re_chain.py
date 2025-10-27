@@ -4,7 +4,7 @@ import os
 from mathutils import Matrix
 from math import radians
 
-from .gen_functions import textColors,raiseWarning,raiseError
+from .gen_functions import textColors,raiseWarning,raiseError,splitNativesPath
 from .file_re_chain import readREChain,writeREChain
 from .file_re_chain2 import readREChain2,writeREChain2
 from .pymmh3 import hash_wide
@@ -488,6 +488,13 @@ def importChainFile(filepath,options,isChain2 = False):
 					parentCollection = collection
 					break
 		chainCollection = createChainCollection(chainFileName,parentCollection)
+		try:
+				split = splitNativesPath(filepath)
+				if split != None:
+					assetPath = os.path.splitext(split[1])[0].replace(os.sep,"/")
+					chainCollection["~ASSETPATH"] = assetPath#Used to determine where to export automatically
+		except:
+			print("Failed to set asset path from file path, file is likely not in a natives folder.")
 		headerPropertyList = [("TYPE","RE_CHAIN_HEADER")]
 		headerObj = createEmpty(f"CHAIN_HEADER {chainFileName}",headerPropertyList,None,chainCollection)
 		

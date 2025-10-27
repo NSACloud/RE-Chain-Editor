@@ -7,7 +7,7 @@ VERSION_DD2 = 4
 VERSION_DR = 9
 VERSION_MHWILDS = 12
 
-supportedVersionSet = set([4,9,12])
+supportedVersionSet = set([4,9,12,13])
 
 #---CHAIN STRUCTS---#
 class SIZE_DATA():
