@@ -674,7 +674,7 @@ class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
 				("1", "LegacyVersion_Legacy1", ""),
 			  ]
 		)
-	
+	#TODO Rework these to use and flags system
 	collisionFilterHit0: EnumProperty(
 		name="Collision Hit Flag 0",
 		description="Apply Data to attribute.",
@@ -682,6 +682,7 @@ class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
 				("2", "HitFlags_Self", ""),
 				("4", "HitFlags_Model", ""),
 				("8", "HitFlags_Collider", ""),
+				("12", "HitFlags_UNKNFLAG12", ""),
 				("16", "HitFlags_Angle", ""),
 				("32", "HitFlags_Group", ""),
 				("64", "HitFlags_VGround", ""),
@@ -695,6 +696,7 @@ class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
 				("2", "HitFlags_Self", ""),
 				("4", "HitFlags_Model", ""),
 				("8", "HitFlags_Collider", ""),
+				("12", "HitFlags_UNKNFLAG12", ""),
 				("16", "HitFlags_Angle", ""),
 				("32", "HitFlags_Group", ""),
 				("64", "HitFlags_VGround", ""),
@@ -708,6 +710,7 @@ class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
 				("2", "HitFlags_Self", ""),
 				("4", "HitFlags_Model", ""),
 				("8", "HitFlags_Collider", ""),
+				("12", "HitFlags_UNKNFLAG12", ""),
 				("16", "HitFlags_Angle", ""),
 				("32", "HitFlags_Group", ""),
 				("64", "HitFlags_VGround", ""),
@@ -721,6 +724,7 @@ class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
 				("2", "HitFlags_Self", ""),
 				("4", "HitFlags_Model", ""),
 				("8", "HitFlags_Collider", ""),
+				("12", "HitFlags_UNKNFLAG12", ""),
 				("16", "HitFlags_Angle", ""),
 				("32", "HitFlags_Group", ""),
 				("64", "HitFlags_VGround", ""),
@@ -734,6 +738,7 @@ class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
 				("2", "HitFlags_Self", ""),
 				("4", "HitFlags_Model", ""),
 				("8", "HitFlags_Collider", ""),
+				("12", "HitFlags_UNKNFLAG12", ""),
 				("16", "HitFlags_Angle", ""),
 				("32", "HitFlags_Group", ""),
 				("64", "HitFlags_VGround", ""),
@@ -747,6 +752,7 @@ class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
 				("2", "HitFlags_Self", ""),
 				("4", "HitFlags_Model", ""),
 				("8", "HitFlags_Collider", ""),
+				("12", "HitFlags_UNKNFLAG12", ""),
 				("16", "HitFlags_Angle", ""),
 				("32", "HitFlags_Group", ""),
 				("64", "HitFlags_VGround", ""),
@@ -760,6 +766,7 @@ class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
 				("2", "HitFlags_Self", ""),
 				("4", "HitFlags_Model", ""),
 				("8", "HitFlags_Collider", ""),
+				("12", "HitFlags_UNKNFLAG12", ""),
 				("16", "HitFlags_Angle", ""),
 				("32", "HitFlags_Group", ""),
 				("64", "HitFlags_VGround", ""),
@@ -773,6 +780,7 @@ class chainHeaderPropertyGroup(bpy.types.PropertyGroup):
 				("2", "HitFlags_Self", ""),
 				("4", "HitFlags_Model", ""),
 				("8", "HitFlags_Collider", ""),
+				("12", "HitFlags_UNKNFLAG12", ""),
 				("16", "HitFlags_Angle", ""),
 				("32", "HitFlags_Group", ""),
 				("64", "HitFlags_VGround", ""),

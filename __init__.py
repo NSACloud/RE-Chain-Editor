@@ -1,7 +1,7 @@
 bl_info = {
 	"name": "RE Chain Editor",
 	"author": "NSA Cloud, alphaZomega",
-	"version": (11, 4),
+	"version": (12, 0),
 	"blender": (3, 1, 2),
 	"location": "File > Import-Export",
 	"description": "Import and export RE Engine chain files.",
@@ -79,6 +79,7 @@ class REChainPreferences(AddonPreferences):
         )
 		op.url = 'https://ko-fi.com/nsacloud'
 		addon_updater_ops.update_settings_ui(self,context)
+
 class ImportREChain(bpy.types.Operator, ImportHelper):
 	'''Import RE Engine Chain File'''
 	bl_idname = "re_chain.importfile"
@@ -97,7 +98,7 @@ class ImportREChain(bpy.types.Operator, ImportHelper):
 	targetArmature : StringProperty(
 	   name = "",
 	   description = "The armature to attach chain objects to.\nNOTE: If bones that are used by the chain file are missing on the armature, any chain groups or collisions using those bones won't be imported",
-	   default = "")
+	   default = "",)
 	mergeChain : StringProperty(
 	   name = "",
 	   description = "Merges the imported chain with an existing chain collection.\nNote that the chain bones used by the imported file must be merged with the target armature.\nUse the Merge With Armature import option in RE Mesh Editor first.\n Leave blank if not merging a chain file",
@@ -166,8 +167,22 @@ class ImportREChain(bpy.types.Operator, ImportHelper):
 		context.window_manager.fileselect_add(self)
 		return {'RUNNING_MODAL'}
 
-supportedChainVersions = set([54,53,48,52,39,46,24,44,21])		
+supportedChainVersions = set([55,54,53,48,52,39,46,24,44,21])		
 supportedChain2Versions = set([4,9,12,13])
+def update_targetChainCollection(self,context):
+	temp = bpy.data.screens.get("temp")
+	browserSpace = None
+	if temp != None:
+	    for area in temp.areas:
+	        for space in area.spaces:
+	            if type(space.params).__name__ == "FileSelectParams":
+	                browserSpace = space
+	                break
+	                break
+	if browserSpace != None:
+		#print(browserSpace.params.filename)
+		if ".chain" in self.targetCollection:
+			browserSpace.params.filename = self.targetCollection.split(".chain")[0]+".chain" + self.filename_ext	
 class ExportREChain(bpy.types.Operator, ExportHelper):
 	'''Export RE Engine Chain File'''
 	bl_idname = "re_chain.exportfile"
@@ -177,7 +192,8 @@ class ExportREChain(bpy.types.Operator, ExportHelper):
 	filename_ext: EnumProperty(
 		name="",
 		description="Set which game to export the chain for",
-		items=[ (".54", "Dragon's Dogma 2", "Dragon's Dogma 2"),
+		items=[ (".55", "Pragmata", "Pragmata"),
+				(".54", "Dragon's Dogma 2", "Dragon's Dogma 2"),
 				(".53", "Resident Evil 4 Remake", "Resident Evil 4 Remake"),
 				(".48", "Monster Hunter Rise", "Monster Hunter Rise"),
 				(".52", "Street Fighter 6", "Street Fighter 6"),
@@ -192,7 +208,8 @@ class ExportREChain(bpy.types.Operator, ExportHelper):
 	targetCollection : StringProperty(
 	   name = "",
 	   description = "Set the chain collection to be exported",
-	   default = "")
+	   default = "",
+	   update=update_targetChainCollection)
 	filter_glob: StringProperty(default="*.chain*", options={'HIDDEN'})
 	def invoke(self, context, event):
 		
@@ -289,7 +306,21 @@ class ImportRECLSP(bpy.types.Operator, ImportHelper):
 			self.report({"INFO"},"Failed to import RE CLSP. Make sure the armature for the mesh is imported.")
 			return {"CANCELLED"}
 
-supportedCLSPVersions = set([3])	
+supportedCLSPVersions = set([3])
+def update_targetCLSPCollection(self,context):
+	temp = bpy.data.screens.get("temp")
+	browserSpace = None
+	if temp != None:
+	    for area in temp.areas:
+	        for space in area.spaces:
+	            if type(space.params).__name__ == "FileSelectParams":
+	                browserSpace = space
+	                break
+	                break
+	if browserSpace != None:
+		#print(browserSpace.params.filename)
+		if ".clsp" in self.targetCollection:
+			browserSpace.params.filename = self.targetCollection.split(".clsp")[0]+".clsp" + self.filename_ext	
 class ExportRECLSP(bpy.types.Operator, ExportHelper):
 	'''Export RE Engine Collsion Shape Preset File'''
 	bl_idname = "re_clsp.exportfile"
@@ -299,14 +330,15 @@ class ExportRECLSP(bpy.types.Operator, ExportHelper):
 	filename_ext: EnumProperty(
 		name="",
 		description="Set which game to export the chain for",
-		items=[ (".3", "(.3) Dragon's Dogma 2, MH Wilds", "Dragon's Dogma 2, MH Wilds"),
+		items=[ (".3", "(.3) DD2, MH Wilds, Pragmata", "Dragon's Dogma 2, MH Wilds, Pragmata"),
 			   ],
 		default = ".3"
 		)
 	targetCollection : StringProperty(
 	   name = "",
 	   description = "Set the CLSP collection to be exported",
-	   default = "")
+	   default = "",
+	   update=update_targetCLSPCollection)
 	filter_glob: StringProperty(default="*.clsp*", options={'HIDDEN'})
 	def invoke(self, context, event):
 		
@@ -433,8 +465,23 @@ class ImportREChain2(bpy.types.Operator, ImportHelper):
 			return context.window_manager.invoke_props_dialog(self)
 		context.window_manager.fileselect_add(self)
 		return {'RUNNING_MODAL'}
-
-supportedChainVersions = set([54,53,48,52,39,46,24,44,21])		
+	
+def update_targetChain2Collection(self,context):
+	temp = bpy.data.screens.get("temp")
+	browserSpace = None
+	if temp != None:
+	    for area in temp.areas:
+	        for space in area.spaces:
+	            if type(space.params).__name__ == "FileSelectParams":
+	                browserSpace = space
+	                break
+	                break
+	if browserSpace != None:
+		#print(browserSpace.params.filename)
+		if ".chain2" in self.targetCollection:
+			browserSpace.params.filename = self.targetCollection.split(".chain2")[0]+".chain2" + self.filename_ext
+		elif ".chain" in self.targetCollection:
+			browserSpace.params.filename = self.targetCollection.split(".chain")[0]+".chain2" + self.filename_ext
 class ExportREChain2(bpy.types.Operator, ExportHelper):
 	'''Export RE Engine Chain2 File'''
 	bl_idname = "re_chain2.exportfile"
@@ -461,7 +508,7 @@ class ExportREChain2(bpy.types.Operator, ExportHelper):
 			if bpy.context.scene.re_chain_toolpanel.chainCollection:
 				self.targetCollection = bpy.context.scene.re_chain_toolpanel.chainCollection.name
 				if ".chain" in self.targetCollection:#Remove blender suffix after .mesh if it exists
-					self.filepath = self.targetCollection.split(".chain2")[0]+".chain2" + self.filename_ext
+					self.filepath = self.targetCollection.split(".chain")[0]+".chain2" + self.filename_ext
 					
 				
 		if context.scene.get("REChainLastImportedChain2Version",0) in supportedChainVersions:
