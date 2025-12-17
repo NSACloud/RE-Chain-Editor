@@ -1,7 +1,7 @@
 bl_info = {
 	"name": "RE Chain Editor",
 	"author": "NSA Cloud, alphaZomega",
-	"version": (12, 0),
+	"version": (12, 1),
 	"blender": (3, 1, 2),
 	"location": "File > Import-Export",
 	"description": "Import and export RE Engine chain files.",
@@ -168,7 +168,7 @@ class ImportREChain(bpy.types.Operator, ImportHelper):
 		return {'RUNNING_MODAL'}
 
 supportedChainVersions = set([55,54,53,48,52,39,46,24,44,21])		
-supportedChain2Versions = set([4,9,12,13])
+supportedChain2Versions = set([4,9,12,13,14])
 def update_targetChainCollection(self,context):
 	temp = bpy.data.screens.get("temp")
 	browserSpace = None
@@ -493,9 +493,9 @@ class ExportREChain2(bpy.types.Operator, ExportHelper):
 		description="Set which game to export the chain for",
 		items=[ (".4", "Dragon's Dogma 2", "Dragon's Dogma 2"),
 				(".9", "Dead Rising", "Dead Rising"),
-				(".13", "Monster Hunter Wilds", "Monster Hunter Wilds"),
+				(".14", "Monster Hunter Wilds", "Monster Hunter Wilds"),
 			   ],
-		default = ".13"
+		default = ".14"
 		)
 	targetCollection : StringProperty(
 	   name = "",
@@ -514,7 +514,10 @@ class ExportREChain2(bpy.types.Operator, ExportHelper):
 		if context.scene.get("REChainLastImportedChain2Version",0) in supportedChainVersions:
 			if context.scene["REChainLastImportedChain2Version"] == 12:
 				#MH Wilds beta fix
-				context.scene["REChainLastImportedChain2Version"] = 13
+				context.scene["REChainLastImportedChain2Version"] = 14
+			if context.scene["REChainLastImportedChain2Version"] == 13:
+				#MH Wilds TU4 fix
+				context.scene["REChainLastImportedChain2Version"] = 14
 			self.filename_ext = "."+str(context.scene["REChainLastImportedChain2Version"])
 		context.window_manager.fileselect_add(self)
 		return {'RUNNING_MODAL'}

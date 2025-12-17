@@ -1,6 +1,6 @@
 ![REChainEditorTitle](https://github.com/NSACloud/RE-Chain-Editor/assets/46909075/e74f6ac0-e7c7-4f26-94af-0cf1ff9e95ee)
 
-**V12.0 (12/15/2025)**
+**V12.1 (12/17/2025)**
 
 [Change Log](https://github.com/NSACloud/RE-Chain-Editor?tab=readme-ov-file#change-log)
 
@@ -20,6 +20,9 @@ Also supports collision shape (.clsp) files.
 
 
 ## Change Log
+
+### V12.1 - 12/17/2025
+* Updated MH Wilds chain2 version to 14.
 
 ### V12.0 - 12/15/2025
 * Added Pragmata support.
