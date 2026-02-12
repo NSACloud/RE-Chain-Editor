@@ -1,7 +1,7 @@
 bl_info = {
 	"name": "RE Chain Editor",
 	"author": "NSA Cloud, alphaZomega",
-	"version": (12, 1),
+	"version": (13, 0),
 	"blender": (3, 1, 2),
 	"location": "File > Import-Export",
 	"description": "Import and export RE Engine chain files.",
@@ -168,7 +168,7 @@ class ImportREChain(bpy.types.Operator, ImportHelper):
 		return {'RUNNING_MODAL'}
 
 supportedChainVersions = set([55,54,53,48,52,39,46,24,44,21])		
-supportedChain2Versions = set([4,9,12,13,14])
+supportedChain2Versions = set([4,9,12,13,14,15])
 def update_targetChainCollection(self,context):
 	temp = bpy.data.screens.get("temp")
 	browserSpace = None
@@ -494,6 +494,7 @@ class ExportREChain2(bpy.types.Operator, ExportHelper):
 		items=[ (".4", "Dragon's Dogma 2", "Dragon's Dogma 2"),
 				(".9", "Dead Rising", "Dead Rising"),
 				(".14", "Monster Hunter Wilds", "Monster Hunter Wilds"),
+				(".15", "Monster Hunter Stories 3", "Monster Hunter Stories 3"),
 			   ],
 		default = ".14"
 		)

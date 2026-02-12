@@ -966,6 +966,14 @@ class WM_OT_AlignChainsToBones(Operator):
 		self.report({"INFO"},"Aligned chain objects to bones.")
 		return {'FINISHED'}
 
+def hasChildNode(obj):
+	result = False
+	for child in obj.children:
+		if child.get("TYPE",None) == "RE_CHAIN_NODE":
+			result = True
+			break
+	return result
+
 class WM_OT_AlignFrames(Operator):
 	bl_label = "Align Angle Limits to Next Node"
 	bl_idname = "re_chain.align_frames"
@@ -982,7 +990,7 @@ class WM_OT_AlignFrames(Operator):
 						if childObject.get("TYPE",None) == "RE_CHAIN_NODE":		
 							currentNode = childObject
 							currentNodeObjList = [childObject]
-							while len(currentNode.children) > 1:
+							while hasChildNode(currentNode):
 								for child in currentNode.children:
 									if child.get("TYPE",None) == "RE_CHAIN_NODE":
 										currentNodeObjList.append(child)
@@ -998,7 +1006,7 @@ class WM_OT_AlignFrames(Operator):
 							if childObject.get("TYPE",None) == "RE_CHAIN_NODE":		
 								currentNode = childObject
 								currentNodeObjList = [childObject]
-								while len(currentNode.children) > 1:
+								while hasChildNode(currentNode):
 									for child in currentNode.children:
 										if child.get("TYPE",None) == "RE_CHAIN_NODE":
 											currentNodeObjList.append(child)

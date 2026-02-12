@@ -5,9 +5,10 @@ from .gen_functions import textColors,raiseWarning,raiseError,getPaddingAmount,g
 
 VERSION_DD2 = 4
 VERSION_DR = 9
-VERSION_MHWILDS = 12
+VERSION_MHWILDS = 12#Beta
+VERSION_MHS3 = 15
 
-supportedVersionSet = set([4,9,12,13,14])
+supportedVersionSet = set([4,9,12,13,14,15])
 
 #---CHAIN STRUCTS---#
 class SIZE_DATA():

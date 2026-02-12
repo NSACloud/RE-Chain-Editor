@@ -1,6 +1,7 @@
+
 ![REChainEditorTitle](https://github.com/NSACloud/RE-Chain-Editor/assets/46909075/e74f6ac0-e7c7-4f26-94af-0cf1ff9e95ee)
 
-**V12.1 (12/17/2025)**
+**V13.0 (2/11/2026)**
 
 [Change Log](https://github.com/NSACloud/RE-Chain-Editor?tab=readme-ov-file#change-log)
 
@@ -20,6 +21,10 @@ Also supports collision shape (.clsp) files.
 
 
 ## Change Log
+
+### V13.0 - 2/6/2026
+* Added Monster Hunter Stories 3 support.
+* Fixed issue where Blender would get stuck if Align Angle Limits to Next Node was run on a chain group that has a jiggle node on the last chain node.
 
 ### V12.1 - 12/17/2025
 * Updated MH Wilds chain2 version to 14.
