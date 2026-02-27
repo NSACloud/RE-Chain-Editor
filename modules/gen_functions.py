@@ -1,9 +1,14 @@
 #Author: NSA Cloud
-#V3
+#V7
 import os
 import struct
 import glob
 from pathlib import Path
+import platform
+import unicodedata
+import re
+import subprocess
+
 #---General Functions---#
 os.system("color")#Enable console colors
 class textColors:
@@ -61,7 +66,7 @@ def read_double(file_object, endian = '<'):
      return data
 #read null terminated string from file
 def read_string(file_object):
-     data =''.join(iter(lambda: file_object.read(1).decode('ascii'), '\x00'))
+     data =''.join(iter(lambda: file_object.read(1).decode('utf-8'), '\x00'))
      return data
 def read_unicode_string(file_object):#Reads unicode string from file into utf-8 string
 	wchar = file_object.read(2)
@@ -200,18 +205,93 @@ def splitNativesPath(filePath):#Splits file path of RE Engine natives/platform f
 	path = Path(filePath)	
 	parts = path.parts
 	try:
-		nativesIndex = parts.index("natives")
-		rootPath = str(Path(*parts[:nativesIndex+2]))#stage\m01\a02\m01a02_iwa.mesh.2109148288
-		nativesPath = str(Path(*parts[nativesIndex+2::]))#F:\MHR_EXTRACT\extract\re_chunk_000\natives\STM
-		return (rootPath,nativesPath)
+		if "natives" in filePath.lower():
+			nativesIndex = next((i for i, part in enumerate(parts) if part.lower() == "natives"), None)
+			rootPath = str(Path(*parts[:nativesIndex+2]))#stage\m01\a02\m01a02_iwa.mesh.2109148288
+			nativesPath = str(Path(*parts[nativesIndex+2::]))#F:\MHR_EXTRACT\extract\re_chunk_000\natives\STM
+			return (rootPath,nativesPath)
+		else:
+			return None
 	except:
 		return None
 	
 def getAdjacentFileVersion(rootPath,fileType):
 	fileVersion = -1
-	search = wildCardFileSearch(os.path.join(rootPath,"*"+fileType+"*"))
+	search = wildCardFileSearch(os.path.join(glob.escape(rootPath),"*"+fileType+"*"))
 	if search != None:
 		versionExtension = os.path.splitext(search)[1][1::]
 		if versionExtension.isdigit():
 			fileVersion = int(versionExtension)
 	return fileVersion
+
+def progressBar(iterable, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
+    """
+    Call in a loop to create terminal progress bar
+    @params:
+        iterable    - Required  : iterable object (Iterable)
+        prefix      - Optional  : prefix string (Str)
+        suffix      - Optional  : suffix string (Str)
+        decimals    - Optional  : positive number of decimals in percent complete (Int)
+        length      - Optional  : character length of bar (Int)
+        fill        - Optional  : bar fill character (Str)
+        printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
+    """
+    total = len(iterable)
+    # Progress Bar Printing Function
+    def printProgressBar (iteration):
+        percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+        filledLength = int(length * iteration // total)
+        bar = fill * filledLength + '-' * (length - filledLength)
+        print(f'\r{prefix} |{bar}| {percent}% {suffix}', end = printEnd)
+    # Initial Call
+    printProgressBar(0)
+    # Update Progress Bar
+    for i, item in enumerate(iterable):
+        yield item
+        printProgressBar(i + 1)
+    # Print New Line on Complete
+    print()
+	
+
+IS_WINDOWS = platform.system() == 'Windows'
+def resolvePath(pathString):
+	if IS_WINDOWS:
+		return pathString
+	else:#Fix issues related to case sensitive paths on linux, doesn't matter on windows
+		newPath = pathString.replace("/",os.sep).replace("\\",os.sep)
+		if not os.path.isfile(newPath):#Lower case the path in case the pak list is lowercased
+			newPath = newPath.lower()
+			return newPath
+	
+def splitInt64(value):#Takes int64 and converts to 2 int32's
+	return struct.unpack("ii", value.to_bytes(8, "little", signed=False))
+
+def concatInt(a, b):#Combines two int values into a int64
+	return (a << 32) | b
+
+def slugify(value, allow_unicode=False):
+    """
+    Convert to ASCII if 'allow_unicode' is False. Convert spaces or repeated
+    dashes to single dashes. Remove characters that aren't alphanumerics,
+    underscores, or hyphens. Also strip leading and
+    trailing whitespace, dashes, and underscores.
+    """
+    value = str(value)
+    if allow_unicode:
+        value = unicodedata.normalize("NFKC", value)
+    else:
+        value = (
+            unicodedata.normalize("NFKD", value)
+            .encode("ascii", "ignore")
+            .decode("ascii")
+        )
+    value = re.sub(r"[^\w\s-]", "", value)
+    return re.sub(r"[-\s]+", "_", value).strip("-_")
+
+def openFolder(path):
+    if platform.system() == "Windows":
+        os.startfile(path)
+    elif platform.system() == "Darwin":
+        subprocess.Popen(["open", path])
+    else:
+        subprocess.Popen(["xdg-open", path])

@@ -1,7 +1,7 @@
 
 ![REChainEditorTitle](https://github.com/NSACloud/RE-Chain-Editor/assets/46909075/e74f6ac0-e7c7-4f26-94af-0cf1ff9e95ee)
 
-**V13.0 (2/11/2026)**
+**V14.0 (2/27/2026)**
 
 [Change Log](https://github.com/NSACloud/RE-Chain-Editor?tab=readme-ov-file#change-log)
 
@@ -21,6 +21,10 @@ Also supports collision shape (.clsp) files.
 
 
 ## Change Log
+
+### V14.0 - 2/27/2026
+* Added Resident Evil 9 support.
+* When using Align Bone Tails to Axis, roll will automatically be set to 0.
 
 ### V13.0 - 2/6/2026
 * Added Monster Hunter Stories 3 support.

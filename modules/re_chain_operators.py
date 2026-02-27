@@ -1545,6 +1545,7 @@ class WM_OT_AlignBoneTailsToAxis(Operator):
 			boneLength = editBone.length
 			tailAddVector = Vector((boneLength,boneLength,boneLength)) * alignVector
 			armature.data.edit_bones[bone.name].tail = editBone.head + tailAddVector
+			armature.data.edit_bones[bone.name].roll = 0
 		bpy.ops.object.mode_set(mode="POSE")#Switch back to pose mode after finished editing bones
 		self.report({"INFO"},"Aligned bone tails to axis.")
 		return {'FINISHED'}

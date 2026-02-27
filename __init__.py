@@ -1,7 +1,7 @@
 bl_info = {
 	"name": "RE Chain Editor",
 	"author": "NSA Cloud, alphaZomega",
-	"version": (13, 0),
+	"version": (14, 0),
 	"blender": (3, 1, 2),
 	"location": "File > Import-Export",
 	"description": "Import and export RE Engine chain files.",
@@ -494,7 +494,7 @@ class ExportREChain2(bpy.types.Operator, ExportHelper):
 		items=[ (".4", "Dragon's Dogma 2", "Dragon's Dogma 2"),
 				(".9", "Dead Rising", "Dead Rising"),
 				(".14", "Monster Hunter Wilds", "Monster Hunter Wilds"),
-				(".15", "Monster Hunter Stories 3", "Monster Hunter Stories 3"),
+				(".15", "Resident Evil 9 / Monster Hunter Stories 3", "Resident Evil 9 / Monster Hunter Stories 3"),
 			   ],
 		default = ".14"
 		)
